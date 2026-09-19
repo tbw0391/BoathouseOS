@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/database.types";
+import { AddMemberForm } from "./AddMemberForm";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -12,6 +13,10 @@ const ROLE_LABELS: Record<Profile["role"], string> = {
 
 export default async function RosterPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -19,6 +24,8 @@ export default async function RosterPage() {
     .order("display_name", { ascending: true });
 
   const profiles = (data as Profile[] | null) ?? [];
+  const currentProfile = profiles.find((p) => p.id === user?.id);
+  const canManage = currentProfile?.role === "admin" || currentProfile?.role === "coach";
 
   return (
     <div className="min-h-screen p-8">
@@ -29,6 +36,8 @@ export default async function RosterPage() {
         <h1 className="text-2xl font-bold">Roster</h1>
         <span className="text-sm text-gray-500">{profiles.length} members</span>
       </div>
+
+      {canManage && <AddMemberForm />}
 
       {error && (
         <p className="text-sm text-red-600 mt-4">
