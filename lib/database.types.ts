@@ -25,6 +25,8 @@ export interface Profile {
   photo_url: string | null;
   birthday: string | null;
   team: Team | null;
+  erg_2k_time: string | null;
+  erg_5k_time: string | null;
 }
 
 export type EventType = 'practice' | 'regatta' | 'meeting' | 'other';

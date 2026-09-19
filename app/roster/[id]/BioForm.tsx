@@ -165,6 +165,22 @@ export function BioForm({ profile }: { profile: Profile }) {
         ))}
       </select>
 
+      <label className="text-sm font-medium">2K erg time</label>
+      <input
+        name="erg_2k_time"
+        placeholder="e.g. 6:45.2"
+        defaultValue={profile.erg_2k_time ?? ""}
+        className="border rounded px-3 py-2 text-sm"
+      />
+
+      <label className="text-sm font-medium">5K erg time</label>
+      <input
+        name="erg_5k_time"
+        placeholder="e.g. 18:20.5"
+        defaultValue={profile.erg_5k_time ?? ""}
+        className="border rounded px-3 py-2 text-sm"
+      />
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="flex gap-2">
