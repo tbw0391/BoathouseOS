@@ -4,6 +4,7 @@ const sections = [
   { href: "/roster", label: "Roster" },
   { href: "/schedule", label: "Schedule" },
   { href: "/lineups", label: "Lineups" },
+  { href: "/workouts", label: "Workouts" },
   { href: "/volunteer", label: "Volunteer Needs" },
   { href: "/store", label: "Team Store" },
   { href: "/messages", label: "Messages" },

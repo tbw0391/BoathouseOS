@@ -25,6 +25,9 @@
 - [ ] Sign up for a volunteer slot
 - [ ] Track slots filled vs. needed
 
+## Workouts
+- [ ] Content TBD (button/route scaffolded, waiting on requirements)
+
 ## Team store
 - [ ] Admin-editable link (club_settings.team_store_url)
 - [ ] Store page that just links out
