@@ -27,6 +27,7 @@ export interface Profile {
   team: Team | null;
   erg_2k_time: string | null;
   erg_5k_time: string | null;
+  is_board_member: boolean;
 }
 
 export type EventType = 'practice' | 'regatta' | 'meeting' | 'other';

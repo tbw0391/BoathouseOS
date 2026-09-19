@@ -70,3 +70,32 @@ export async function updateBio(profileId: string, formData: FormData) {
   revalidatePath(`/roster/${profileId}`);
   revalidatePath("/roster");
 }
+
+export async function setBoardMember(profileId: string, isBoardMember: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const callerRole = (callerProfile as { role: string } | null)?.role;
+  if (callerRole !== "admin") {
+    throw new Error("Only admins can set board membership.");
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ is_board_member: isBoardMember })
+    .eq("id", profileId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/roster/${profileId}`);
+  revalidatePath("/roster");
+}

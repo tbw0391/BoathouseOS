@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/database.types";
 import { BioForm } from "./BioForm";
+import { BoardMemberToggle } from "./BoardMemberToggle";
 import { TEAM_LABELS } from "@/lib/teams";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -47,6 +48,7 @@ export default async function BioPage({
   const callerRole = (callerData as { role: string } | null)?.role;
   const isSelf = user?.id === profile.id;
   const canEdit = isSelf || callerRole === "admin" || callerRole === "coach";
+  const isCallerAdmin = callerRole === "admin";
 
   if (edit === "1" && canEdit) {
     return (
@@ -84,16 +86,22 @@ export default async function BioPage({
           <p className="text-sm text-gray-500">
             {ROLE_LABELS[profile.role]}
             {profile.team && ` · ${TEAM_LABELS[profile.team]}`}
+            {profile.is_board_member && " · Board Member"}
           </p>
         </div>
-        {canEdit && (
-          <Link
-            href={`/roster/${id}?edit=1`}
-            className="ml-auto text-sm bg-black text-white rounded px-3 py-2"
-          >
-            Edit
-          </Link>
-        )}
+        <div className="ml-auto flex flex-col items-end gap-2">
+          {canEdit && (
+            <Link
+              href={`/roster/${id}?edit=1`}
+              className="text-sm bg-black text-white rounded px-3 py-2"
+            >
+              Edit
+            </Link>
+          )}
+          {isCallerAdmin && (
+            <BoardMemberToggle profileId={profile.id} initialValue={profile.is_board_member} />
+          )}
+        </div>
       </div>
 
       <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm max-w-md">
