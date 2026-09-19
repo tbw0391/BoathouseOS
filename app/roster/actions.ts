@@ -24,14 +24,16 @@ export async function addMember(formData: FormData) {
   }
 
   const email = String(formData.get("email") ?? "").trim();
-  const displayName = String(formData.get("display_name") ?? "").trim();
+  const firstName = String(formData.get("first_name") ?? "").trim();
+  const lastName = String(formData.get("last_name") ?? "").trim();
+  const displayName = `${firstName} ${lastName}`.trim();
   const role = String(formData.get("role") ?? "rower") as Role;
   const boatSideRaw = String(formData.get("boat_side") ?? "");
   const boatSide = (boatSideRaw || null) as BoatSide | null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
 
-  if (!email || !displayName) {
-    throw new Error("Name and email are required.");
+  if (!email || !firstName || !lastName) {
+    throw new Error("First name, last name, and email are required.");
   }
 
   const admin = createAdminClient();
@@ -49,6 +51,8 @@ export async function addMember(formData: FormData) {
     id: linkData.user.id,
     email,
     display_name: displayName,
+    first_name: firstName,
+    last_name: lastName,
     role,
     boat_side: boatSide,
     phone,

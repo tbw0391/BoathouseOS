@@ -64,8 +64,14 @@ export function AddMemberForm() {
       </div>
 
       <input
-        name="display_name"
-        placeholder="Full name"
+        name="first_name"
+        placeholder="First name"
+        required
+        className="border rounded px-3 py-2 text-sm"
+      />
+      <input
+        name="last_name"
+        placeholder="Last name"
         required
         className="border rounded px-3 py-2 text-sm"
       />

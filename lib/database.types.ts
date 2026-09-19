@@ -15,6 +15,14 @@ export interface Profile {
   weight_lbs: number | null;
   disabled_at: string | null;
   created_at: string;
+  first_name: string | null;
+  last_name: string | null;
+  address: string | null;
+  high_school: string | null;
+  grad_year: number | null;
+  fun_fact: string | null;
+  photo_url: string | null;
+  birthday: string | null;
 }
 
 export type EventType = 'practice' | 'regatta' | 'meeting' | 'other';
