@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/database.types";
 import { updateBio } from "./actions";
+import { TEAM_LABELS, TEAM_OPTIONS } from "@/lib/teams";
 
 export function BioForm({ profile }: { profile: Profile }) {
   const router = useRouter();
@@ -148,6 +149,20 @@ export function BioForm({ profile }: { profile: Profile }) {
         <option value="port">Port</option>
         <option value="starboard">Starboard</option>
         <option value="either">Either</option>
+      </select>
+
+      <label className="text-sm font-medium">Team</label>
+      <select
+        name="team"
+        defaultValue={profile.team ?? ""}
+        className="border rounded px-3 py-2 text-sm"
+      >
+        <option value="">No team</option>
+        {TEAM_OPTIONS.map((team) => (
+          <option key={team} value={team}>
+            {TEAM_LABELS[team]}
+          </option>
+        ))}
       </select>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

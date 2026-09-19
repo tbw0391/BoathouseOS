@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { BoatSide } from "@/lib/database.types";
+import type { BoatSide, Team } from "@/lib/database.types";
 
 export async function updateBio(profileId: string, formData: FormData) {
   const supabase = await createClient();
@@ -35,6 +35,8 @@ export async function updateBio(profileId: string, formData: FormData) {
   const birthday = String(formData.get("birthday") ?? "").trim() || null;
   const boatSideRaw = String(formData.get("boat_side") ?? "");
   const boatSide = (boatSideRaw || null) as BoatSide | null;
+  const teamRaw = String(formData.get("team") ?? "");
+  const team = (teamRaw || null) as Team | null;
   const photoUrl = String(formData.get("photo_url") ?? "").trim() || null;
 
   if (!firstName || !lastName) {
@@ -54,6 +56,7 @@ export async function updateBio(profileId: string, formData: FormData) {
       fun_fact: funFact,
       birthday,
       boat_side: boatSide,
+      team,
       photo_url: photoUrl,
     })
     .eq("id", profileId);

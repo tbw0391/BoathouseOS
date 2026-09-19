@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/database.types";
 import { AddMemberForm } from "./AddMemberForm";
+import { TEAM_LABELS } from "@/lib/teams";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -56,6 +57,7 @@ export default async function RosterPage() {
               <tr className="text-left border-b">
                 <th className="py-2 pr-4">Name</th>
                 <th className="py-2 pr-4">Role</th>
+                <th className="py-2 pr-4">Team</th>
                 <th className="py-2 pr-4">Side</th>
                 <th className="py-2 pr-4">Phone</th>
                 <th className="py-2 pr-4">Email</th>
@@ -70,6 +72,7 @@ export default async function RosterPage() {
                     </Link>
                   </td>
                   <td className="py-2 pr-4">{ROLE_LABELS[p.role]}</td>
+                  <td className="py-2 pr-4">{p.team ? TEAM_LABELS[p.team] : "—"}</td>
                   <td className="py-2 pr-4 capitalize">{p.boat_side ?? "—"}</td>
                   <td className="py-2 pr-4">{p.phone ?? "—"}</td>
                   <td className="py-2 pr-4">{p.email}</td>

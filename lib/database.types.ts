@@ -4,6 +4,7 @@
 
 export type Role = 'rower' | 'coach' | 'coxswain' | 'parent' | 'admin';
 export type BoatSide = 'port' | 'starboard' | 'either';
+export type Team = 'mens' | 'womens' | 'development' | 'masters' | 'alumni' | 'coach' | 'parent';
 
 export interface Profile {
   id: string;
@@ -23,6 +24,7 @@ export interface Profile {
   fun_fact: string | null;
   photo_url: string | null;
   birthday: string | null;
+  team: Team | null;
 }
 
 export type EventType = 'practice' | 'regatta' | 'meeting' | 'other';

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { addMember } from "./actions";
+import { TEAM_LABELS, TEAM_OPTIONS } from "@/lib/teams";
 
 export function AddMemberForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -94,6 +95,14 @@ export function AddMemberForm() {
         <option value="port">Port</option>
         <option value="starboard">Starboard</option>
         <option value="either">Either</option>
+      </select>
+      <select name="team" defaultValue="" className="border rounded px-3 py-2 text-sm">
+        <option value="">No team</option>
+        {TEAM_OPTIONS.map((team) => (
+          <option key={team} value={team}>
+            {TEAM_LABELS[team]}
+          </option>
+        ))}
       </select>
       <input
         name="phone"

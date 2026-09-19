@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Role, BoatSide } from "@/lib/database.types";
+import type { Role, BoatSide, Team } from "@/lib/database.types";
 
 export async function addMember(formData: FormData) {
   const supabase = await createClient();
@@ -30,6 +30,8 @@ export async function addMember(formData: FormData) {
   const role = String(formData.get("role") ?? "rower") as Role;
   const boatSideRaw = String(formData.get("boat_side") ?? "");
   const boatSide = (boatSideRaw || null) as BoatSide | null;
+  const teamRaw = String(formData.get("team") ?? "");
+  const team = (teamRaw || null) as Team | null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
 
   if (!email || !firstName || !lastName) {
@@ -55,6 +57,7 @@ export async function addMember(formData: FormData) {
     last_name: lastName,
     role,
     boat_side: boatSide,
+    team,
     phone,
   });
 

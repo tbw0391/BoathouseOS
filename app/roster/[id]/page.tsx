@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/database.types";
 import { BioForm } from "./BioForm";
+import { TEAM_LABELS } from "@/lib/teams";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -80,7 +81,10 @@ export default async function BioPage({
         )}
         <div>
           <h1 className="text-2xl font-bold">{profile.display_name}</h1>
-          <p className="text-sm text-gray-500">{ROLE_LABELS[profile.role]}</p>
+          <p className="text-sm text-gray-500">
+            {ROLE_LABELS[profile.role]}
+            {profile.team && ` · ${TEAM_LABELS[profile.team]}`}
+          </p>
         </div>
         {canEdit && (
           <Link
