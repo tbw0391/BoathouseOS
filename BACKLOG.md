@@ -2,8 +2,10 @@
 
 ## Roster
 - [x] Read-only roster list (name, role, boat side, phone, email)
-- [ ] Add member form (admin/coach)
-- [ ] Edit member profile
+- [x] Add member form (admin/coach)
+- [x] Bio page per member (address, phone, birthday, high school, grad year,
+      fun fact, photo, 2K/5K erg time, team, board member flag)
+- [x] Edit member profile (self, or coach/admin)
 - [ ] Disable/remove member
 - [ ] Signup flow so new members can self-register (currently accounts are created manually in Supabase)
 
@@ -32,6 +34,12 @@
 - [ ] Send/receive messages in a group
 - [ ] Unread counts
 - [ ] Direct messages
+- [ ] Auto-add members to the matching team message group when their team
+      changes (e.g. added to Men's -> auto-joined to Men's group chat)
+
+## Banners
+- [ ] Birthday banner (show on a member's birthday)
+- [ ] New PR banner (celebrate a new 2K/5K erg PR)
 
 ## Infra / cross-cutting
 - [ ] Real app icons (replace placeholder "WC" PNGs) — club branding/logo
