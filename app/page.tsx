@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
+import { parseStoreItems } from "@/lib/storeItems";
 
 const sections = [
   { href: "/roster", label: "Roster", icon: Users },
@@ -19,7 +20,6 @@ const sections = [
   { href: "/workouts", label: "Workouts", icon: Dumbbell },
   { href: "/food-tent", label: "Food Tent", icon: Tent },
   { href: "/volunteer", label: "Volunteer Needs", icon: HelpingHand },
-  { href: "/store", label: "Team Store", icon: ShoppingBag },
   { href: "/messages", label: "Messages", icon: MessageCircle },
 ];
 
@@ -28,6 +28,16 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const { data: settingsData } = await supabase
+    .from("club_settings")
+    .select("key, value")
+    .in("key", ["team_store_url", "team_store_featured_items"]);
+  const settingsByKey = new Map(
+    ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
+  );
+  const storeUrl = settingsByKey.get("team_store_url") ?? null;
+  const featuredItems = parseStoreItems(settingsByKey.get("team_store_featured_items") ?? null);
 
   let banners: { title: string; quantity: number; eventTitle: string; eventDate: string }[] = [];
 
@@ -89,6 +99,47 @@ export default async function Home() {
               {b.eventTitle} ({b.eventDate})
             </div>
           ))}
+        </div>
+      )}
+
+      {storeUrl && (
+        <div className="w-full max-w-md rounded-xl border-2 border-[#022e5d] overflow-hidden">
+          <a
+            href={storeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 bg-[#022e5d] text-white px-5 py-4 hover:bg-[#01213f] transition-colors"
+          >
+            <ShoppingBag className="w-7 h-7 shrink-0" />
+            <div>
+              <p className="text-lg font-bold leading-tight">Team Store</p>
+              <p className="text-sm text-white/80">Shop official Westerville Crew gear →</p>
+            </div>
+          </a>
+          {featuredItems.length > 0 && (
+            <div className="grid grid-cols-2 gap-px bg-[#022e5d]/20">
+              {featuredItems.slice(0, 4).map((item) => (
+                <a
+                  key={item.url}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white p-3 hover:bg-gray-50 transition-colors"
+                >
+                  {item.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.image_url}
+                      alt={item.title}
+                      className="w-full h-20 object-cover rounded mb-2"
+                    />
+                  )}
+                  <p className="text-sm font-medium leading-tight">{item.title}</p>
+                  {item.price && <p className="text-xs text-gray-500 mt-0.5">{item.price}</p>}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

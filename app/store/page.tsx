@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { parseStoreItems } from "@/lib/storeItems";
 import { StoreLinkForm } from "./StoreLinkForm";
+import { FeaturedItemsForm } from "./FeaturedItemsForm";
 
 export default async function StorePage({
   searchParams,
@@ -23,13 +25,16 @@ export default async function StorePage({
 
   const isAdmin = (callerProfile as { role: string } | null)?.role === "admin";
 
-  const { data: setting } = await supabase
+  const { data: settings } = await supabase
     .from("club_settings")
-    .select("value")
-    .eq("key", "team_store_url")
-    .single();
+    .select("key, value")
+    .in("key", ["team_store_url", "team_store_featured_items"]);
 
-  const storeUrl = (setting as { value: string | null } | null)?.value ?? null;
+  const settingsByKey = new Map(
+    ((settings as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
+  );
+  const storeUrl = settingsByKey.get("team_store_url") ?? null;
+  const featuredItems = parseStoreItems(settingsByKey.get("team_store_featured_items") ?? null);
 
   if (storeUrl && edit !== "1") {
     redirect(storeUrl);
@@ -45,7 +50,10 @@ export default async function StorePage({
       {!storeUrl && <p className="text-sm text-gray-500 mt-2">No store link set yet.</p>}
 
       {isAdmin ? (
-        <StoreLinkForm currentUrl={storeUrl} />
+        <>
+          <StoreLinkForm currentUrl={storeUrl} />
+          <FeaturedItemsForm currentItems={featuredItems} />
+        </>
       ) : (
         !storeUrl && <p className="text-sm text-gray-500 mt-2">Check back soon.</p>
       )}
