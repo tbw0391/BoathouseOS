@@ -7,7 +7,10 @@
       fun fact, photo, 2K/5K erg time, team, board member flag)
 - [x] Edit member profile (self, or coach/admin)
 - [ ] Disable/remove member
-- [ ] Signup flow so new members can self-register (currently accounts are created manually in Supabase)
+- [x] Signup flow so new members can self-register (/signup: name, email,
+      password, role (rower/coxswain/parent), and groups)
+- [x] QR code button (roster page, admin/coach only) that shows a scannable
+      link to the signup page for recruiting new members
 - [ ] Role-specific profile view: parents, coaches, board members, and rowers
       each see different buttons/actions on their profile (buttons TBD per role)
 
