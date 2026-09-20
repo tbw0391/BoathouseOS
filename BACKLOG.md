@@ -32,6 +32,11 @@
 ## Race Results
 - [ ] Mark a race final as finished with a placement (1st/2nd/3rd) once results are posted
 - [ ] Show a regatta icon with a medal (1st/2nd/3rd) on the schedule once a race final we're in has finished
+- [ ] Notify people when a Westerville boat is actually racing down the course
+      (live, while the race is happening) — depends on push notifications
+      (PWA) being built first; also need to decide the trigger: someone at
+      the course manually marks "racing now" vs. pulling from a live regatta
+      timing feed, if the regatta provides one
 
 ## Lineups
 - [ ] Create a lineup for an event (boat name, boat class)
