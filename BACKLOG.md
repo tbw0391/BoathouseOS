@@ -103,7 +103,11 @@
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
 - [ ] Nav bar / bottom tab bar instead of home-page button grid once there are more screens
 - [ ] Role-based UI (hide admin-only actions from rowers/parents)
-- [ ] Push notifications for new messages / schedule changes (PWA)
+- [x] In-app unread indicators: home page badges for unread messages and for
+      new schedule events since you last checked (step 1 toward real push
+      notifications)
+- [ ] Real push notifications (phone alert even when the app is closed) for
+      new messages / schedule changes (PWA) — step 2, once ready
 - [ ] Deploy (Vercel) + point a real domain
 
 ## Safe Sport compliance
