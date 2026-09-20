@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/database.types";
 import { AddMemberForm } from "./AddMemberForm";
+import { ImportForm } from "./ImportForm";
 import { TEAM_LABELS } from "@/lib/teams";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -38,7 +39,12 @@ export default async function RosterPage() {
         <span className="text-sm text-gray-500">{profiles.length} members</span>
       </div>
 
-      {canManage && <AddMemberForm />}
+      {canManage && (
+        <div className="flex flex-wrap items-start gap-2">
+          <AddMemberForm />
+          <ImportForm />
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-red-600 mt-4">

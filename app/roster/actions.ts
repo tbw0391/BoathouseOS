@@ -34,11 +34,33 @@ export async function addMember(formData: FormData) {
   const team = (teamRaw || null) as Team | null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
 
+  const createLogin = formData.get("create_login") === "on";
+
   if (!email || !firstName || !lastName) {
     throw new Error("First name, last name, and email are required.");
   }
 
   const admin = createAdminClient();
+
+  if (!createLogin) {
+    const { error: profileError } = await admin.from("profiles").insert({
+      email,
+      display_name: displayName,
+      first_name: firstName,
+      last_name: lastName,
+      role,
+      boat_side: boatSide,
+      team,
+      phone,
+    });
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    revalidatePath("/roster");
+    return { inviteLink: null };
+  }
 
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: "invite",

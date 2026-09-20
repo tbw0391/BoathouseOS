@@ -8,17 +8,20 @@ export function AddMemberForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [justAdded, setJustAdded] = useState(false);
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
     setError(null);
     setInviteLink(null);
+    setJustAdded(false);
     startTransition(async () => {
       try {
         const result = await addMember(formData);
         formRef.current?.reset();
         setInviteLink(result?.inviteLink ?? null);
+        setJustAdded(true);
         setOpen(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -42,6 +45,9 @@ export function AddMemberForm() {
               {inviteLink}
             </a>
           </div>
+        )}
+        {justAdded && !inviteLink && (
+          <p className="text-sm text-green-700">Member added to the roster.</p>
         )}
       </div>
     );
@@ -110,6 +116,11 @@ export function AddMemberForm() {
         className="border rounded px-3 py-2 text-sm"
       />
 
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="create_login" defaultChecked />
+        Create a login for them (sends an invite link to share)
+      </label>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
@@ -117,7 +128,7 @@ export function AddMemberForm() {
         disabled={isPending}
         className="bg-black text-white rounded px-3 py-2 text-sm disabled:opacity-50"
       >
-        {isPending ? "Adding..." : "Send invite"}
+        {isPending ? "Adding..." : "Add member"}
       </button>
     </form>
   );
