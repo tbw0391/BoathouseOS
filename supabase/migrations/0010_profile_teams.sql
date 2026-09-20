@@ -7,10 +7,22 @@ create table if not exists profile_teams (
   primary key (profile_id, team)
 );
 
--- Carry over each profile's existing single team into the new table.
-insert into profile_teams (profile_id, team)
-select id, team from profiles where team is not null
-on conflict do nothing;
+-- Carry over each profile's existing single team into the new table, if
+-- that column happens to exist on this database (some environments never
+-- got the migration that added it).
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'profiles' and column_name = 'team'
+  ) then
+    execute '
+      insert into profile_teams (profile_id, team)
+      select id, team from profiles where team is not null
+      on conflict do nothing
+    ';
+  end if;
+end $$;
 
 -- Coaches oversee the men's, women's, and development squads.
 insert into profile_teams (profile_id, team)
@@ -19,7 +31,7 @@ from profiles, unnest(array['mens', 'womens', 'development']::team[]) as t(team)
 where role = 'coach'
 on conflict do nothing;
 
-alter table profiles drop column team;
+alter table profiles drop column if exists team;
 
 alter table profile_teams enable row level security;
 
