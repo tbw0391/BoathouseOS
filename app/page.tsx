@@ -149,7 +149,7 @@ export default async function Home() {
             Check the lineups
           </Link>
           <Link
-            href="/messages"
+            href={coachChatHref}
             className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
           >
             <MessageCircle className="w-5 h-5 shrink-0" />
@@ -177,10 +177,15 @@ export default async function Home() {
           <Link
             key={s.href}
             href={s.href}
-            className="flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
+            className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
           >
             <s.icon className="w-6 h-6" />
             {s.label}
+            {s.href === "/messages" && unreadCount > 0 && (
+              <span className="absolute top-2 right-2 min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-xs">
+                {unreadCount}
+              </span>
+            )}
           </Link>
         ))}
       </div>
