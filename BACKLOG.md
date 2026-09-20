@@ -105,3 +105,10 @@
 - [ ] Role-based UI (hide admin-only actions from rowers/parents)
 - [ ] Push notifications for new messages / schedule changes (PWA)
 - [ ] Deploy (Vercel) + point a real domain
+
+## Safe Sport compliance
+- [ ] Make the app compliant with US Rowing / Safe Sport requirements —
+      Todd is gathering the specific requirements and will share them.
+      Likely touches messaging (e.g. rules around private adult-minor
+      communication), roster/background-check tracking, and photos; don't
+      guess at requirements, wait for the actual list.

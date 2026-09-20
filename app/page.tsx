@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ChatGroup, FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
 import { getUnreadChatCount } from "@/lib/chat";
+import { getUnreadScheduleCount } from "@/lib/schedule";
 
 const sections = [
   { href: "/roster", label: "Roster", icon: Users },
@@ -46,10 +47,12 @@ export default async function Home() {
   let banners: { title: string; quantity: number; eventTitle: string; eventDate: string }[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
   let unreadCount = 0;
+  let unreadScheduleCount = 0;
   let coachChatHref = "/messages";
 
   if (user) {
     unreadCount = await getUnreadChatCount(user.id);
+    unreadScheduleCount = await getUnreadScheduleCount(user.id);
 
     const { data: coachGroup } = await supabase
       .from("chat_groups")
@@ -173,21 +176,25 @@ export default async function Home() {
       )}
 
       <div className="w-full max-w-md grid grid-cols-2 gap-4">
-        {sections.map((s) => (
-          <Link
-            key={s.href}
-            href={s.href}
-            className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
-          >
-            <s.icon className="w-6 h-6" />
-            {s.label}
-            {s.href === "/messages" && unreadCount > 0 && (
-              <span className="absolute top-2 right-2 min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-xs">
-                {unreadCount}
-              </span>
-            )}
-          </Link>
-        ))}
+        {sections.map((s) => {
+          const badgeCount =
+            s.href === "/messages" ? unreadCount : s.href === "/schedule" ? unreadScheduleCount : 0;
+          return (
+            <Link
+              key={s.href}
+              href={s.href}
+              className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
+            >
+              <s.icon className="w-6 h-6" />
+              {s.label}
+              {badgeCount > 0 && (
+                <span className="absolute top-2 right-2 min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-xs">
+                  {badgeCount}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </div>
 
       {storeUrl && (

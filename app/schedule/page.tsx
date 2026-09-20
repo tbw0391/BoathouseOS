@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Sailboat, Dumbbell } from "lucide-react";
+import { MarkViewed } from "./MarkViewed";
 
 export default function SchedulePage() {
   return (
     <div className="min-h-screen p-8">
+      <MarkViewed />
       <h1 className="text-2xl font-bold mb-6">Schedule</h1>
 
       <div className="grid grid-cols-2 gap-4 max-w-md">

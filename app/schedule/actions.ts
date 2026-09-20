@@ -78,3 +78,15 @@ export async function deleteScheduleEvent(formData: FormData) {
   if (eventType) revalidatePath(`/schedule/${eventType}`);
   revalidatePath("/schedule");
 }
+
+export async function markScheduleViewed() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("schedule_views")
+    .upsert({ user_id: user.id, last_viewed_at: new Date().toISOString() });
+}

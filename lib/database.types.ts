@@ -52,6 +52,11 @@ export interface ScheduleEvent {
   created_at: string;
 }
 
+export interface ScheduleView {
+  user_id: string;
+  last_viewed_at: string;
+}
+
 export type RsvpStatus = 'pending' | 'attending' | 'not_attending';
 
 export interface EventRsvp {
