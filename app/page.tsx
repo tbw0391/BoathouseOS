@@ -112,6 +112,36 @@ export default async function Home() {
         />
       </div>
 
+      {upcomingRegatta && (
+        <div className="w-full max-w-md flex flex-col gap-2">
+          <p className="text-sm font-medium text-gray-600">
+            {upcomingRegatta.title} is coming up on{" "}
+            {new Date(upcomingRegatta.starts_at).toLocaleDateString()} — get ready:
+          </p>
+          <Link
+            href="/food-tent"
+            className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+          >
+            <Tent className="w-5 h-5 shrink-0" />
+            Sign up for the food tent
+          </Link>
+          <Link
+            href="/lineups"
+            className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+          >
+            <Waves className="w-5 h-5 shrink-0" />
+            Check the lineups
+          </Link>
+          <Link
+            href="/messages"
+            className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+          >
+            <MessageCircle className="w-5 h-5 shrink-0" />
+            Read coaches&apos; messages
+          </Link>
+        </div>
+      )}
+
       {banners.length > 0 && (
         <div className="w-full max-w-md flex flex-col gap-2">
           {banners.map((b, i) => (
