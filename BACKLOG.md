@@ -75,11 +75,18 @@
 - [x] Store page that just links out
 
 ## Messaging
-- Decided against building in-app messaging (2026-09-20) — using a separate
-  phone-based group messaging tool for the team instead. The /messages page
-  and home page tile are still just a "Coming soon" placeholder; ask before
-  removing them or wiring the regatta-week banner's "coaches' messages" link
-  elsewhere.
+- [x] Group chat list, with a "New message" flow to start a chat/DM with any
+      combination of people on the roster
+- [x] Send/receive messages in a group, live via Supabase Realtime
+- [x] Unread counts (badge on the home page Messages tile)
+- [x] Direct messages (any user can start a 1:1 chat with any other user)
+- [x] Auto-add members to the matching team group chat when their team
+      changes — one persistent chat group per team (Men's, Women's,
+      Development, Masters, Alumni, Parent, Coach), kept in sync via a DB
+      trigger on profile_teams so it works regardless of which code path
+      changes someone's groups
+- [ ] Board Member chat group (not yet wired up — board membership isn't a
+      profile_teams row, it's the separate is_board_member flag)
 
 ## Banners
 - [ ] Birthday banner (show on a member's birthday)
