@@ -124,3 +124,25 @@
       Likely touches messaging (e.g. rules around private adult-minor
       communication), roster/background-check tracking, and photos; don't
       guess at requirements, wait for the actual list.
+
+## Multi-tenant SaaS (sell to other rowing clubs)
+- [ ] Do this after everything else is configured/stable. Goal: sell this app
+      to 100+ other rowing clubs, each with fully isolated data. Today there
+      is zero tenant isolation (almost every RLS policy is "readable by any
+      authenticated user") since there's only ever been one club.
+- [ ] Phase 1 (schema + RLS isolation only — no branding/onboarding/billing
+      yet) is fully designed and reviewed: a `clubs` table, `club_id` on
+      every table with composite FKs to enforce parent/child consistency, a
+      `current_club_id()` helper mirroring the existing `is_chat_group_member()`
+      pattern, and a full RLS rewrite. Full plan with exact file/policy
+      references saved at ~/.claude/plans/deep-snuggling-kahn.md — read that
+      file before starting, it has the specific gotchas already found
+      (chat_groups' OR-clause policy, the sync_team_chat_membership trigger,
+      club_settings' primary key, storage bucket read-isolation limits, etc.)
+- [ ] Phase 2+ (deferred, not yet designed): dynamic branding/theming per
+      club, self-serve club signup/onboarding (the QR-code invite can encode
+      which club), Stripe billing, a super-admin view to manage clubs.
+- [ ] Pricing model TBD — leaning toward flat monthly/annual fee tiered by
+      roster size (matches how similar tools like TeamSnap/Spond price, and
+      is easy for a volunteer club treasurer to approve) over per-athlete or
+      freemium pricing.
