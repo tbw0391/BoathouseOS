@@ -187,7 +187,7 @@ export function BioForm({ profile }: { profile: Profile }) {
         <button
           type="submit"
           disabled={isPending || uploading}
-          className="bg-black text-white rounded px-3 py-2 text-sm disabled:opacity-50"
+          className="bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 text-sm disabled:opacity-50"
         >
           {isPending ? "Saving..." : "Save"}
         </button>

@@ -32,7 +32,7 @@ export function BoardMemberToggle({
       <button
         onClick={handleToggle}
         disabled={isPending}
-        className="text-sm border rounded px-3 py-2 disabled:opacity-50"
+        className="text-sm border-2 border-[#022e5d] rounded px-3 py-2 disabled:opacity-50"
       >
         {isBoardMember ? "Remove from board" : "Make board member"}
       </button>

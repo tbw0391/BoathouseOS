@@ -23,7 +23,7 @@ export default function Home() {
           <Link
             key={s.href}
             href={s.href}
-            className="flex items-center justify-center text-center rounded-lg border px-4 py-6 font-medium hover:bg-black hover:text-white transition-colors"
+            className="flex items-center justify-center text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
           >
             {s.label}
           </Link>
