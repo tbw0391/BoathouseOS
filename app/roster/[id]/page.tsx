@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/database.types";
 import { BioForm } from "./BioForm";
-import { BoardMemberToggle } from "./BoardMemberToggle";
+import { RoleToggle } from "./RoleToggle";
+import { setBoardMember, setTentLeader } from "./actions";
 import { TEAM_LABELS } from "@/lib/teams";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -87,6 +88,7 @@ export default async function BioPage({
             {ROLE_LABELS[profile.role]}
             {profile.team && ` · ${TEAM_LABELS[profile.team]}`}
             {profile.is_board_member && " · Board Member"}
+            {profile.is_tent_leader && " · Tent Leader"}
           </p>
         </div>
         <div className="ml-auto flex flex-col items-end gap-2">
@@ -99,7 +101,20 @@ export default async function BioPage({
             </Link>
           )}
           {isCallerAdmin && (
-            <BoardMemberToggle profileId={profile.id} initialValue={profile.is_board_member} />
+            <RoleToggle
+              initialValue={profile.is_board_member}
+              onLabel="Make board member"
+              offLabel="Remove from board"
+              onToggle={setBoardMember.bind(null, profile.id)}
+            />
+          )}
+          {isCallerAdmin && (
+            <RoleToggle
+              initialValue={profile.is_tent_leader}
+              onLabel="Make tent leader"
+              offLabel="Remove as tent leader"
+              onToggle={setTentLeader.bind(null, profile.id)}
+            />
           )}
         </div>
       </div>

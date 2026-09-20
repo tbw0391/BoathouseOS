@@ -28,6 +28,7 @@ export interface Profile {
   erg_2k_time: string | null;
   erg_5k_time: string | null;
   is_board_member: boolean;
+  is_tent_leader: boolean;
 }
 
 export type EventType = 'practice' | 'regatta' | 'meeting' | 'other';
@@ -116,4 +117,21 @@ export interface Message {
 export interface ClubSetting {
   key: string;
   value: string | null;
+}
+
+export interface FoodTentItem {
+  id: string;
+  event_id: string;
+  title: string;
+  quantity_needed: number;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface FoodTentSignup {
+  item_id: string;
+  user_id: string;
+  quantity: number;
+  signed_up_at: string;
 }

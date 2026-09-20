@@ -1,26 +1,29 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setBoardMember } from "./actions";
 
-export function BoardMemberToggle({
-  profileId,
+export function RoleToggle({
   initialValue,
+  onLabel,
+  offLabel,
+  onToggle,
 }: {
-  profileId: string;
   initialValue: boolean;
+  onLabel: string;
+  offLabel: string;
+  onToggle: (next: boolean) => Promise<void>;
 }) {
-  const [isBoardMember, setIsBoardMember] = useState(initialValue);
+  const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleToggle() {
-    const next = !isBoardMember;
+    const next = !value;
     setError(null);
     startTransition(async () => {
       try {
-        await setBoardMember(profileId, next);
-        setIsBoardMember(next);
+        await onToggle(next);
+        setValue(next);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -34,7 +37,7 @@ export function BoardMemberToggle({
         disabled={isPending}
         className="text-sm border-2 border-[#022e5d] rounded px-3 py-2 disabled:opacity-50"
       >
-        {isBoardMember ? "Remove from board" : "Make board member"}
+        {value ? offLabel : onLabel}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

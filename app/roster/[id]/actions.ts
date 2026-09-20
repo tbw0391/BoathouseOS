@@ -99,3 +99,32 @@ export async function setBoardMember(profileId: string, isBoardMember: boolean) 
   revalidatePath(`/roster/${profileId}`);
   revalidatePath("/roster");
 }
+
+export async function setTentLeader(profileId: string, isTentLeader: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const callerRole = (callerProfile as { role: string } | null)?.role;
+  if (callerRole !== "admin") {
+    throw new Error("Only admins can set tent leaders.");
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ is_tent_leader: isTentLeader })
+    .eq("id", profileId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/roster/${profileId}`);
+  revalidatePath("/roster");
+}

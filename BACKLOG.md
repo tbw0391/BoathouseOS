@@ -28,9 +28,18 @@
 ## Workouts
 - [ ] Content TBD (button/route scaffolded, waiting on requirements)
 
+## Food Tent
+- [x] Tent leader flag (admin-assignable, separate from role)
+- [x] Signup-genius-style item requests tied to a regatta day
+- [x] Sign up to bring a quantity of an item, cancel your own signup
+- [x] Home page banner listing what you've signed up to bring for
+      upcoming events
+- [ ] Edit/delete an item request (currently add-only)
+- [ ] Delete a regatta day
+
 ## Team store
-- [ ] Admin-editable link (club_settings.team_store_url)
-- [ ] Store page that just links out
+- [x] Admin-editable link (club_settings.team_store_url)
+- [x] Store page that just links out
 
 ## Messaging
 - [ ] Group chat list
