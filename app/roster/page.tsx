@@ -61,6 +61,7 @@ export default async function RosterPage() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="text-left border-b">
+                <th className="py-2 pr-4"></th>
                 <th className="py-2 pr-4">Name</th>
                 <th className="py-2 pr-4">Role</th>
                 <th className="py-2 pr-4">Group</th>
@@ -72,6 +73,22 @@ export default async function RosterPage() {
             <tbody>
               {profiles.map((p) => (
                 <tr key={p.id} className="border-b last:border-0">
+                  <td className="py-2 pr-4">
+                    <Link href={`/roster/${p.id}`}>
+                      {p.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.photo_url}
+                          alt=""
+                          className="w-8 h-8 rounded-full object-cover border"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full border flex items-center justify-center text-[10px] text-gray-400">
+                          —
+                        </div>
+                      )}
+                    </Link>
+                  </td>
                   <td className="py-2 pr-4 font-medium">
                     <Link href={`/roster/${p.id}`} className="hover:underline">
                       {p.display_name}
