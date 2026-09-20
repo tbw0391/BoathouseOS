@@ -151,13 +151,13 @@ export function BioForm({ profile }: { profile: Profile }) {
         <option value="either">Either</option>
       </select>
 
-      <label className="text-sm font-medium">Team</label>
+      <label className="text-sm font-medium">Group</label>
       <select
         name="team"
         defaultValue={profile.team ?? ""}
         className="border rounded px-3 py-2 text-sm"
       >
-        <option value="">No team</option>
+        <option value="">No group</option>
         {TEAM_OPTIONS.map((team) => (
           <option key={team} value={team}>
             {TEAM_LABELS[team]}

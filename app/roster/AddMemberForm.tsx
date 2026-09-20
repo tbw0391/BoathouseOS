@@ -97,7 +97,7 @@ export function AddMemberForm() {
         <option value="either">Either</option>
       </select>
       <select name="team" defaultValue="" className="border rounded px-3 py-2 text-sm">
-        <option value="">No team</option>
+        <option value="">No group</option>
         {TEAM_OPTIONS.map((team) => (
           <option key={team} value={team}>
             {TEAM_LABELS[team]}

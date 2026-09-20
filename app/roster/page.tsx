@@ -57,7 +57,7 @@ export default async function RosterPage() {
               <tr className="text-left border-b">
                 <th className="py-2 pr-4">Name</th>
                 <th className="py-2 pr-4">Role</th>
-                <th className="py-2 pr-4">Team</th>
+                <th className="py-2 pr-4">Group</th>
                 <th className="py-2 pr-4">Side</th>
                 <th className="py-2 pr-4">Phone</th>
                 <th className="py-2 pr-4">Email</th>

@@ -6,7 +6,7 @@ export const TEAM_LABELS: Record<Team, string> = {
   development: "Development",
   masters: "Masters",
   alumni: "Alumni",
-  coach: "Coach",
+  coach: "Coaches",
   parent: "Parent",
 };
 

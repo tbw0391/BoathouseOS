@@ -105,6 +105,9 @@ export default async function BioPage({
       </div>
 
       <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm max-w-md">
+        <dt className="text-gray-500">Group</dt>
+        <dd>{profile.team ? TEAM_LABELS[profile.team] : "—"}</dd>
+
         <dt className="text-gray-500">Email</dt>
         <dd>{profile.email}</dd>
 
