@@ -69,7 +69,17 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
         )}
         {event.location && <p className="mt-1 text-xs text-gray-500">{event.location}</p>}
         {event.description && (
-          <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">{event.description}</p>
+          <div className="mt-2 text-sm text-gray-600">
+            {event.description.split("\n").map((line, i) =>
+              line.trimEnd().endsWith("★") ? (
+                <p key={i} className="rounded bg-yellow-100 px-1 font-semibold text-gray-900">
+                  {line}
+                </p>
+              ) : (
+                <p key={i}>{line || " "}</p>
+              )
+            )}
+          </div>
         )}
         {canManage && (
           <form action={deleteScheduleEvent} className="mt-3 border-t pt-3">
