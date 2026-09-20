@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/lib/database.types";
+import type { Photo, PhotoTag, Profile } from "@/lib/database.types";
 import { BioForm } from "./BioForm";
 import { RoleToggle } from "./RoleToggle";
 import { setBoardMember, setTentLeader } from "./actions";
@@ -50,6 +50,22 @@ export default async function BioPage({
   const isSelf = user?.id === profile.id;
   const canEdit = isSelf || callerRole === "admin" || callerRole === "coach";
   const isCallerAdmin = callerRole === "admin";
+
+  const { data: tagRows } = await supabase
+    .from("photo_tags")
+    .select("photo_id")
+    .eq("profile_id", profile.id);
+  const photoIds = ((tagRows as Pick<PhotoTag, "photo_id">[] | null) ?? []).map((t) => t.photo_id);
+
+  let taggedPhotos: Photo[] = [];
+  if (photoIds.length > 0) {
+    const { data: photosData } = await supabase
+      .from("photos")
+      .select("*")
+      .in("id", photoIds)
+      .order("created_at", { ascending: false });
+    taggedPhotos = (photosData as Photo[] | null) ?? [];
+  }
 
   if (edit === "1" && canEdit) {
     return (
