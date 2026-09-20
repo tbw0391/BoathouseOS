@@ -150,6 +150,9 @@ export default async function BioPage({
         <dt className="text-gray-500">5K time</dt>
         <dd>{profile.erg_5k_time ?? "—"}</dd>
 
+        <dt className="text-gray-500">US Rowing #</dt>
+        <dd>{profile.us_rowing_number ?? "—"}</dd>
+
         <dt className="text-gray-500">Fun fact</dt>
         <dd>{profile.fun_fact ?? "—"}</dd>
       </dl>

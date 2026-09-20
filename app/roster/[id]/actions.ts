@@ -40,6 +40,7 @@ export async function updateBio(profileId: string, formData: FormData) {
   const photoUrl = String(formData.get("photo_url") ?? "").trim() || null;
   const erg2kTime = String(formData.get("erg_2k_time") ?? "").trim() || null;
   const erg5kTime = String(formData.get("erg_5k_time") ?? "").trim() || null;
+  const usRowingNumber = String(formData.get("us_rowing_number") ?? "").trim() || null;
 
   if (!firstName || !lastName) {
     throw new Error("First and last name are required.");
@@ -62,6 +63,7 @@ export async function updateBio(profileId: string, formData: FormData) {
       photo_url: photoUrl,
       erg_2k_time: erg2kTime,
       erg_5k_time: erg5kTime,
+      us_rowing_number: usRowingNumber,
     })
     .eq("id", profileId);
 

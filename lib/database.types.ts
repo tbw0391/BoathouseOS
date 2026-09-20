@@ -29,6 +29,7 @@ export interface Profile {
   erg_5k_time: string | null;
   is_board_member: boolean;
   is_tent_leader: boolean;
+  us_rowing_number: string | null;
 }
 
 export type EventType = 'practice' | 'regatta' | 'meeting' | 'other';

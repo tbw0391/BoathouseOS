@@ -181,6 +181,13 @@ export function BioForm({ profile }: { profile: Profile }) {
         className="border rounded px-3 py-2 text-sm"
       />
 
+      <label className="text-sm font-medium">US Rowing number</label>
+      <input
+        name="us_rowing_number"
+        defaultValue={profile.us_rowing_number ?? ""}
+        className="border rounded px-3 py-2 text-sm"
+      />
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="flex gap-2">
