@@ -25,23 +25,33 @@ export function ChatThread({
     markChatRead(groupId);
 
     const supabase = createClient();
-    const channel = supabase
-      .channel(`messages:${groupId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `group_id=eq.${groupId}` },
-        (payload) => {
-          const message = payload.new as Message;
-          setMessages((prev) => [...prev, message]);
-          if (message.sender_id !== currentUserId) {
-            markChatRead(groupId);
+    let channel: ReturnType<typeof supabase.channel> | undefined;
+
+    // RLS-secured postgres_changes needs the realtime connection's auth token
+    // set explicitly — a freshly created browser client (hydrated from SSR
+    // cookies) doesn't fire the auth event that normally does this, so
+    // without it the subscription silently receives no events.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) supabase.realtime.setAuth(session.access_token);
+
+      channel = supabase
+        .channel(`messages:${groupId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "messages", filter: `group_id=eq.${groupId}` },
+          (payload) => {
+            const message = payload.new as Message;
+            setMessages((prev) => [...prev, message]);
+            if (message.sender_id !== currentUserId) {
+              markChatRead(groupId);
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [groupId, currentUserId]);
 
