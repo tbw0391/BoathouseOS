@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { FoodTentItem, FoodTentSignup, Profile, ScheduleEvent } from "@/lib/database.types";
 import { EventForm } from "./EventForm";
@@ -46,10 +45,7 @@ export default async function FoodTentPage() {
 
   return (
     <div className="min-h-screen p-8">
-      <Link href="/" className="text-sm text-gray-500 hover:underline">
-        ← Home
-      </Link>
-      <h1 className="text-2xl font-bold mt-4 mb-4">Food Tent</h1>
+      <h1 className="text-2xl font-bold mb-4">Food Tent</h1>
 
       {isManager && <EventForm />}
 

@@ -31,10 +31,7 @@ export default async function RosterPage() {
 
   return (
     <div className="min-h-screen p-8">
-      <Link href="/" className="text-sm text-gray-500 hover:underline">
-        ← Home
-      </Link>
-      <div className="flex items-center justify-between mt-4">
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Roster</h1>
         <span className="text-sm text-gray-500">{profiles.length} members</span>
       </div>

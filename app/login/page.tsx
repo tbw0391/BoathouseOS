@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -34,10 +35,14 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm flex flex-col gap-4"
       >
-        <h1 className="text-2xl font-bold text-center">W-Crew-app</h1>
-        <p className="text-sm text-gray-500 text-center">
-          Westerville Rowing Club
-        </p>
+        <Image
+          src="/branding/logo-full.png"
+          alt="Westerville Crew"
+          width={480}
+          height={530}
+          priority
+          className="w-32 h-auto mx-auto"
+        />
 
         <input
           type="email"

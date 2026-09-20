@@ -4,10 +4,7 @@ import { Sailboat, Dumbbell } from "lucide-react";
 export default function SchedulePage() {
   return (
     <div className="min-h-screen p-8">
-      <Link href="/" className="text-sm text-gray-500 hover:underline">
-        ← Home
-      </Link>
-      <h1 className="text-2xl font-bold mt-4 mb-6">Schedule</h1>
+      <h1 className="text-2xl font-bold mb-6">Schedule</h1>
 
       <div className="grid grid-cols-2 gap-4 max-w-md">
         <Link

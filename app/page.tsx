@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   Users,
   Calendar,
@@ -84,8 +85,14 @@ export default async function Home() {
   return (
     <div className="min-h-screen p-8 flex flex-col items-center gap-8">
       <div className="text-center">
-        <h1 className="text-3xl font-bold">W-Crew-app</h1>
-        <p className="text-sm text-gray-500">Westerville Rowing Club</p>
+        <Image
+          src="/branding/logo-full.png"
+          alt="Westerville Crew"
+          width={480}
+          height={530}
+          priority
+          className="w-40 h-auto mx-auto"
+        />
       </div>
 
       {banners.length > 0 && (

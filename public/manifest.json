@@ -4,8 +4,8 @@
   "description": "Westerville Rowing Club — roster, schedule, lineups, volunteers, and messaging.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#022e5d",
+  "theme_color": "#022e5d",
   "icons": [
     {
       "src": "/icons/icon-192.png",

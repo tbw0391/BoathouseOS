@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { parseStoreItems } from "@/lib/storeItems";
@@ -42,10 +41,7 @@ export default async function StorePage({
 
   return (
     <div className="min-h-screen p-8">
-      <Link href="/" className="text-sm text-gray-500 hover:underline">
-        ← Home
-      </Link>
-      <h1 className="text-2xl font-bold mt-4">Team Store</h1>
+      <h1 className="text-2xl font-bold">Team Store</h1>
 
       {!storeUrl && <p className="text-sm text-gray-500 mt-2">No store link set yet.</p>}
 
