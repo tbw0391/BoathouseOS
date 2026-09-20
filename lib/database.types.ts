@@ -161,3 +161,13 @@ export interface PhotoTag {
   tagged_by: string | null;
   created_at: string;
 }
+
+export type SuggestionStatus = 'new' | 'reviewed';
+
+export interface Suggestion {
+  id: string;
+  submitted_by: string | null;
+  body: string;
+  status: SuggestionStatus;
+  created_at: string;
+}
