@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Camera,
   Lightbulb,
+  ListTodo,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatGroup, FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
@@ -51,10 +52,18 @@ export default async function Home() {
   let unreadCount = 0;
   let unreadScheduleCount = 0;
   let coachChatHref = "/messages";
+  let isAdmin = false;
 
   if (user) {
     unreadCount = await getUnreadChatCount(user.id);
     unreadScheduleCount = await getUnreadScheduleCount(user.id);
+
+    const { data: callerData } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    isAdmin = (callerData as { role: string } | null)?.role === "admin";
 
     const { data: coachGroup } = await supabase
       .from("chat_groups")
@@ -178,7 +187,7 @@ export default async function Home() {
       )}
 
       <div className="w-full max-w-md grid grid-cols-2 gap-4">
-        {sections.map((s) => {
+        {(isAdmin ? [...sections, { href: "/todo", label: "To-do List", icon: ListTodo }] : sections).map((s) => {
           const badgeCount =
             s.href === "/messages" ? unreadCount : s.href === "/schedule" ? unreadScheduleCount : 0;
           return (
