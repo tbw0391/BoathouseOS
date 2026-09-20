@@ -156,6 +156,19 @@ export default async function Home() {
         </div>
       )}
 
+      <div className="w-full max-w-md grid grid-cols-2 gap-4">
+        {sections.map((s) => (
+          <Link
+            key={s.href}
+            href={s.href}
+            className="flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
+          >
+            <s.icon className="w-6 h-6" />
+            {s.label}
+          </Link>
+        ))}
+      </div>
+
       {storeUrl && (
         <div className="w-full max-w-md rounded-xl border-2 border-[#022e5d] overflow-hidden">
           <a
@@ -196,19 +209,6 @@ export default async function Home() {
           )}
         </div>
       )}
-
-      <div className="w-full max-w-md grid grid-cols-2 gap-4">
-        {sections.map((s) => (
-          <Link
-            key={s.href}
-            href={s.href}
-            className="flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
-          >
-            <s.icon className="w-6 h-6" />
-            {s.label}
-          </Link>
-        ))}
-      </div>
     </div>
   );
 }
