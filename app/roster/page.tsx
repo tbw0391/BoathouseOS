@@ -23,12 +23,12 @@ export default async function RosterPage() {
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
-    .is("disabled_at", null)
     .order("display_name", { ascending: true });
 
-  const profiles = (data as Profile[] | null) ?? [];
-  const currentProfile = profiles.find((p) => p.id === user?.id);
+  const allProfiles = (data as Profile[] | null) ?? [];
+  const currentProfile = allProfiles.find((p) => p.id === user?.id);
   const canManage = currentProfile?.role === "admin" || currentProfile?.role === "coach";
+  const profiles = canManage ? allProfiles : allProfiles.filter((p) => !p.disabled_at);
 
   const { data: teamRows } = await supabase.from("profile_teams").select("*");
   const teamsByProfile = new Map<string, ProfileTeam["team"][]>();
@@ -42,7 +42,9 @@ export default async function RosterPage() {
     <div className="min-h-screen p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Roster</h1>
-        <span className="text-sm text-gray-500">{profiles.length} members</span>
+        <span className="text-sm text-gray-500">
+          {profiles.filter((p) => !p.disabled_at).length} members
+        </span>
       </div>
 
       {canManage && (
@@ -79,7 +81,10 @@ export default async function RosterPage() {
             </thead>
             <tbody>
               {profiles.map((p) => (
-                <tr key={p.id} className="border-b last:border-0">
+                <tr
+                  key={p.id}
+                  className={`border-b last:border-0 ${p.disabled_at ? "opacity-50" : ""}`}
+                >
                   <td className="py-2 pr-4">
                     <Link href={`/roster/${p.id}`}>
                       {p.photo_url ? (
@@ -100,6 +105,9 @@ export default async function RosterPage() {
                     <Link href={`/roster/${p.id}`} className="hover:underline">
                       {p.display_name}
                     </Link>
+                    {p.disabled_at && (
+                      <span className="ml-2 text-xs text-red-600 font-normal">Removed</span>
+                    )}
                   </td>
                   <td className="py-2 pr-4">{ROLE_LABELS[p.role]}</td>
                   <td className="py-2 pr-4">

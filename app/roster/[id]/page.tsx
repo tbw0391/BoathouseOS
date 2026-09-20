@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { Photo, PhotoTag, Profile, ProfileTeam } from "@/lib/database.types";
 import { BioForm } from "./BioForm";
 import { RoleToggle } from "./RoleToggle";
-import { setBoardMember, setTentLeader } from "./actions";
+import { RemoveMemberButton } from "./RemoveMemberButton";
+import { setBoardMember, setTentLeader, setRemoved } from "./actions";
 import { TEAM_LABELS } from "@/lib/teams";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -56,6 +57,7 @@ export default async function BioPage({
   const isSelf = user?.id === profile.id;
   const canEdit = isSelf || callerRole === "admin" || callerRole === "coach";
   const isCallerAdmin = callerRole === "admin";
+  const canRemove = !isSelf && (callerRole === "admin" || callerRole === "coach");
 
   const { data: tagRows } = await supabase
     .from("photo_tags")
@@ -138,8 +140,22 @@ export default async function BioPage({
               onToggle={setTentLeader.bind(null, profile.id)}
             />
           )}
+          {canRemove && (
+            <RemoveMemberButton
+              name={profile.display_name}
+              isRemoved={profile.disabled_at !== null}
+              onToggle={setRemoved.bind(null, profile.id)}
+            />
+          )}
         </div>
       </div>
+
+      {profile.disabled_at && (
+        <p className="mt-4 text-sm text-red-600">
+          This person was removed from the roster on{" "}
+          {new Date(profile.disabled_at).toLocaleDateString()}.
+        </p>
+      )}
 
       <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm max-w-md">
         <dt className="text-gray-500">Group</dt>

@@ -113,6 +113,39 @@ export async function setBoardMember(profileId: string, isBoardMember: boolean) 
   revalidatePath("/roster");
 }
 
+export async function setRemoved(profileId: string, removed: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  if (user.id === profileId) {
+    throw new Error("You can't remove yourself from the roster.");
+  }
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const callerRole = (callerProfile as { role: string } | null)?.role;
+  if (callerRole !== "admin" && callerRole !== "coach") {
+    throw new Error("Only coaches and admins can remove members.");
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ disabled_at: removed ? new Date().toISOString() : null })
+    .eq("id", profileId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/roster/${profileId}`);
+  revalidatePath("/roster");
+}
+
 export async function setTentLeader(profileId: string, isTentLeader: boolean) {
   const supabase = await createClient();
   const {

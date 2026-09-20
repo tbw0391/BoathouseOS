@@ -6,7 +6,9 @@
 - [x] Bio page per member (address, phone, birthday, high school, grad year,
       fun fact, photo, 2K/5K erg time, team, board member flag)
 - [x] Edit member profile (self, or coach/admin)
-- [ ] Disable/remove member
+- [x] Disable/remove member (soft delete: "Remove from roster" on a profile
+      hides them from the roster and count; admin/coach can restore anytime,
+      no data is actually deleted)
 - [x] Signup flow so new members can self-register (/signup: name, email,
       password, role (rower/coxswain/parent), and groups)
 - [x] QR code button (roster page, admin/coach only) that shows a scannable
@@ -69,7 +71,12 @@
 
 ## Banners
 - [ ] Birthday banner (show on a member's birthday)
-- [ ] New PR banner (celebrate a new 2K/5K erg PR)
+- [ ] New PR banner: when a rower enters a 2K/5K erg time that's faster than
+      their previous best for that distance, it counts as a new personal
+      record and that person sees a congrats banner on their own home page
+      (note: erg times are currently a single overwritable field per profile
+      with no history, so this needs an erg-time-log table to detect "faster
+      than previous" rather than just "changed")
 - [ ] Regatta-week popup banners, starting the week before a regatta:
       food tent request reminder, lineups reminder, coaches' messages reminder
 
