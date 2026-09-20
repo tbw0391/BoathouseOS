@@ -49,6 +49,9 @@
       upcoming events
 - [ ] Edit/delete an item request (currently add-only)
 - [ ] Delete a regatta day
+- [ ] Master food tent item list: kitchen/tent leader enters the full list of
+      typical items once, then for a new regatta just picks/checks which ones
+      to request instead of retyping items from scratch every time
 
 ## Photos
 - [x] Anyone can post a photo (top-left camera icon on every page, plus a
