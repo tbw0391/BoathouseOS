@@ -109,6 +109,14 @@
 - [ ] Real push notifications (phone alert even when the app is closed) for
       new messages / schedule changes (PWA) — step 2, once ready
 - [ ] Deploy (Vercel) + point a real domain
+- [x] Admin-only "To-do List" tile (/todo) that reads and renders this
+      BACKLOG.md file right in the app, so Todd doesn't have to open the repo
+
+## Suggestions
+- [x] Suggestion box: anyone can submit an idea from a "Suggestions" tile on
+      the home page
+- [x] Coaches/admins see all submitted suggestions, can mark them reviewed
+      or delete them once acted on (e.g. added to this backlog)
 
 ## Safe Sport compliance
 - [ ] Make the app compliant with US Rowing / Safe Sport requirements —
