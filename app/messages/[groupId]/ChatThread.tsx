@@ -25,33 +25,40 @@ export function ChatThread({
     markChatRead(groupId);
 
     const supabase = createClient();
-    let channel: ReturnType<typeof supabase.channel> | undefined;
+    let cancelled = false;
+
+    // Create and register callbacks synchronously so the cleanup function
+    // below always has a real channel to remove — if that were deferred
+    // until after an awaited call, React Strict Mode's dev-time double
+    // effect invocation could run cleanup before the channel existed,
+    // leaving a stale subscribed channel with the same topic behind (which
+    // then throws "cannot add postgres_changes callbacks after subscribe()"
+    // on the next mount).
+    const channel = supabase.channel(`messages:${groupId}`).on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages", filter: `group_id=eq.${groupId}` },
+      (payload) => {
+        const message = payload.new as Message;
+        setMessages((prev) => [...prev, message]);
+        if (message.sender_id !== currentUserId) {
+          markChatRead(groupId);
+        }
+      }
+    );
 
     // RLS-secured postgres_changes needs the realtime connection's auth token
     // set explicitly — a freshly created browser client (hydrated from SSR
     // cookies) doesn't fire the auth event that normally does this, so
     // without it the subscription silently receives no events.
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
       if (session) supabase.realtime.setAuth(session.access_token);
-
-      channel = supabase
-        .channel(`messages:${groupId}`)
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "messages", filter: `group_id=eq.${groupId}` },
-          (payload) => {
-            const message = payload.new as Message;
-            setMessages((prev) => [...prev, message]);
-            if (message.sender_id !== currentUserId) {
-              markChatRead(groupId);
-            }
-          }
-        )
-        .subscribe();
+      channel.subscribe();
     });
 
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      cancelled = true;
+      supabase.removeChannel(channel);
     };
   }, [groupId, currentUserId]);
 
