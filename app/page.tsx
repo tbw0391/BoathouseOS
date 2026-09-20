@@ -9,6 +9,7 @@ import {
   HelpingHand,
   ShoppingBag,
   MessageCircle,
+  Camera,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
@@ -21,6 +22,7 @@ const sections = [
   { href: "/workouts", label: "Workouts", icon: Dumbbell },
   { href: "/food-tent", label: "Food Tent", icon: Tent },
   { href: "/volunteer", label: "Volunteer Needs", icon: HelpingHand },
+  { href: "/photos", label: "Photos", icon: Camera },
   { href: "/messages", label: "Messages", icon: MessageCircle },
 ];
 
