@@ -10,6 +10,7 @@ import {
   ShoppingBag,
   MessageCircle,
   Camera,
+  Lightbulb,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatGroup, FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
@@ -26,6 +27,7 @@ const sections = [
   { href: "/volunteer", label: "Volunteer Needs", icon: HelpingHand },
   { href: "/photos", label: "Photos", icon: Camera },
   { href: "/messages", label: "Messages", icon: MessageCircle },
+  { href: "/suggestions", label: "Suggestions", icon: Lightbulb },
 ];
 
 export default async function Home() {
