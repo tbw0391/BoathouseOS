@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/lib/database.types";
+import type { Profile, ProfileTeam } from "@/lib/database.types";
 import { AddMemberForm } from "./AddMemberForm";
 import { ImportForm } from "./ImportForm";
 import { TEAM_LABELS } from "@/lib/teams";
@@ -28,6 +28,14 @@ export default async function RosterPage() {
   const profiles = (data as Profile[] | null) ?? [];
   const currentProfile = profiles.find((p) => p.id === user?.id);
   const canManage = currentProfile?.role === "admin" || currentProfile?.role === "coach";
+
+  const { data: teamRows } = await supabase.from("profile_teams").select("*");
+  const teamsByProfile = new Map<string, ProfileTeam["team"][]>();
+  for (const row of (teamRows as ProfileTeam[] | null) ?? []) {
+    const existing = teamsByProfile.get(row.profile_id) ?? [];
+    existing.push(row.team);
+    teamsByProfile.set(row.profile_id, existing);
+  }
 
   return (
     <div className="min-h-screen p-8">
@@ -92,7 +100,9 @@ export default async function RosterPage() {
                     </Link>
                   </td>
                   <td className="py-2 pr-4">{ROLE_LABELS[p.role]}</td>
-                  <td className="py-2 pr-4">{p.team ? TEAM_LABELS[p.team] : "—"}</td>
+                  <td className="py-2 pr-4">
+                    {(teamsByProfile.get(p.id) ?? []).map((t) => TEAM_LABELS[t]).join(", ") || "—"}
+                  </td>
                   <td className="py-2 pr-4 capitalize">{p.boat_side ?? "—"}</td>
                   <td className="py-2 pr-4">{p.phone ?? "—"}</td>
                   <td className="py-2 pr-4">{p.email}</td>

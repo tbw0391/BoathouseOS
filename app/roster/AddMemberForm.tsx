@@ -102,14 +102,17 @@ export function AddMemberForm() {
         <option value="starboard">Starboard</option>
         <option value="either">Either</option>
       </select>
-      <select name="team" defaultValue="" className="border rounded px-3 py-2 text-sm">
-        <option value="">No group</option>
-        {TEAM_OPTIONS.map((team) => (
-          <option key={team} value={team}>
-            {TEAM_LABELS[team]}
-          </option>
-        ))}
-      </select>
+      <div className="flex flex-col gap-1">
+        <span className="text-sm text-gray-500">Groups</span>
+        <div className="flex flex-wrap gap-3">
+          {TEAM_OPTIONS.map((team) => (
+            <label key={team} className="flex items-center gap-1 text-sm">
+              <input type="checkbox" name="team" value={team} />
+              {TEAM_LABELS[team]}
+            </label>
+          ))}
+        </div>
+      </div>
       <input
         name="phone"
         placeholder="Phone (optional)"

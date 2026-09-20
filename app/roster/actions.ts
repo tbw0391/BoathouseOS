@@ -30,8 +30,7 @@ export async function addMember(formData: FormData) {
   const role = String(formData.get("role") ?? "rower") as Role;
   const boatSideRaw = String(formData.get("boat_side") ?? "");
   const boatSide = (boatSideRaw || null) as BoatSide | null;
-  const teamRaw = String(formData.get("team") ?? "");
-  const team = (teamRaw || null) as Team | null;
+  const teams = formData.getAll("team") as Team[];
   const phone = String(formData.get("phone") ?? "").trim() || null;
 
   const createLogin = formData.get("create_login") === "on";
@@ -43,19 +42,29 @@ export async function addMember(formData: FormData) {
   const admin = createAdminClient();
 
   if (!createLogin) {
-    const { error: profileError } = await admin.from("profiles").insert({
-      email,
-      display_name: displayName,
-      first_name: firstName,
-      last_name: lastName,
-      role,
-      boat_side: boatSide,
-      team,
-      phone,
-    });
+    const { data: inserted, error: profileError } = await admin
+      .from("profiles")
+      .insert({
+        email,
+        display_name: displayName,
+        first_name: firstName,
+        last_name: lastName,
+        role,
+        boat_side: boatSide,
+        phone,
+      })
+      .select("id")
+      .single();
 
     if (profileError) {
       throw new Error(profileError.message);
+    }
+
+    if (teams.length > 0) {
+      const { error: teamsError } = await admin
+        .from("profile_teams")
+        .insert(teams.map((team) => ({ profile_id: inserted.id, team })));
+      if (teamsError) throw new Error(teamsError.message);
     }
 
     revalidatePath("/roster");
@@ -79,12 +88,18 @@ export async function addMember(formData: FormData) {
     last_name: lastName,
     role,
     boat_side: boatSide,
-    team,
     phone,
   });
 
   if (profileError) {
     throw new Error(profileError.message);
+  }
+
+  if (teams.length > 0) {
+    const { error: teamsError } = await admin
+      .from("profile_teams")
+      .insert(teams.map((team) => ({ profile_id: linkData.user.id, team })));
+    if (teamsError) throw new Error(teamsError.message);
   }
 
   revalidatePath("/roster");

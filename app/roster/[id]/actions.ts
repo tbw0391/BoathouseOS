@@ -35,8 +35,7 @@ export async function updateBio(profileId: string, formData: FormData) {
   const birthday = String(formData.get("birthday") ?? "").trim() || null;
   const boatSideRaw = String(formData.get("boat_side") ?? "");
   const boatSide = (boatSideRaw || null) as BoatSide | null;
-  const teamRaw = String(formData.get("team") ?? "");
-  const team = (teamRaw || null) as Team | null;
+  const teams = formData.getAll("team") as Team[];
   const photoUrl = String(formData.get("photo_url") ?? "").trim() || null;
   const erg2kTime = String(formData.get("erg_2k_time") ?? "").trim() || null;
   const erg5kTime = String(formData.get("erg_5k_time") ?? "").trim() || null;
@@ -59,7 +58,6 @@ export async function updateBio(profileId: string, formData: FormData) {
       fun_fact: funFact,
       birthday,
       boat_side: boatSide,
-      team,
       photo_url: photoUrl,
       erg_2k_time: erg2kTime,
       erg_5k_time: erg5kTime,
@@ -68,6 +66,19 @@ export async function updateBio(profileId: string, formData: FormData) {
     .eq("id", profileId);
 
   if (error) throw new Error(error.message);
+
+  const { error: deleteTeamsError } = await supabase
+    .from("profile_teams")
+    .delete()
+    .eq("profile_id", profileId);
+  if (deleteTeamsError) throw new Error(deleteTeamsError.message);
+
+  if (teams.length > 0) {
+    const { error: teamsError } = await supabase
+      .from("profile_teams")
+      .insert(teams.map((team) => ({ profile_id: profileId, team })));
+    if (teamsError) throw new Error(teamsError.message);
+  }
 
   revalidatePath(`/roster/${profileId}`);
   revalidatePath("/roster");

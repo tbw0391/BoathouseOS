@@ -46,6 +46,7 @@ export async function importMembers(rows: ImportRow[]) {
   }
 
   const toInsert: Record<string, unknown>[] = [];
+  const teamsToInsert: Team[][] = [];
   const rowErrors: string[] = [];
 
   rows.forEach((row, i) => {
@@ -65,10 +66,17 @@ export async function importMembers(rows: ImportRow[]) {
       rowErrors.push(`${rowLabel}: unknown role "${row.role}", defaulted to rower.`);
     }
 
-    const teamRaw = String(row.team ?? "").trim().toLowerCase();
-    const team = VALID_TEAMS.includes(teamRaw as Team) ? (teamRaw as Team) : null;
-    if (row.team && !team) {
-      rowErrors.push(`${rowLabel}: unknown group "${row.team}", left blank.`);
+    const teamTokens = String(row.team ?? "")
+      .split(/[,;]/)
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    const teams: Team[] = [];
+    for (const token of teamTokens) {
+      if (VALID_TEAMS.includes(token as Team)) {
+        teams.push(token as Team);
+      } else {
+        rowErrors.push(`${rowLabel}: unknown group "${token}", skipped.`);
+      }
     }
 
     const boatSideRaw = String(row.boat_side ?? "").trim().toLowerCase();
@@ -82,10 +90,10 @@ export async function importMembers(rows: ImportRow[]) {
       display_name: `${firstName} ${lastName}`.trim(),
       email,
       role,
-      team,
       boat_side: boatSide,
       phone: String(row.phone ?? "").trim() || null,
     });
+    teamsToInsert.push(teams);
   });
 
   if (toInsert.length === 0) {
@@ -97,6 +105,14 @@ export async function importMembers(rows: ImportRow[]) {
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  const profileTeamRows = (data ?? []).flatMap((profile, i) =>
+    teamsToInsert[i].map((team) => ({ profile_id: profile.id, team }))
+  );
+  if (profileTeamRows.length > 0) {
+    const { error: teamsError } = await admin.from("profile_teams").insert(profileTeamRows);
+    if (teamsError) throw new Error(teamsError.message);
   }
 
   revalidatePath("/roster");

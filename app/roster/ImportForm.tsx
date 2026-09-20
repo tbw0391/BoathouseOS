@@ -85,10 +85,11 @@ export function ImportForm() {
 
       <p className="text-sm text-gray-500">
         Columns expected (case-insensitive): First Name, Last Name, Email,
-        Role, Group, Boat Side, Phone. Only First Name, Last Name, and Email
-        are required. Imported members are added to the roster without a
-        login — use &quot;Add member&quot; individually if you need to send
-        them an invite.
+        Role, Group, Boat Side, Phone. Group can list more than one, separated
+        by commas (e.g. &quot;mens, womens&quot;) for people on multiple
+        squads. Only First Name, Last Name, and Email are required. Imported
+        members are added to the roster without a login — use &quot;Add
+        member&quot; individually if you need to send them an invite.
       </p>
 
       <input

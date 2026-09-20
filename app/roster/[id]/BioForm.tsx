@@ -6,8 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/database.types";
 import { updateBio } from "./actions";
 import { TEAM_LABELS, TEAM_OPTIONS } from "@/lib/teams";
+import type { Team } from "@/lib/database.types";
 
-export function BioForm({ profile }: { profile: Profile }) {
+export function BioForm({ profile, teams }: { profile: Profile; teams: Team[] }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState(profile.photo_url ?? "");
@@ -151,19 +152,20 @@ export function BioForm({ profile }: { profile: Profile }) {
         <option value="either">Either</option>
       </select>
 
-      <label className="text-sm font-medium">Group</label>
-      <select
-        name="team"
-        defaultValue={profile.team ?? ""}
-        className="border rounded px-3 py-2 text-sm"
-      >
-        <option value="">No group</option>
+      <label className="text-sm font-medium">Groups</label>
+      <div className="flex flex-wrap gap-3">
         {TEAM_OPTIONS.map((team) => (
-          <option key={team} value={team}>
+          <label key={team} className="flex items-center gap-1 text-sm">
+            <input
+              type="checkbox"
+              name="team"
+              value={team}
+              defaultChecked={teams.includes(team)}
+            />
             {TEAM_LABELS[team]}
-          </option>
+          </label>
         ))}
-      </select>
+      </div>
 
       <label className="text-sm font-medium">2K erg time</label>
       <input

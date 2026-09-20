@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Photo, PhotoTag, Profile } from "@/lib/database.types";
+import type { Photo, PhotoTag, Profile, ProfileTeam } from "@/lib/database.types";
 import { BioForm } from "./BioForm";
 import { RoleToggle } from "./RoleToggle";
 import { setBoardMember, setTentLeader } from "./actions";
@@ -40,6 +40,12 @@ export default async function BioPage({
 
   const profile = data as Profile;
 
+  const { data: teamRows } = await supabase
+    .from("profile_teams")
+    .select("team")
+    .eq("profile_id", profile.id);
+  const teams = ((teamRows as Pick<ProfileTeam, "team">[] | null) ?? []).map((t) => t.team);
+
   const { data: callerData } = await supabase
     .from("profiles")
     .select("role")
@@ -74,7 +80,7 @@ export default async function BioPage({
           ← Back
         </Link>
         <h1 className="text-2xl font-bold mt-4 mb-4">Edit bio</h1>
-        <BioForm profile={profile} />
+        <BioForm profile={profile} teams={teams} />
       </div>
     );
   }
@@ -102,7 +108,7 @@ export default async function BioPage({
           <h1 className="text-2xl font-bold">{profile.display_name}</h1>
           <p className="text-sm text-gray-500">
             {ROLE_LABELS[profile.role]}
-            {profile.team && ` · ${TEAM_LABELS[profile.team]}`}
+            {teams.length > 0 && ` · ${teams.map((t) => TEAM_LABELS[t]).join(", ")}`}
             {profile.is_board_member && " · Board Member"}
             {profile.is_tent_leader && " · Tent Leader"}
           </p>
@@ -137,7 +143,7 @@ export default async function BioPage({
 
       <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm max-w-md">
         <dt className="text-gray-500">Group</dt>
-        <dd>{profile.team ? TEAM_LABELS[profile.team] : "—"}</dd>
+        <dd>{teams.length > 0 ? teams.map((t) => TEAM_LABELS[t]).join(", ") : "—"}</dd>
 
         <dt className="text-gray-500">Email</dt>
         <dd>{profile.email}</dd>

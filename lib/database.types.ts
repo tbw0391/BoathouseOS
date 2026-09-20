@@ -24,12 +24,16 @@ export interface Profile {
   fun_fact: string | null;
   photo_url: string | null;
   birthday: string | null;
-  team: Team | null;
   erg_2k_time: string | null;
   erg_5k_time: string | null;
   is_board_member: boolean;
   is_tent_leader: boolean;
   us_rowing_number: string | null;
+}
+
+export interface ProfileTeam {
+  profile_id: string;
+  team: Team;
 }
 
 export type EventType = 'practice' | 'regatta' | 'meeting' | 'other';
