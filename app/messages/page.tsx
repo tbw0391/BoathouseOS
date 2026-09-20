@@ -1,8 +1,97 @@
-export default function MessagesPage() {
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import type { ChatGroup, ChatGroupMember, Message, Profile } from "@/lib/database.types";
+import { NewChatForm } from "./NewChatForm";
+
+export default async function MessagesPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: membershipData } = await supabase
+    .from("chat_group_members")
+    .select("group_id, last_read_at")
+    .eq("user_id", user.id);
+  const memberships =
+    (membershipData as Pick<ChatGroupMember, "group_id" | "last_read_at">[] | null) ?? [];
+
+  const groupIds = memberships.map((m) => m.group_id);
+
+  let groups: ChatGroup[] = [];
+  const latestByGroup = new Map<string, Message>();
+  if (groupIds.length > 0) {
+    const { data: groupsData } = await supabase
+      .from("chat_groups")
+      .select("*")
+      .in("id", groupIds);
+    groups = (groupsData as ChatGroup[] | null) ?? [];
+
+    const { data: messagesData } = await supabase
+      .from("messages")
+      .select("*")
+      .in("group_id", groupIds)
+      .order("created_at", { ascending: false });
+    for (const m of (messagesData as Message[] | null) ?? []) {
+      if (!latestByGroup.has(m.group_id)) latestByGroup.set(m.group_id, m);
+    }
+  }
+
+  const lastReadByGroup = new Map(memberships.map((m) => [m.group_id, m.last_read_at]));
+
+  groups.sort((a, b) => {
+    const aTime = latestByGroup.get(a.id)?.created_at ?? a.created_at;
+    const bTime = latestByGroup.get(b.id)?.created_at ?? b.created_at;
+    return new Date(bTime).getTime() - new Date(aTime).getTime();
+  });
+
+  const { data: othersData } = await supabase
+    .from("profiles")
+    .select("*")
+    .is("disabled_at", null)
+    .neq("id", user.id)
+    .order("display_name", { ascending: true });
+  const others = (othersData as Profile[] | null) ?? [];
+
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold">Messages</h1>
-      <p className="text-sm text-gray-500 mt-2">Coming soon.</p>
+
+      <div className="mt-4">
+        <NewChatForm others={others} />
+      </div>
+
+      {groups.length === 0 && (
+        <p className="text-sm text-gray-500 mt-6">No conversations yet.</p>
+      )}
+
+      {groups.length > 0 && (
+        <div className="mt-6 flex flex-col gap-1 max-w-md">
+          {groups.map((g) => {
+            const latest = latestByGroup.get(g.id);
+            const lastRead = lastReadByGroup.get(g.id);
+            const unread = latest && (!lastRead || new Date(latest.created_at) > new Date(lastRead)) && latest.sender_id !== user.id;
+            return (
+              <Link
+                key={g.id}
+                href={`/messages/${g.id}`}
+                className="flex items-center justify-between gap-3 rounded-lg border-2 border-[#022e5d] px-4 py-3 hover:bg-[#404040] hover:text-white transition-colors"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{g.name}</p>
+                  {latest && (
+                    <p className="text-xs opacity-70 truncate">{latest.body}</p>
+                  )}
+                </div>
+                {unread && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0" />
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

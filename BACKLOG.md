@@ -13,6 +13,11 @@
       password, role (rower/coxswain/parent), and groups)
 - [x] QR code button (roster page, admin/coach only) that shows a scannable
       link to the signup page for recruiting new members
+- [x] Self-selectable groups at signup and profile edit: Men's, Women's,
+      Development, Alumni, Masters, Parent — pick any combination, editable
+      later. Board Member intentionally excluded from self-select (2026-09-20
+      decision: admin assigns it via the existing profile-page toggle, not
+      something people pick for themselves)
 - [ ] Role-specific profile view: parents, coaches, board members, and rowers
       each see different buttons/actions on their profile (buttons TBD per role)
 
@@ -65,12 +70,11 @@
 - [x] Store page that just links out
 
 ## Messaging
-- [ ] Group chat list
-- [ ] Send/receive messages in a group
-- [ ] Unread counts
-- [ ] Direct messages
-- [ ] Auto-add members to the matching team message group when their team
-      changes (e.g. added to Men's -> auto-joined to Men's group chat)
+- Decided against building in-app messaging (2026-09-20) — using a separate
+  phone-based group messaging tool for the team instead. The /messages page
+  and home page tile are still just a "Coming soon" placeholder; ask before
+  removing them or wiring the regatta-week banner's "coaches' messages" link
+  elsewhere.
 
 ## Banners
 - [ ] Birthday banner (show on a member's birthday)

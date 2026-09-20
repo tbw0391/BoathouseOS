@@ -101,6 +101,7 @@ export interface ChatGroup {
   id: string;
   name: string;
   is_direct: boolean;
+  team: Team | null;
   created_by: string | null;
   created_at: string;
 }

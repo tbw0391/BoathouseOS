@@ -12,8 +12,9 @@ import {
   Camera,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
+import type { ChatGroup, FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
+import { getUnreadChatCount } from "@/lib/chat";
 
 const sections = [
   { href: "/roster", label: "Roster", icon: Users },
@@ -44,6 +45,21 @@ export default async function Home() {
 
   let banners: { title: string; quantity: number; eventTitle: string; eventDate: string }[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
+  let unreadCount = 0;
+  let coachChatHref = "/messages";
+
+  if (user) {
+    unreadCount = await getUnreadChatCount(user.id);
+
+    const { data: coachGroup } = await supabase
+      .from("chat_groups")
+      .select("id")
+      .eq("team", "coach")
+      .maybeSingle();
+    if ((coachGroup as Pick<ChatGroup, "id"> | null)?.id) {
+      coachChatHref = `/messages/${(coachGroup as Pick<ChatGroup, "id">).id}`;
+    }
+  }
 
   if (user) {
     const now = new Date();
