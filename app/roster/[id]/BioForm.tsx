@@ -60,10 +60,10 @@ export function BioForm({ profile }: { profile: Profile }) {
           <img
             src={photoUrl}
             alt=""
-            className="w-20 h-20 rounded-full object-cover border"
+            className="w-32 h-32 rounded-full object-cover border"
           />
         ) : (
-          <div className="w-20 h-20 rounded-full border flex items-center justify-center text-xs text-gray-400">
+          <div className="w-32 h-32 rounded-full border flex items-center justify-center text-xs text-gray-400">
             No photo
           </div>
         )}

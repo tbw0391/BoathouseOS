@@ -74,10 +74,10 @@ export default async function BioPage({
           <img
             src={profile.photo_url}
             alt=""
-            className="w-24 h-24 rounded-full object-cover border"
+            className="w-40 h-40 rounded-full object-cover border"
           />
         ) : (
-          <div className="w-24 h-24 rounded-full border flex items-center justify-center text-xs text-gray-400">
+          <div className="w-40 h-40 rounded-full border flex items-center justify-center text-sm text-gray-400">
             No photo
           </div>
         )}
