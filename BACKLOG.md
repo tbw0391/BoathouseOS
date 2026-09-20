@@ -43,6 +43,13 @@
 - [ ] Edit/delete an item request (currently add-only)
 - [ ] Delete a regatta day
 
+## Photos
+- [x] Anyone can post a photo (top-left camera icon on every page, plus a
+      Photos tile on the home page)
+- [x] Tag roster members in a photo
+- [x] A tagged member sees the photo on their own bio page
+- [ ] Photo comments / likes
+
 ## Team store
 - [x] Admin-editable link (club_settings.team_store_url)
 - [x] Store page that just links out
