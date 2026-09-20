@@ -172,6 +172,23 @@ export default async function BioPage({
         <dt className="text-gray-500">Fun fact</dt>
         <dd>{profile.fun_fact ?? "—"}</dd>
       </dl>
+
+      {taggedPhotos.length > 0 && (
+        <div className="mt-6 max-w-lg">
+          <h2 className="text-sm font-medium text-gray-600 mb-2">Photos</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {taggedPhotos.map((photo) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={photo.id}
+                src={photo.url}
+                alt={photo.caption ?? ""}
+                className="w-full aspect-square object-cover rounded"
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
