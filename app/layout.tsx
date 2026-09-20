@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/Header";
+import { createClient } from "@/lib/supabase/server";
+import { getUnreadChatCount } from "@/lib/chat";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,17 +30,23 @@ export const viewport: Viewport = {
   themeColor: "#022e5d",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const unreadCount = user ? await getUnreadChatCount(user.id) : null;
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header />
+        <Header unreadCount={unreadCount} />
         {children}
       </body>
     </html>
