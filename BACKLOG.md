@@ -10,10 +10,16 @@
 - [ ] Signup flow so new members can self-register (currently accounts are created manually in Supabase)
 
 ## Schedule
-- [ ] List upcoming events (practice, regatta, meeting, other)
-- [ ] Create/edit event (coach/admin), including recurrence (weekly/monthly/yearly)
+- [x] List upcoming/past events, split into Regattas and Practice
+- [x] Create/delete event (coach/admin), including recurrence (weekly/monthly/yearly)
+- [ ] Edit an existing event (currently delete + recreate)
 - [ ] RSVP (attending / not attending) per event
 - [ ] Calendar view
+- [ ] Calendar on the Schedule page showing standing practice times: Mon-Fri 4:15-6:30pm, Saturday 8-10am
+
+## Race Results
+- [ ] Mark a race final as finished with a placement (1st/2nd/3rd) once results are posted
+- [ ] Show a regatta icon with a medal (1st/2nd/3rd) on the schedule once a race final we're in has finished
 
 ## Lineups
 - [ ] Create a lineup for an event (boat name, boat class)
@@ -54,7 +60,7 @@
 - [ ] New PR banner (celebrate a new 2K/5K erg PR)
 
 ## Infra / cross-cutting
-- [ ] Real app icons (replace placeholder "WC" PNGs) — club branding/logo
+- [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
 - [ ] Nav bar / bottom tab bar instead of home-page button grid once there are more screens
 - [ ] Role-based UI (hide admin-only actions from rowers/parents)
 - [ ] Push notifications for new messages / schedule changes (PWA)
