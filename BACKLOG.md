@@ -8,6 +8,8 @@
 - [x] Edit member profile (self, or coach/admin)
 - [ ] Disable/remove member
 - [ ] Signup flow so new members can self-register (currently accounts are created manually in Supabase)
+- [ ] Role-specific profile view: parents, coaches, board members, and rowers
+      each see different buttons/actions on their profile (buttons TBD per role)
 
 ## Schedule
 - [x] List upcoming/past events, split into Regattas and Practice
@@ -65,6 +67,8 @@
 ## Banners
 - [ ] Birthday banner (show on a member's birthday)
 - [ ] New PR banner (celebrate a new 2K/5K erg PR)
+- [ ] Regatta-week popup banners, starting the week before a regatta:
+      food tent request reminder, lineups reminder, coaches' messages reminder
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
