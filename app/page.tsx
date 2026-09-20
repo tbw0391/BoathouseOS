@@ -1,16 +1,26 @@
 import Link from "next/link";
+import {
+  Users,
+  Calendar,
+  Waves,
+  Dumbbell,
+  Tent,
+  HelpingHand,
+  ShoppingBag,
+  MessageCircle,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
 
 const sections = [
-  { href: "/roster", label: "Roster" },
-  { href: "/schedule", label: "Schedule" },
-  { href: "/lineups", label: "Lineups" },
-  { href: "/workouts", label: "Workouts" },
-  { href: "/food-tent", label: "Food Tent" },
-  { href: "/volunteer", label: "Volunteer Needs" },
-  { href: "/store", label: "Team Store" },
-  { href: "/messages", label: "Messages" },
+  { href: "/roster", label: "Roster", icon: Users },
+  { href: "/schedule", label: "Schedule", icon: Calendar },
+  { href: "/lineups", label: "Lineups", icon: Waves },
+  { href: "/workouts", label: "Workouts", icon: Dumbbell },
+  { href: "/food-tent", label: "Food Tent", icon: Tent },
+  { href: "/volunteer", label: "Volunteer Needs", icon: HelpingHand },
+  { href: "/store", label: "Team Store", icon: ShoppingBag },
+  { href: "/messages", label: "Messages", icon: MessageCircle },
 ];
 
 export default async function Home() {
@@ -87,8 +97,9 @@ export default async function Home() {
           <Link
             key={s.href}
             href={s.href}
-            className="flex items-center justify-center text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
+            className="flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
           >
+            <s.icon className="w-6 h-6" />
             {s.label}
           </Link>
         ))}
