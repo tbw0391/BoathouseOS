@@ -43,6 +43,21 @@ export default async function Home() {
   const featuredItems = parseStoreItems(settingsByKey.get("team_store_featured_items") ?? null);
 
   let banners: { title: string; quantity: number; eventTitle: string; eventDate: string }[] = [];
+  let upcomingRegatta: ScheduleEvent | null = null;
+
+  if (user) {
+    const now = new Date();
+    const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const { data: regattaData } = await supabase
+      .from("schedule_events")
+      .select("*")
+      .eq("event_type", "regatta")
+      .gte("starts_at", now.toISOString())
+      .lte("starts_at", weekOut.toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(1);
+    upcomingRegatta = ((regattaData as ScheduleEvent[] | null) ?? [])[0] ?? null;
+  }
 
   if (user) {
     const { data: signupsData } = await supabase
