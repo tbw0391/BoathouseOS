@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Profile, ProfileTeam } from "@/lib/database.types";
 import { AddMemberForm } from "./AddMemberForm";
 import { ImportForm } from "./ImportForm";
+import { SignupQrButton } from "./SignupQrButton";
 import { TEAM_LABELS } from "@/lib/teams";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -48,6 +49,7 @@ export default async function RosterPage() {
         <div className="flex flex-wrap items-start gap-2">
           <AddMemberForm />
           <ImportForm />
+          <SignupQrButton />
         </div>
       )}
 
