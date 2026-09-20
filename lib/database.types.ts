@@ -136,3 +136,18 @@ export interface FoodTentSignup {
   quantity: number;
   signed_up_at: string;
 }
+
+export interface Photo {
+  id: string;
+  url: string;
+  caption: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
+export interface PhotoTag {
+  photo_id: string;
+  profile_id: string;
+  tagged_by: string | null;
+  created_at: string;
+}
