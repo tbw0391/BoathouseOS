@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Lineup, LineupSeat, Profile, ScheduleEvent } from "@/lib/database.types";
+import type { Lineup, LineupSeat, Profile, ProfileTeam, ScheduleEvent } from "@/lib/database.types";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS } from "@/lib/lineupCategories";
+import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { CreateLineupForm } from "./CreateLineupForm";
 import { SeatAssign } from "./SeatAssign";
 import { DeleteLineupButton } from "./DeleteLineupButton";
@@ -52,6 +52,21 @@ export default async function LineupsPage() {
   const roster = (rosterData as Pick<Profile, "id" | "display_name">[] | null) ?? [];
   const nameById = new Map(roster.map((p) => [p.id, p.display_name]));
 
+  const { data: profileTeamsData } = await supabase.from("profile_teams").select("*");
+  const profileIdsByTeam = new Map<string, Set<string>>();
+  for (const row of (profileTeamsData as ProfileTeam[] | null) ?? []) {
+    const set = profileIdsByTeam.get(row.team) ?? new Set<string>();
+    set.add(row.profile_id);
+    profileIdsByTeam.set(row.team, set);
+  }
+
+  function rosterForCategory(category: Lineup["category"]) {
+    const team = category ? LINEUP_CATEGORY_TEAM[category] : null;
+    if (!team) return roster;
+    const memberIds = profileIdsByTeam.get(team) ?? new Set<string>();
+    return roster.filter((p) => memberIds.has(p.id));
+  }
+
   const eventIdsWithLineups = new Set(lineups.map((l) => l.event_id));
   const now = new Date();
   const relevantEvents = events.filter(
@@ -64,6 +79,7 @@ export default async function LineupsPage() {
 
   function LineupCard({ lineup }: { lineup: Lineup }) {
     const lineupSeats = seats.filter((s) => s.lineup_id === lineup.id);
+    const eligibleRoster = rosterForCategory(lineup.category);
     return (
       <div className="border rounded-lg p-3">
         <div className="flex items-start justify-between">
@@ -88,7 +104,18 @@ export default async function LineupsPage() {
                   : SEAT_ROLE_LABEL[seat.seat_role]}
               </span>
               {canManage ? (
-                <SeatAssign seatId={seat.id} currentRowerId={seat.rower_id} roster={roster} />
+                <SeatAssign
+                  seatId={seat.id}
+                  currentRowerId={seat.rower_id}
+                  roster={
+                    seat.rower_id && !eligibleRoster.some((p) => p.id === seat.rower_id)
+                      ? [
+                          ...eligibleRoster,
+                          { id: seat.rower_id, display_name: nameById.get(seat.rower_id) ?? "Unknown" },
+                        ]
+                      : eligibleRoster
+                  }
+                />
               ) : (
                 <span>{seat.rower_id ? nameById.get(seat.rower_id) ?? "Unknown" : "—"}</span>
               )}

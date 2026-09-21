@@ -66,7 +66,13 @@ export interface EventRsvp {
   responded_at: string;
 }
 
-export type LineupCategory = 'mens_varsity' | 'mens_novice' | 'womens_varsity' | 'womens_novice';
+export type LineupCategory =
+  | 'mens_varsity'
+  | 'mens_novice'
+  | 'womens_varsity'
+  | 'womens_novice'
+  | 'masters'
+  | 'development';
 
 export interface Lineup {
   id: string;
