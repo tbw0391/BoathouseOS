@@ -191,6 +191,26 @@ export interface Suggestion {
   created_at: string;
 }
 
+export interface OnWaterSession {
+  id: string;
+  lineup_id: string | null;
+  coxswain_id: string;
+  started_at: string;
+  ended_at: string | null;
+  created_at: string;
+}
+
+export interface LocationPing {
+  id: string;
+  session_id: string;
+  lat: number;
+  lng: number;
+  accuracy_m: number | null;
+  heading_deg: number | null;
+  speed_mps: number | null;
+  recorded_at: string;
+}
+
 export type MaintenanceType = 'boat' | 'site';
 export type MaintenanceStatus = 'open' | 'resolved';
 
