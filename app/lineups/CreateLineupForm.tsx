@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { createLineup } from "./actions";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
+import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS } from "@/lib/lineupCategories";
 
 export function CreateLineupForm({ eventId }: { eventId: string }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -47,6 +48,16 @@ export function CreateLineupForm({ eventId }: { eventId: string }) {
         required
         className="border rounded px-3 py-2 text-sm"
       />
+      <select name="category" defaultValue="" required className="border rounded px-3 py-2 text-sm">
+        <option value="" disabled>
+          Category
+        </option>
+        {LINEUP_CATEGORY_OPTIONS.map((cat) => (
+          <option key={cat} value={cat}>
+            {LINEUP_CATEGORIES[cat]}
+          </option>
+        ))}
+      </select>
       <select name="boat_class" defaultValue="" required className="border rounded px-3 py-2 text-sm">
         <option value="" disabled>
           Boat class
