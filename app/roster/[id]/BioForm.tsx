@@ -8,7 +8,15 @@ import { updateBio } from "./actions";
 import { TEAM_LABELS, TEAM_OPTIONS } from "@/lib/teams";
 import type { Team } from "@/lib/database.types";
 
-export function BioForm({ profile, teams }: { profile: Profile; teams: Team[] }) {
+export function BioForm({
+  profile,
+  teams,
+  spouseOptions = [],
+}: {
+  profile: Profile;
+  teams: Team[];
+  spouseOptions?: Pick<Profile, "id" | "display_name">[];
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState(profile.photo_url ?? "");
@@ -153,6 +161,27 @@ export function BioForm({ profile, teams }: { profile: Profile; teams: Team[] })
         <option value="starboard">Starboard</option>
         <option value="either">Either</option>
       </select>
+
+      {profile.role === "parent" && (
+        <>
+          <label className="text-sm font-medium">Spouse</label>
+          <select
+            name="spouse_id"
+            defaultValue={profile.spouse_id ?? ""}
+            className="border rounded px-3 py-2 text-sm"
+          >
+            <option value="">None</option>
+            {spouseOptions.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.display_name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 -mt-2">
+            Link your spouse so you both get food tent alerts when either of you signs up.
+          </p>
+        </>
+      )}
 
       <label className="text-sm font-medium">Groups</label>
       <div className="flex flex-wrap gap-3">

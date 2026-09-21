@@ -75,6 +75,23 @@ export default async function BioPage({
     taggedPhotos = (photosData as Photo[] | null) ?? [];
   }
 
+  let spouseOptions: Pick<Profile, "id" | "display_name">[] = [];
+  let spouseName: string | null = null;
+  if (profile.role === "parent") {
+    const { data: parentRows } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .eq("role", "parent")
+      .is("disabled_at", null)
+      .neq("id", profile.id)
+      .order("display_name", { ascending: true });
+    spouseOptions = (parentRows as Pick<Profile, "id" | "display_name">[] | null) ?? [];
+
+    if (profile.spouse_id) {
+      spouseName = spouseOptions.find((p) => p.id === profile.spouse_id)?.display_name ?? null;
+    }
+  }
+
   if (edit === "1" && canEdit) {
     return (
       <div className="min-h-screen p-8">
@@ -82,7 +99,7 @@ export default async function BioPage({
           ← Back
         </Link>
         <h1 className="text-2xl font-bold mt-4 mb-4">Edit bio</h1>
-        <BioForm profile={profile} teams={teams} />
+        <BioForm profile={profile} teams={teams} spouseOptions={spouseOptions} />
       </div>
     );
   }
@@ -190,6 +207,13 @@ export default async function BioPage({
 
         <dt className="text-gray-500">US Rowing #</dt>
         <dd>{profile.us_rowing_number ?? "—"}</dd>
+
+        {profile.role === "parent" && (
+          <>
+            <dt className="text-gray-500">Spouse</dt>
+            <dd>{spouseName ?? "—"}</dd>
+          </>
+        )}
 
         <dt className="text-gray-500">Fun fact</dt>
         <dd>{profile.fun_fact ?? "—"}</dd>

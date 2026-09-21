@@ -29,6 +29,7 @@ export interface Profile {
   is_board_member: boolean;
   is_tent_leader: boolean;
   us_rowing_number: string | null;
+  spouse_id: string | null;
 }
 
 export interface ProfileTeam {

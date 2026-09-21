@@ -83,6 +83,7 @@ export default async function FoodTentPage() {
                       <ItemRow
                         item={item}
                         totalSignedUp={totalSignedUp}
+                        signupCount={itemSignups.length}
                         showFullyClaimed={fullyClaimed && !mySignup}
                         isManager={isManager}
                       />

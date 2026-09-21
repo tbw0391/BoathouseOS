@@ -55,7 +55,7 @@ export function NewChatForm({ others }: { others: Profile[] }) {
       <input
         name="group_name"
         placeholder="Group name (optional, for group chats)"
-        className="border rounded px-3 py-2 text-sm"
+        className="border rounded px-3 py-2 text-sm bg-white text-gray-900 placeholder:text-gray-400"
       />
 
       <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border rounded p-2">

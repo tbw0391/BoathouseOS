@@ -20,7 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { ChatGroup, FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
+import type { ChatGroup, FoodTentItem, FoodTentSignup, Profile, ScheduleEvent } from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getUnreadScheduleCount } from "@/lib/schedule";
@@ -74,6 +74,9 @@ export default async function Home() {
   let coachChatHref = "/messages";
   let isAdmin = false;
   let isCoachOrAdmin = false;
+  let isParent = false;
+
+  let householdUserIds: string[] = [];
 
   if (user) {
     unreadCount = await getUnreadChatCount(user.id);
@@ -81,12 +84,29 @@ export default async function Home() {
 
     const { data: callerData } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, spouse_id")
       .eq("id", user.id)
       .single();
-    const callerRole = (callerData as { role: string } | null)?.role;
+    const caller = callerData as Pick<Profile, "role" | "spouse_id"> | null;
+    const callerRole = caller?.role;
     isAdmin = callerRole === "admin";
     isCoachOrAdmin = callerRole === "admin" || callerRole === "coach";
+    isParent = callerRole === "parent";
+
+    householdUserIds = [user.id];
+    if (isParent) {
+      // Spouses are linked one-directionally, so check both: the caller's
+      // own spouse_id, and anyone whose spouse_id points back at the caller.
+      const { data: reverseSpouses } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("spouse_id", user.id);
+      const spouseIds = new Set<string>(
+        ((reverseSpouses as Pick<Profile, "id">[] | null) ?? []).map((p) => p.id)
+      );
+      if (caller?.spouse_id) spouseIds.add(caller.spouse_id);
+      householdUserIds.push(...spouseIds);
+    }
 
     const { data: coachGroup } = await supabase
       .from("chat_groups")
@@ -116,7 +136,7 @@ export default async function Home() {
     const { data: signupsData } = await supabase
       .from("food_tent_signups")
       .select("*")
-      .eq("user_id", user.id);
+      .in("user_id", householdUserIds);
     const signups = (signupsData as FoodTentSignup[] | null) ?? [];
 
     if (signups.length > 0) {
@@ -206,6 +226,11 @@ export default async function Home() {
               {b.eventTitle} ({b.eventDate})
             </div>
           ))}
+          {isParent && (
+            <div className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
+              💧 Please also bring <strong>1 gallon of water</strong> (just one per family).
+            </div>
+          )}
         </div>
       )}
 

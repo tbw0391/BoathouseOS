@@ -7,11 +7,13 @@ import type { FoodTentItem } from "@/lib/database.types";
 export function ItemRow({
   item,
   totalSignedUp,
+  signupCount,
   showFullyClaimed,
   isManager,
 }: {
   item: FoodTentItem;
   totalSignedUp: number;
+  signupCount: number;
   showFullyClaimed: boolean;
   isManager: boolean;
 }) {
@@ -32,7 +34,11 @@ export function ItemRow({
   }
 
   function remove() {
-    if (!window.confirm("Delete this item request?")) return;
+    const warning =
+      signupCount > 0
+        ? `Delete "${item.title}"? This removes the whole item request AND everyone's signups for it (${signupCount} ${signupCount === 1 ? "person" : "people"}). If you just want to remove your own signup, use "Cancel" next to your name instead.`
+        : `Delete "${item.title}"? This removes the whole item request.`;
+    if (!window.confirm(warning)) return;
     setError(null);
     startTransition(async () => {
       try {
@@ -112,9 +118,10 @@ export function ItemRow({
               <button
                 onClick={remove}
                 disabled={isPending}
+                title="Deletes this item request for everyone, not just your own signup"
                 className="text-xs border border-red-600 text-red-600 rounded px-2 py-1 disabled:opacity-50"
               >
-                Delete
+                Delete item
               </button>
             </>
           )}

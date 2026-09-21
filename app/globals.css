@@ -3,6 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Tells the browser this page supports both schemes, so native form
+     controls (inputs, buttons) pick matching colors instead of staying
+     light-styled while their (inherited) text color flips to white. */
+  color-scheme: light dark;
 }
 
 @theme inline {

@@ -45,6 +45,18 @@ export async function updateBio(profileId: string, formData: FormData) {
     throw new Error("First and last name are required.");
   }
 
+  // The spouse field is only rendered for parent profiles, so only touch the
+  // column when the form actually included it (avoids clobbering it on
+  // saves from other bio forms).
+  const spouseUpdate: { spouse_id?: string | null } = {};
+  if (formData.has("spouse_id")) {
+    const spouseId = String(formData.get("spouse_id") ?? "").trim() || null;
+    if (spouseId === profileId) {
+      throw new Error("You can't set yourself as your own spouse.");
+    }
+    spouseUpdate.spouse_id = spouseId;
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -62,6 +74,7 @@ export async function updateBio(profileId: string, formData: FormData) {
       erg_2k_time: erg2kTime,
       erg_5k_time: erg5kTime,
       us_rowing_number: usRowingNumber,
+      ...spouseUpdate,
     })
     .eq("id", profileId);
 
