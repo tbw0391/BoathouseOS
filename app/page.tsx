@@ -14,6 +14,8 @@ import {
   ListTodo,
   Wrench,
   Hammer,
+  Navigation,
+  MapPin,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatGroup, FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
@@ -25,6 +27,7 @@ const sections = [
   { href: "/roster", label: "Roster", icon: Users },
   { href: "/schedule", label: "Schedule", icon: Calendar },
   { href: "/lineups", label: "Lineups", icon: Waves },
+  { href: "/on-water", label: "On the Water", icon: Navigation },
   { href: "/workouts", label: "Workouts", icon: Dumbbell },
   { href: "/food-tent", label: "Food Tent", icon: Tent },
   { href: "/volunteer", label: "Volunteer Needs", icon: HelpingHand },
@@ -57,6 +60,7 @@ export default async function Home() {
   let unreadScheduleCount = 0;
   let coachChatHref = "/messages";
   let isAdmin = false;
+  let isCoachOrAdmin = false;
 
   if (user) {
     unreadCount = await getUnreadChatCount(user.id);
@@ -67,7 +71,9 @@ export default async function Home() {
       .select("role")
       .eq("id", user.id)
       .single();
-    isAdmin = (callerData as { role: string } | null)?.role === "admin";
+    const callerRole = (callerData as { role: string } | null)?.role;
+    isAdmin = callerRole === "admin";
+    isCoachOrAdmin = callerRole === "admin" || callerRole === "coach";
 
     const { data: coachGroup } = await supabase
       .from("chat_groups")
@@ -191,7 +197,12 @@ export default async function Home() {
       )}
 
       <div className="w-full max-w-md grid grid-cols-2 gap-4">
-        {(isAdmin ? [...sections, { href: "/todo", label: "To-do List", icon: ListTodo }] : sections).map((s) => {
+        {(isCoachOrAdmin
+          ? [...sections, { href: "/coach/tracking", label: "Live Tracking", icon: MapPin }]
+          : sections
+        )
+          .concat(isAdmin ? [{ href: "/todo", label: "To-do List", icon: ListTodo }] : [])
+          .map((s) => {
           const badgeCount =
             s.href === "/messages" ? unreadCount : s.href === "/schedule" ? unreadScheduleCount : 0;
           return (
