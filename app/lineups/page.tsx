@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Lineup, LineupSeat, Profile, ScheduleEvent } from "@/lib/database.types";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
+import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS } from "@/lib/lineupCategories";
 import { CreateLineupForm } from "./CreateLineupForm";
 import { SeatAssign } from "./SeatAssign";
 import { DeleteLineupButton } from "./DeleteLineupButton";
