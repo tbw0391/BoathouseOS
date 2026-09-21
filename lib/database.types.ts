@@ -190,3 +190,17 @@ export interface Suggestion {
   status: SuggestionStatus;
   created_at: string;
 }
+
+export type MaintenanceType = 'boat' | 'site';
+export type MaintenanceStatus = 'open' | 'resolved';
+
+export interface MaintenanceRequest {
+  id: string;
+  type: MaintenanceType;
+  boat_id: string | null;
+  description: string;
+  status: MaintenanceStatus;
+  submitted_by: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
