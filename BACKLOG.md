@@ -24,7 +24,7 @@
 ## Schedule
 - [x] List upcoming/past events, split into Regattas and Practice
 - [x] Create/delete event (coach/admin), including recurrence (weekly/monthly/yearly)
-- [ ] Edit an existing event (currently delete + recreate)
+- [x] Edit an existing event (title, times, location, description, recurrence)
 - [ ] RSVP (attending / not attending) per event
 - [ ] Calendar view
 - [ ] Calendar on the Schedule page showing standing practice times: Mon-Fri 4:15-6:30pm, Saturday 8-10am
@@ -74,7 +74,7 @@
 - [x] Sign up to bring a quantity of an item, cancel your own signup
 - [x] Home page banner listing what you've signed up to bring for
       upcoming events
-- [ ] Edit/delete an item request (currently add-only)
+- [x] Edit/delete an item request (title, quantity, notes)
 - [ ] Delete a regatta day
 - [ ] Master food tent item list: kitchen/tent leader enters the full list of
       typical items once, then for a new regatta just picks/checks which ones
