@@ -16,27 +16,33 @@ import {
   Hammer,
   Navigation,
   MapPin,
+  Settings,
+  type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatGroup, FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getUnreadScheduleCount } from "@/lib/schedule";
+import { NAV_SECTIONS } from "@/lib/navSections";
 
-const sections = [
-  { href: "/roster", label: "Roster", icon: Users },
-  { href: "/schedule", label: "Schedule", icon: Calendar },
-  { href: "/lineups", label: "Lineups", icon: Waves },
-  { href: "/on-water", label: "On the Water", icon: Navigation },
-  { href: "/workouts", label: "Workouts", icon: Dumbbell },
-  { href: "/food-tent", label: "Food Tent", icon: Tent },
-  { href: "/volunteer", label: "Volunteer Needs", icon: HelpingHand },
-  { href: "/photos", label: "Photos", icon: Camera },
-  { href: "/messages", label: "Messages", icon: MessageCircle },
-  { href: "/suggestions", label: "Suggestions", icon: Lightbulb },
-  { href: "/boat-maintenance", label: "Boat Maintenance", icon: Wrench },
-  { href: "/site-maintenance", label: "Site Maintenance", icon: Hammer },
-];
+const ICONS_BY_HREF: Record<string, LucideIcon> = {
+  "/roster": Users,
+  "/schedule": Calendar,
+  "/lineups": Waves,
+  "/on-water": Navigation,
+  "/workouts": Dumbbell,
+  "/food-tent": Tent,
+  "/volunteer": HelpingHand,
+  "/photos": Camera,
+  "/messages": MessageCircle,
+  "/suggestions": Lightbulb,
+  "/boat-maintenance": Wrench,
+  "/site-maintenance": Hammer,
+  "/coach/tracking": MapPin,
+  "/todo": ListTodo,
+  "/admin": Settings,
+};
 
 export default async function Home() {
   const supabase = await createClient();
@@ -47,12 +53,19 @@ export default async function Home() {
   const { data: settingsData } = await supabase
     .from("club_settings")
     .select("key, value")
-    .in("key", ["team_store_url", "team_store_featured_items"]);
+    .in("key", ["team_store_url", "team_store_featured_items", "nav_disabled_hrefs"]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
   );
   const storeUrl = settingsByKey.get("team_store_url") ?? null;
   const featuredItems = parseStoreItems(settingsByKey.get("team_store_featured_items") ?? null);
+  let disabledHrefs: string[] = [];
+  try {
+    disabledHrefs = JSON.parse(settingsByKey.get("nav_disabled_hrefs") ?? "[]");
+  } catch {
+    disabledHrefs = [];
+  }
+  const disabledHrefSet = new Set(disabledHrefs);
 
   let banners: { title: string; quantity: number; eventTitle: string; eventDate: string }[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
@@ -197,30 +210,29 @@ export default async function Home() {
       )}
 
       <div className="w-full max-w-md grid grid-cols-3 gap-4">
-        {(isCoachOrAdmin
-          ? [...sections, { href: "/coach/tracking", label: "Live Tracking", icon: MapPin }]
-          : sections
-        )
-          .concat(isAdmin ? [{ href: "/todo", label: "To-do List", icon: ListTodo }] : [])
+        {NAV_SECTIONS.filter((s) => s.href !== "/coach/tracking" || isCoachOrAdmin)
+          .filter((s) => !disabledHrefSet.has(s.href))
+          .concat(isAdmin ? [{ href: "/todo", label: "To-do List" }, { href: "/admin", label: "Admin Settings" }] : [])
           .map((s) => {
-          const badgeCount =
-            s.href === "/messages" ? unreadCount : s.href === "/schedule" ? unreadScheduleCount : 0;
-          return (
-            <Link
-              key={s.href}
-              href={s.href}
-              className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
-            >
-              <s.icon className="w-6 h-6" />
-              {s.label}
-              {badgeCount > 0 && (
-                <span className="absolute top-2 right-2 min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-xs">
-                  {badgeCount}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+            const Icon = ICONS_BY_HREF[s.href];
+            const badgeCount =
+              s.href === "/messages" ? unreadCount : s.href === "/schedule" ? unreadScheduleCount : 0;
+            return (
+              <Link
+                key={s.href}
+                href={s.href}
+                className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
+              >
+                <Icon className="w-6 h-6" />
+                {s.label}
+                {badgeCount > 0 && (
+                  <span className="absolute top-2 right-2 min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-xs">
+                    {badgeCount}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
       </div>
 
       {storeUrl && (
