@@ -24,12 +24,42 @@ async function requirePollCreator(supabase: Awaited<ReturnType<typeof createClie
   return { user, supabase };
 }
 
+// Editing/closing/deleting an existing poll is narrower than creating one:
+// admins, board members, or that specific poll's own creator — not just any
+// coach, since a coach may not even be allowed to see a board-only poll
+// someone else made. Mirrors the can_manage_poll() DB function.
+async function requirePollManager(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  pollId: string
+) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const [{ data: callerProfile }, { data: pollData }] = await Promise.all([
+    supabase.from("profiles").select("role, is_board_member").eq("id", user.id).single(),
+    supabase.from("polls").select("created_by").eq("id", pollId).maybeSingle(),
+  ]);
+
+  const profile = callerProfile as { role: string; is_board_member: boolean } | null;
+  const poll = pollData as { created_by: string | null } | null;
+  const canManage =
+    profile?.role === "admin" || profile?.is_board_member || poll?.created_by === user.id;
+
+  if (!canManage) throw new Error("Only that poll's creator, admins, or board members can do that.");
+
+  return { user, supabase };
+}
+
 export async function createPoll(formData: FormData) {
   const supabase = await createClient();
   const { user } = await requirePollCreator(supabase);
 
   const question = String(formData.get("question") ?? "").trim();
   const allowMultiple = formData.get("allow_multiple") === "on";
+  const boardOnly = formData.get("board_only") === "on";
+  const inviteeIds = [...new Set(formData.getAll("invitee_id").map(String))];
   const options = String(formData.get("options") ?? "")
     .split("\n")
     .map((o) => o.trim())
@@ -40,15 +70,17 @@ export async function createPoll(formData: FormData) {
 
   const { data: poll, error } = await supabase
     .from("polls")
-    .insert({ question, allow_multiple: allowMultiple, created_by: user.id })
+    .insert({ question, allow_multiple: allowMultiple, board_only: boardOnly, created_by: user.id })
     .select("id")
     .single();
 
   if (error) throw new Error(error.message);
 
+  const pollId = (poll as { id: string }).id;
+
   const { error: optionsError } = await supabase.from("poll_options").insert(
     options.map((label, i) => ({
-      poll_id: (poll as { id: string }).id,
+      poll_id: pollId,
       label,
       position: i,
     }))
@@ -56,12 +88,19 @@ export async function createPoll(formData: FormData) {
 
   if (optionsError) throw new Error(optionsError.message);
 
+  if (boardOnly && inviteeIds.length > 0) {
+    const { error: inviteesError } = await supabase
+      .from("poll_invitees")
+      .insert(inviteeIds.map((userId) => ({ poll_id: pollId, user_id: userId })));
+    if (inviteesError) throw new Error(inviteesError.message);
+  }
+
   revalidatePath("/polls");
 }
 
 export async function closePoll(pollId: string) {
   const supabase = await createClient();
-  await requirePollCreator(supabase);
+  await requirePollManager(supabase, pollId);
 
   const { error } = await supabase
     .from("polls")
@@ -75,7 +114,7 @@ export async function closePoll(pollId: string) {
 
 export async function reopenPoll(pollId: string) {
   const supabase = await createClient();
-  await requirePollCreator(supabase);
+  await requirePollManager(supabase, pollId);
 
   const { error } = await supabase.from("polls").update({ closed_at: null }).eq("id", pollId);
 
@@ -86,7 +125,7 @@ export async function reopenPoll(pollId: string) {
 
 export async function deletePoll(pollId: string) {
   const supabase = await createClient();
-  await requirePollCreator(supabase);
+  await requirePollManager(supabase, pollId);
 
   const { error } = await supabase.from("polls").delete().eq("id", pollId);
   if (error) throw new Error(error.message);

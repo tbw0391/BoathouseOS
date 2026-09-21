@@ -3,9 +3,10 @@
 import { useRef, useState, useTransition } from "react";
 import { createPoll } from "./actions";
 
-export function PollForm() {
+export function PollForm({ coaches }: { coaches: { id: string; display_name: string }[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(false);
+  const [boardOnly, setBoardOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -16,6 +17,7 @@ export function PollForm() {
         await createPoll(formData);
         formRef.current?.reset();
         setOpen(false);
+        setBoardOnly(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -69,6 +71,38 @@ export function PollForm() {
         <input type="checkbox" name="allow_multiple" className="w-4 h-4" />
         Let people pick more than one option
       </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="board_only"
+          checked={boardOnly}
+          onChange={(e) => setBoardOnly(e.target.checked)}
+          className="w-4 h-4"
+        />
+        Board members only
+      </label>
+
+      {boardOnly && (
+        <div className="flex flex-col gap-1">
+          <p className="text-xs text-gray-500">
+            Only board members (and admins) can see this poll. Optionally also invite specific
+            coaches:
+          </p>
+          {coaches.length === 0 ? (
+            <p className="text-xs text-gray-500">No coaches on the roster.</p>
+          ) : (
+            <div className="flex flex-col gap-1 max-h-36 overflow-y-auto border rounded p-2">
+              {coaches.map((c) => (
+                <label key={c.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="invitee_id" value={c.id} />
+                  {c.display_name}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

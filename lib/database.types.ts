@@ -172,9 +172,16 @@ export interface Poll {
   id: string;
   question: string;
   allow_multiple: boolean;
+  board_only: boolean;
   created_by: string | null;
   created_at: string;
   closed_at: string | null;
+}
+
+export interface PollInvitee {
+  poll_id: string;
+  user_id: string;
+  added_at: string;
 }
 
 export interface PollOption {

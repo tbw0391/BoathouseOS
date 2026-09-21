@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Poll, PollOption, PollVote, Profile } from "@/lib/database.types";
+import type { Poll, PollInvitee, PollOption, PollVote, Profile } from "@/lib/database.types";
 import { PollForm } from "./PollForm";
 import { VoteControl } from "./VoteControl";
 import { PollManageControls } from "./PollManageControls";
@@ -17,9 +17,9 @@ export default async function PollsPage() {
     .eq("id", user.id)
     .single();
   const caller = callerProfile as { role: string; is_board_member: boolean } | null;
-  const canManage = Boolean(
-    caller?.role === "admin" || caller?.role === "coach" || caller?.is_board_member
-  );
+  const isAdmin = caller?.role === "admin";
+  const isBoardMember = Boolean(caller?.is_board_member);
+  const canCreate = Boolean(isAdmin || caller?.role === "coach" || isBoardMember);
 
   const { data: pollsData } = await supabase
     .from("polls")
@@ -36,21 +36,26 @@ export default async function PollsPage() {
   const { data: votesData } = await supabase.from("poll_votes").select("*");
   const votes = (votesData as PollVote[] | null) ?? [];
 
-  const { data: profilesData } = await supabase.from("profiles").select("id, display_name");
-  const nameById = new Map(
-    ((profilesData as Pick<Profile, "id" | "display_name">[] | null) ?? []).map((p) => [
-      p.id,
-      p.display_name,
-    ])
-  );
+  const { data: inviteesData } = await supabase.from("poll_invitees").select("*");
+  const invitees = (inviteesData as PollInvitee[] | null) ?? [];
+
+  const { data: profilesData } = await supabase
+    .from("profiles")
+    .select("id, display_name, role")
+    .is("disabled_at", null);
+  const profiles = (profilesData as (Pick<Profile, "id" | "display_name"> & { role: string })[] | null) ?? [];
+  const nameById = new Map(profiles.map((p) => [p.id, p.display_name]));
+  const coaches = profiles
+    .filter((p) => p.role === "coach")
+    .map((p) => ({ id: p.id, display_name: p.display_name }));
 
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-4">Polls</h1>
 
-      {canManage && (
+      {canCreate && (
         <div className="mb-6">
-          <PollForm />
+          <PollForm coaches={coaches} />
         </div>
       )}
 
@@ -64,6 +69,11 @@ export default async function PollsPage() {
             .filter((v) => v.user_id === user.id)
             .map((v) => v.option_id);
           const closed = poll.closed_at !== null;
+          const canManageThis = isAdmin || isBoardMember || poll.created_by === user.id;
+          const inviteeNames = invitees
+            .filter((i) => i.poll_id === poll.id)
+            .map((i) => nameById.get(i.user_id) ?? "Someone")
+            .join(", ");
 
           return (
             <div key={poll.id} className="border rounded-lg p-4">
@@ -72,10 +82,14 @@ export default async function PollsPage() {
                   <p className="font-medium">{poll.question}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {poll.allow_multiple ? "Pick as many as you like" : "Pick one"}
+                    {poll.board_only && " · Board only"}
                     {closed && " · Closed"}
                   </p>
+                  {poll.board_only && inviteeNames && (
+                    <p className="text-xs text-gray-500">Also invited: {inviteeNames}</p>
+                  )}
                 </div>
-                {canManage && <PollManageControls pollId={poll.id} closed={closed} />}
+                {canManageThis && <PollManageControls pollId={poll.id} closed={closed} />}
               </div>
 
               <div className="mt-3 flex flex-col gap-2">
