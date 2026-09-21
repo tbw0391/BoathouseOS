@@ -12,6 +12,8 @@ import {
   Camera,
   Lightbulb,
   ListTodo,
+  Wrench,
+  Hammer,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatGroup, FoodTentItem, FoodTentSignup, ScheduleEvent } from "@/lib/database.types";
@@ -29,6 +31,8 @@ const sections = [
   { href: "/photos", label: "Photos", icon: Camera },
   { href: "/messages", label: "Messages", icon: MessageCircle },
   { href: "/suggestions", label: "Suggestions", icon: Lightbulb },
+  { href: "/boat-maintenance", label: "Boat Maintenance", icon: Wrench },
+  { href: "/site-maintenance", label: "Site Maintenance", icon: Hammer },
 ];
 
 export default async function Home() {
