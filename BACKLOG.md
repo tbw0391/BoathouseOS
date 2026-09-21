@@ -28,6 +28,8 @@
 - [ ] RSVP (attending / not attending) per event
 - [ ] Calendar view
 - [ ] Calendar on the Schedule page showing standing practice times: Mon-Fri 4:15-6:30pm, Saturday 8-10am
+- [ ] Weather forecast button on a regatta event, using its location field to
+      show the forecast for race day (needs a geocoding/weather API — TBD which)
 
 ## Race Results
 - [ ] Mark a race final as finished with a placement (1st/2nd/3rd) once results are posted
@@ -93,6 +95,11 @@
 
 ## Workouts
 - [ ] Content TBD (button/route scaffolded, waiting on requirements)
+
+## Rookie Parent
+- [ ] Rookie Parent tile/button (home page) as a resource hub for new parents,
+      with more buttons underneath it: FAQ, What to Bring, Food Tent/Parking/
+      Tent location
 
 ## Food Tent
 - [x] Tent leader flag (admin-assignable, separate from role)
