@@ -196,7 +196,7 @@ export default async function Home() {
         </div>
       )}
 
-      <div className="w-full max-w-md grid grid-cols-2 gap-4">
+      <div className="w-full max-w-md grid grid-cols-3 gap-4">
         {(isCoachOrAdmin
           ? [...sections, { href: "/coach/tracking", label: "Live Tracking", icon: MapPin }]
           : sections
