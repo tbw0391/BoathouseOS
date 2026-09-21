@@ -22,7 +22,7 @@ export async function submitSuggestion(formData: FormData) {
   revalidatePath("/suggestions");
 }
 
-async function requireStaff(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -35,14 +35,14 @@ async function requireStaff(supabase: Awaited<ReturnType<typeof createClient>>) 
     .single();
 
   const callerRole = (callerProfile as { role: string } | null)?.role;
-  if (callerRole !== "admin" && callerRole !== "coach") {
-    throw new Error("Only coaches and admins can manage suggestions.");
+  if (callerRole !== "admin") {
+    throw new Error("Only admins can manage suggestions.");
   }
 }
 
 export async function markReviewed(suggestionId: string, reviewed: boolean) {
   const supabase = await createClient();
-  await requireStaff(supabase);
+  await requireAdmin(supabase);
 
   const { error } = await supabase
     .from("suggestions")
@@ -56,7 +56,7 @@ export async function markReviewed(suggestionId: string, reviewed: boolean) {
 
 export async function deleteSuggestion(suggestionId: string) {
   const supabase = await createClient();
-  await requireStaff(supabase);
+  await requireAdmin(supabase);
 
   const { error } = await supabase.from("suggestions").delete().eq("id", suggestionId);
   if (error) throw new Error(error.message);
