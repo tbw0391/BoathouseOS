@@ -68,15 +68,19 @@ export async function createPoll(formData: FormData) {
   if (!question) throw new Error("Question is required.");
   if (options.length < 2) throw new Error("Add at least 2 options (one per line).");
 
-  const { data: poll, error } = await supabase
+  // Generate the id ourselves and insert without .select(): asking
+  // PostgREST to return the inserted row (INSERT ... RETURNING) makes
+  // Postgres also re-check the row against the table's SELECT policy
+  // (can_view_poll) within the same statement, which can't yet see a row
+  // inserted earlier in that same statement — a bare insert avoids that
+  // entirely, and we don't need the row handed back since we already know
+  // its id.
+  const pollId = crypto.randomUUID();
+  const { error } = await supabase
     .from("polls")
-    .insert({ question, allow_multiple: allowMultiple, board_only: boardOnly, created_by: user.id })
-    .select("id")
-    .single();
+    .insert({ id: pollId, question, allow_multiple: allowMultiple, board_only: boardOnly, created_by: user.id });
 
   if (error) throw new Error(error.message);
-
-  const pollId = (poll as { id: string }).id;
 
   const { error: optionsError } = await supabase.from("poll_options").insert(
     options.map((label, i) => ({
