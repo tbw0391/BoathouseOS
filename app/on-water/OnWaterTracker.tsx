@@ -7,6 +7,42 @@ import { startSession, endSession } from "./actions";
 
 const PING_INTERVAL_MS = 7000;
 
+function LocationSwitch({ permission, onEnable }: { permission: PermissionState; onEnable: () => void }) {
+  const isOn = permission === "granted";
+  const isDenied = permission === "denied";
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">GPS location</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isOn}
+          onClick={onEnable}
+          disabled={isOn || isDenied}
+          className={`relative w-11 h-6 rounded-full transition-colors disabled:cursor-default ${
+            isOn ? "bg-[#022e5d]" : "bg-gray-300"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+              isOn ? "translate-x-5" : ""
+            }`}
+          />
+        </button>
+      </div>
+      {isDenied && (
+        <p className="text-xs text-amber-600">
+          Location is blocked for this app. Enable it in your phone&apos;s Settings (Safari/Chrome
+          → Location, or tap the site info icon in the address bar), then reload this page.
+        </p>
+      )}
+      {!isOn && !isDenied && <p className="text-xs text-gray-500">Tap the switch to allow location access.</p>}
+    </div>
+  );
+}
+
 export function OnWaterTracker({
   lineups,
   activeSession,
@@ -25,6 +61,7 @@ export function OnWaterTracker({
   const [elapsedMs, setElapsedMs] = useState(0);
   const [lastPingAt, setLastPingAt] = useState<Date | null>(null);
   const [lastAccuracy, setLastAccuracy] = useState<number | null>(null);
+  const [permission, setPermission] = useState<PermissionState>("prompt");
 
   const watchIdRef = useRef<number | null>(null);
   const lastInsertRef = useRef<number>(0);
@@ -33,6 +70,43 @@ export function OnWaterTracker({
   useEffect(() => {
     setWakeLockSupported(typeof navigator !== "undefined" && "wakeLock" in navigator);
   }, []);
+
+  // Reflects the browser's real geolocation permission — once denied, no
+  // amount of in-app UI can force the prompt back; that decision only
+  // changes via the browser/OS's own site-settings, which this listens for.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.permissions?.query) return;
+    let status: PermissionStatus | null = null;
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((result) => {
+        status = result;
+        setPermission(result.state);
+        result.onchange = () => setPermission(result.state);
+      })
+      .catch(() => {});
+    return () => {
+      if (status) status.onchange = null;
+    };
+  }, []);
+
+  function requestLocation() {
+    if (!navigator.geolocation) {
+      setError("This browser doesn't support location tracking.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      () => setPermission("granted"),
+      (geoError) => {
+        if (geoError.code === geoError.PERMISSION_DENIED) {
+          setPermission("denied");
+        } else {
+          setError(`Location error: ${geoError.message}`);
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+  }
 
   useEffect(() => {
     if (!startedAt) return;
@@ -147,6 +221,7 @@ export function OnWaterTracker({
   if (!sessionId) {
     return (
       <div className="flex flex-col gap-3 max-w-sm">
+        <LocationSwitch permission={permission} onEnable={requestLocation} />
         {lineups.length > 0 && (
           <label className="flex flex-col gap-1 text-sm">
             Today&apos;s lineup (optional)
@@ -166,7 +241,8 @@ export function OnWaterTracker({
         )}
         <button
           onClick={handleStart}
-          className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[#01213f] transition-colors"
+          disabled={permission === "denied"}
+          className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[#01213f] transition-colors disabled:opacity-50"
         >
           Start Outing
         </button>
