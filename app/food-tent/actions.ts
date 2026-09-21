@@ -76,6 +76,53 @@ export async function addFoodTentItem(formData: FormData) {
   revalidatePath("/food-tent");
 }
 
+export interface FoodTentItemImportRow {
+  title?: string;
+  quantity_needed?: string;
+  notes?: string;
+}
+
+export async function importFoodTentItems(eventId: string, rows: FoodTentItemImportRow[]) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+
+  if (!eventId) throw new Error("Missing event.");
+
+  const toInsert: { event_id: string; title: string; quantity_needed: number; notes: string | null; created_by: string }[] =
+    [];
+  const rowErrors: string[] = [];
+
+  rows.forEach((row, i) => {
+    const rowLabel = `Row ${i + 2}`; // +2: header row + 1-index
+    const title = String(row.title ?? "").trim();
+    if (!title) {
+      rowErrors.push(`${rowLabel}: missing item name.`);
+      return;
+    }
+
+    const quantityRaw = String(row.quantity_needed ?? "1").trim();
+    const quantityNeeded = Math.max(1, Number(quantityRaw) || 1);
+
+    toInsert.push({
+      event_id: eventId,
+      title,
+      quantity_needed: quantityNeeded,
+      notes: String(row.notes ?? "").trim() || null,
+      created_by: user.id,
+    });
+  });
+
+  if (toInsert.length === 0) {
+    return { imported: 0, errors: rowErrors.length ? rowErrors : ["No valid rows found."] };
+  }
+
+  const { error, data } = await supabase.from("food_tent_items").insert(toInsert).select("id");
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/food-tent");
+  return { imported: data?.length ?? 0, errors: rowErrors };
+}
+
 export async function updateFoodTentItem(formData: FormData) {
   const supabase = await createClient();
   await requireManager(supabase);

@@ -4,6 +4,7 @@ import { EventForm } from "./EventForm";
 import { ItemForm } from "./ItemForm";
 import { ItemRow } from "./ItemRow";
 import { SignupControl } from "./SignupControl";
+import { ImportItemsForm } from "./ImportItemsForm";
 
 export default async function FoodTentPage() {
   const supabase = await createClient();
@@ -108,7 +109,12 @@ export default async function FoodTentPage() {
                   );
                 })}
 
-                {isManager && <ItemForm eventId={event.id} />}
+                {isManager && (
+                  <div className="flex flex-col gap-3">
+                    <ItemForm eventId={event.id} />
+                    <ImportItemsForm eventId={event.id} />
+                  </div>
+                )}
               </div>
             </div>
           );
