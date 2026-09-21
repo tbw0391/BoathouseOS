@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
+import { LINEUP_CATEGORY_OPTIONS } from "@/lib/lineupCategories";
+import type { LineupCategory } from "@/lib/database.types";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -31,11 +33,15 @@ export async function createLineup(formData: FormData) {
   const eventId = String(formData.get("event_id") ?? "").trim();
   const boatName = String(formData.get("boat_name") ?? "").trim();
   const boatClass = String(formData.get("boat_class") ?? "").trim();
+  const category = String(formData.get("category") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   const classSpec = BOAT_CLASSES[boatClass];
   if (!eventId || !boatName || !classSpec) {
     throw new Error("Boat name and a valid boat class are required.");
+  }
+  if (!LINEUP_CATEGORY_OPTIONS.includes(category)) {
+    throw new Error("Please choose a category.");
   }
 
   const { data: lineup, error } = await supabase
@@ -44,6 +50,7 @@ export async function createLineup(formData: FormData) {
       event_id: eventId,
       boat_name: boatName,
       boat_class: boatClass,
+      category: category as LineupCategory,
       notes,
       created_by: user.id,
     })

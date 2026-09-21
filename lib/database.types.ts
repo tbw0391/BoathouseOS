@@ -66,11 +66,14 @@ export interface EventRsvp {
   responded_at: string;
 }
 
+export type LineupCategory = 'mens_varsity' | 'mens_novice' | 'womens_varsity' | 'womens_novice';
+
 export interface Lineup {
   id: string;
   event_id: string | null;
   boat_name: string;
   boat_class: string;
+  category: LineupCategory | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;
