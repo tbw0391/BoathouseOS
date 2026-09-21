@@ -23,15 +23,23 @@ function TemplateCard({
   seats,
   roster,
   boats,
+  templates,
 }: {
   template: LineupTemplate;
   seats: LineupTemplateSeat[];
   roster: Pick<Profile, "id" | "display_name">[];
   boats: Boat[];
+  templates: LineupTemplate[];
 }) {
   const [isPending, startTransition] = useTransition();
   const [boatError, setBoatError] = useState<string | null>(null);
-  const matchingBoats = boats.filter((b) => b.boat_class === template.boat_class);
+  const linkedBoat = template.boat_id ? boats.find((b) => b.id === template.boat_id) ?? null : null;
+  // A boat already linked to another template can't be picked here — the
+  // 1:1 boat<->crew link is enforced server-side, this just avoids offering
+  // a choice that would fail.
+  const matchingBoats = boats.filter(
+    (b) => b.boat_class === template.boat_class && !templates.some((t) => t.boat_id === b.id && t.id !== template.id)
+  );
 
   function remove() {
     if (!window.confirm(`Delete the "${template.name}" template?`)) return;
@@ -61,6 +69,7 @@ function TemplateCard({
           <p className="text-xs text-gray-500">
             {BOAT_CLASSES[template.boat_class]?.label ?? template.boat_class}
             {template.category && ` · ${LINEUP_CATEGORIES[template.category]}`}
+            {linkedBoat && ` · ${linkedBoat.name}`}
           </p>
           {template.notes && <p className="text-sm text-gray-500 mt-1">{template.notes}</p>}
         </div>
@@ -73,22 +82,26 @@ function TemplateCard({
         </button>
       </div>
 
-      <div className="mt-2 flex items-center gap-2 text-sm">
-        <span className="text-gray-500">Default boat</span>
-        <select
-          defaultValue={template.boat_id ?? ""}
-          onChange={handleBoatChange}
-          disabled={isPending}
-          className="border rounded px-2 py-1 text-sm disabled:opacity-50"
-        >
-          <option value="">— none —</option>
-          {matchingBoats.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Fleet boats with a category get this crew's boat locked in at
+          creation — only a boat-less (custom) template offers a picker. */}
+      {!linkedBoat && (
+        <div className="mt-2 flex items-center gap-2 text-sm">
+          <span className="text-gray-500">Boat</span>
+          <select
+            defaultValue={template.boat_id ?? ""}
+            onChange={handleBoatChange}
+            disabled={isPending}
+            className="border rounded px-2 py-1 text-sm disabled:opacity-50"
+          >
+            <option value="">— none —</option>
+            {matchingBoats.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {boatError && <p className="text-xs text-red-600 mt-1">{boatError}</p>}
 
       <ul className="mt-2 flex flex-col gap-1.5">
@@ -126,10 +139,17 @@ export function LineupTemplatesSection({
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [boatId, setBoatId] = useState("");
   const [boatClass, setBoatClass] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const matchingBoats = boats.filter((b) => b.boat_class === boatClass);
+  // Fleet boats with a category already got their crew auto-created when
+  // added — only offer boats here that don't have one yet (e.g. legacy
+  // boats from before this feature).
+  const boatsNeedingTemplate = boats.filter(
+    (b) => b.category && !templates.some((t) => t.boat_id === b.id)
+  );
+  const selectedBoat = boatsNeedingTemplate.find((b) => b.id === boatId) ?? null;
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -137,6 +157,7 @@ export function LineupTemplatesSection({
       try {
         await createLineupTemplate(formData);
         formRef.current?.reset();
+        setBoatId("");
         setBoatClass("");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -154,8 +175,9 @@ export function LineupTemplatesSection({
         Lineup Templates ({templates.length})
       </summary>
       <p className="mt-2 text-xs text-gray-500">
-        A reusable named crew (e.g. &quot;Men&apos;s 1V8&quot;) you can apply to any matching race
-        later. Give it a default boat from the fleet, or leave it unset and pick one each time.
+        Fleet boats get a saved crew automatically once they have a category — edit its seats
+        below. Use this form only for a crew that isn&apos;t tied to a fleet boat yet (masters,
+        development, or a legacy boat).
       </p>
 
       {templates.length > 0 && (
@@ -167,51 +189,70 @@ export function LineupTemplatesSection({
               seats={templateSeats.filter((s) => s.template_id === t.id)}
               roster={roster}
               boats={boats}
+              templates={templates}
             />
           ))}
         </div>
       )}
 
       <form ref={formRef} action={handleSubmit} className="mt-4 flex flex-col gap-2">
-        <input name="name" placeholder="Template name (e.g. Men's 1V8)" required className="border rounded px-3 py-2 text-sm" />
-        <select
-          name="boat_class"
-          value={boatClass}
-          onChange={(e) => setBoatClass(e.target.value)}
-          required
-          className="border rounded px-3 py-2 text-sm"
-        >
-          <option value="" disabled>
-            Boat class
-          </option>
-          {BOAT_CLASS_OPTIONS.map((cls) => (
-            <option key={cls} value={cls}>
-              {BOAT_CLASSES[cls].label}
-            </option>
-          ))}
-        </select>
-        {boatClass && (
-          <select name="boat_id" defaultValue="" className="border rounded px-3 py-2 text-sm">
-            <option value="">Default boat (optional — pick later instead)</option>
-            {matchingBoats.map((b) => (
+        {boatsNeedingTemplate.length > 0 && (
+          <select
+            name="boat_id"
+            value={boatId}
+            onChange={(e) => setBoatId(e.target.value)}
+            className="border rounded px-3 py-2 text-sm"
+          >
+            <option value="">Custom crew (no fleet boat)</option>
+            {boatsNeedingTemplate.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.name}
+                {b.name} ({b.category ? LINEUP_CATEGORIES[b.category] : b.boat_class})
               </option>
             ))}
           </select>
         )}
-        <select name="category" defaultValue="" className="border rounded px-3 py-2 text-sm">
-          <option value="">Any category</option>
-          {LINEUP_CATEGORY_GROUPS.map((group) => (
-            <optgroup key={group.label} label={group.label}>
-              {group.options.map((cat) => (
-                <option key={cat} value={cat}>
-                  {LINEUP_CATEGORIES[cat]}
+
+        <input
+          key={boatId}
+          name="name"
+          placeholder="Template name (e.g. Men's 1V8)"
+          defaultValue={selectedBoat?.category ? LINEUP_CATEGORIES[selectedBoat.category] : ""}
+          required
+          className="border rounded px-3 py-2 text-sm"
+        />
+
+        {!boatId && (
+          <>
+            <select
+              name="boat_class"
+              value={boatClass}
+              onChange={(e) => setBoatClass(e.target.value)}
+              required
+              className="border rounded px-3 py-2 text-sm"
+            >
+              <option value="" disabled>
+                Boat class
+              </option>
+              {BOAT_CLASS_OPTIONS.map((cls) => (
+                <option key={cls} value={cls}>
+                  {BOAT_CLASSES[cls].label}
                 </option>
               ))}
-            </optgroup>
-          ))}
-        </select>
+            </select>
+            <select name="category" defaultValue="" className="border rounded px-3 py-2 text-sm">
+              <option value="">Any category</option>
+              {LINEUP_CATEGORY_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {LINEUP_CATEGORIES[cat]}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </>
+        )}
         <input name="notes" placeholder="Notes (optional)" className="border rounded px-3 py-2 text-sm" />
 
         {error && <p className="text-sm text-red-600">{error}</p>}

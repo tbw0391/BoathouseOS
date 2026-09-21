@@ -60,7 +60,7 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
         </option>
         {boats.map((boat) => (
           <option key={boat.id} value={boat.id}>
-            {boat.name} ({BOAT_CLASSES[boat.boat_class]?.label ?? boat.boat_class})
+            {boat.name} ({boat.category ? LINEUP_CATEGORIES[boat.category] : BOAT_CLASSES[boat.boat_class]?.label ?? boat.boat_class})
           </option>
         ))}
       </select>

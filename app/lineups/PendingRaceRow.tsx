@@ -1,45 +1,25 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { applyTemplateToRace, createLineupForRace, deleteRace } from "./actions";
+import { createLineupForRace, deleteRace } from "./actions";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES } from "@/lib/lineupCategories";
-import type { Boat, LineupTemplate, Race } from "@/lib/database.types";
+import type { Boat, Race } from "@/lib/database.types";
 
 export function PendingRaceRow({
   race,
   boats,
-  templates,
   canManage,
 }: {
   race: Race;
   boats: Boat[];
-  templates: LineupTemplate[];
   canManage: boolean;
 }) {
-  const [mode, setMode] = useState<"closed" | "template" | "scratch">("closed");
-  const [templateId, setTemplateId] = useState("");
+  const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const selectedTemplate = templates.find((t) => t.id === templateId);
-  const matchingBoats = selectedTemplate
-    ? boats.filter((b) => b.boat_class === selectedTemplate.boat_class)
-    : [];
-
-  function handleApplyTemplate(formData: FormData) {
-    setError(null);
-    formData.set("race_id", race.id);
-    startTransition(async () => {
-      try {
-        await applyTemplateToRace(formData);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong.");
-      }
-    });
-  }
-
-  function handleBuildScratch(formData: FormData) {
+  function handleSubmit(formData: FormData) {
     setError(null);
     formData.set("race_id", race.id);
     startTransition(async () => {
@@ -82,108 +62,31 @@ export function PendingRaceRow({
 
       {!canManage && <p className="text-xs text-gray-500 mt-1">Waiting on a coach to assign a boat.</p>}
 
-      {canManage && mode === "closed" && (
-        <div className="mt-2 flex gap-3">
-          <button
-            onClick={() => setMode("template")}
-            className="text-xs border-2 border-[#022e5d] rounded px-2 py-1"
-          >
-            Apply saved lineup
-          </button>
-          <button
-            onClick={() => setMode("scratch")}
-            className="text-xs border-2 border-[#022e5d] rounded px-2 py-1"
-          >
-            Build new
-          </button>
-        </div>
+      {canManage && !open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="mt-2 text-xs border-2 border-[#022e5d] rounded px-2 py-1"
+        >
+          Assign a boat
+        </button>
       )}
 
-      {canManage && mode === "template" && (
-        <form action={handleApplyTemplate} className="mt-2 flex flex-col gap-2">
-          {templates.length === 0 ? (
-            <p className="text-xs text-gray-500">
-              No lineup templates yet — create one below, or build this race from scratch.
-            </p>
-          ) : (
-            <>
-              <select
-                name="template_id"
-                required
-                value={templateId}
-                onChange={(e) => setTemplateId(e.target.value)}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value="" disabled>
-                  Choose a saved lineup
-                </option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({BOAT_CLASSES[t.boat_class]?.label ?? t.boat_class})
-                  </option>
-                ))}
-              </select>
-
-              {templateId && (
-                <select
-                  key={templateId}
-                  name="boat_id"
-                  required
-                  defaultValue={selectedTemplate?.boat_id ?? ""}
-                  className="border rounded px-2 py-1 text-sm"
-                >
-                  <option value="" disabled>
-                    Choose a boat
-                  </option>
-                  {matchingBoats.length === 0 ? (
-                    <option value="" disabled>
-                      No matching boats in the fleet
-                    </option>
-                  ) : (
-                    matchingBoats.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))
-                  )}
-                </select>
-              )}
-
-              <button
-                type="submit"
-                disabled={isPending || !templateId}
-                className="self-start text-xs font-medium text-white bg-[#404040] border-2 border-[#022e5d] rounded px-2 py-1 disabled:opacity-50"
-              >
-                Apply
-              </button>
-            </>
-          )}
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <button
-            type="button"
-            onClick={() => {
-              setMode("closed");
-              setError(null);
-            }}
-            className="self-start text-xs text-gray-500 hover:underline"
-          >
-            Cancel
-          </button>
-        </form>
-      )}
-
-      {canManage && mode === "scratch" && (
-        <form action={handleBuildScratch} className="mt-2 flex flex-col gap-2">
+      {canManage && open && (
+        <form action={handleSubmit} className="mt-2 flex flex-col gap-2">
           <select name="boat_id" required defaultValue="" className="border rounded px-2 py-1 text-sm">
             <option value="" disabled>
               Choose a boat
             </option>
             {boats.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.name} ({BOAT_CLASSES[b.boat_class]?.label ?? b.boat_class})
+                {b.name} ({b.category ? LINEUP_CATEGORIES[b.category] : BOAT_CLASSES[b.boat_class]?.label ?? b.boat_class})
               </option>
             ))}
           </select>
+          <p className="text-xs text-gray-500">
+            A boat&apos;s saved crew, if it has one, fills in the lineup automatically — swap any
+            seat afterward.
+          </p>
           <button
             type="submit"
             disabled={isPending}
@@ -195,7 +98,7 @@ export function PendingRaceRow({
           <button
             type="button"
             onClick={() => {
-              setMode("closed");
+              setOpen(false);
               setError(null);
             }}
             className="self-start text-xs text-gray-500 hover:underline"

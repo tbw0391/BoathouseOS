@@ -3,7 +3,40 @@
 import { useRef, useState, useTransition } from "react";
 import { createBoat, updateBoat, deleteBoat } from "./actions";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
+import { LINEUP_CATEGORIES, FLEET_CATEGORY_GROUPS, CATEGORY_BOAT_CLASS } from "@/lib/lineupCategories";
 import type { Boat } from "@/lib/database.types";
+
+// Boats out of the Men's/Women's depth scheme (singles, doubles, pairs) —
+// offered as a plain boat-class fallback in the same picker.
+const OTHER_BOAT_CLASSES = BOAT_CLASS_OPTIONS.filter(
+  (cls) => !Object.values(CATEGORY_BOAT_CLASS).includes(cls)
+);
+
+function BoatTypeSelect({ defaultValue }: { defaultValue: string }) {
+  return (
+    <select name="boat_type" defaultValue={defaultValue} required className="border rounded px-2 py-1 text-sm">
+      <option value="" disabled>
+        Boat type
+      </option>
+      {FLEET_CATEGORY_GROUPS.map((group) => (
+        <optgroup key={group.label} label={group.label}>
+          {group.options.map((cat) => (
+            <option key={cat} value={cat}>
+              {LINEUP_CATEGORIES[cat]}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+      <optgroup label="Other">
+        {OTHER_BOAT_CLASSES.map((cls) => (
+          <option key={cls} value={cls}>
+            {BOAT_CLASSES[cls].label}
+          </option>
+        ))}
+      </optgroup>
+    </select>
+  );
+}
 
 function BoatRow({ boat }: { boat: Boat }) {
   const [editing, setEditing] = useState(false);
@@ -40,18 +73,7 @@ function BoatRow({ boat }: { boat: Boat }) {
             required
             className="border rounded px-2 py-1 text-sm"
           />
-          <select
-            name="boat_class"
-            defaultValue={boat.boat_class}
-            required
-            className="border rounded px-2 py-1 text-sm"
-          >
-            {BOAT_CLASS_OPTIONS.map((cls) => (
-              <option key={cls} value={cls}>
-                {BOAT_CLASSES[cls].label}
-              </option>
-            ))}
-          </select>
+          <BoatTypeSelect defaultValue={boat.category ?? boat.boat_class} />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button
@@ -74,10 +96,12 @@ function BoatRow({ boat }: { boat: Boat }) {
     );
   }
 
+  const typeLabel = boat.category ? LINEUP_CATEGORIES[boat.category] : BOAT_CLASSES[boat.boat_class]?.label ?? boat.boat_class;
+
   return (
     <li className="flex items-center justify-between text-sm">
       <span>
-        {boat.name} <span className="text-gray-500">({BOAT_CLASSES[boat.boat_class]?.label ?? boat.boat_class})</span>
+        {boat.name} <span className="text-gray-500">({typeLabel})</span>
       </span>
       <div className="flex gap-3">
         <button onClick={() => setEditing(true)} className="text-xs font-medium hover:underline">
@@ -133,16 +157,7 @@ export function BoatsSection({ boats }: { boats: Boat[] }) {
 
       <form ref={formRef} action={handleSubmit} className="mt-4 flex flex-col gap-2">
         <input name="name" placeholder="Boat name" required className="border rounded px-3 py-2 text-sm" />
-        <select name="boat_class" defaultValue="" required className="border rounded px-3 py-2 text-sm">
-          <option value="" disabled>
-            Boat class
-          </option>
-          {BOAT_CLASS_OPTIONS.map((cls) => (
-            <option key={cls} value={cls}>
-              {BOAT_CLASSES[cls].label}
-            </option>
-          ))}
-        </select>
+        <BoatTypeSelect defaultValue="" />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

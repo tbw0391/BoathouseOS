@@ -390,9 +390,11 @@ export async function deleteRace(formData: FormData) {
   revalidatePath("/");
 }
 
-// Builds a fresh lineup from scratch for a specific pending race, pulling
-// category/race_name/race_time from the race itself rather than asking the
-// coach to re-enter them, and marks the race as no longer pending.
+// Builds a lineup for a specific pending race from a chosen fleet boat,
+// pulling race_name/race_time from the race and category/notes/crew from
+// the boat's linked saved template when it has one (falling back to the
+// race's own category and an empty roster otherwise), and marks the race
+// as no longer pending.
 export async function createLineupForRace(formData: FormData) {
   const supabase = await createClient();
   const { user } = await requireManager(supabase);
@@ -416,7 +418,11 @@ export async function createLineupForRace(formData: FormData) {
     .single();
   if (boatError || !boat) throw new Error("That boat couldn't be found.");
 
-  const seats = seatsForBoatClass(boat.boat_class);
+  const { category: templateCategory, notes: templateNotes, seats } = await boatLineupDefaults(
+    supabase,
+    boatId,
+    boat.boat_class
+  );
 
   const lineupId = crypto.randomUUID();
   const { error } = await supabase.from("lineups").insert({
@@ -425,7 +431,8 @@ export async function createLineupForRace(formData: FormData) {
     boat_id: boatId,
     boat_name: boat.name,
     boat_class: boat.boat_class,
-    category: race.category,
+    category: templateCategory ?? race.category,
+    notes: templateNotes,
     race_name: race.race_name,
     race_time: race.race_time,
     created_by: user.id,
@@ -447,32 +454,38 @@ export async function createLineupForRace(formData: FormData) {
   revalidatePath("/");
 }
 
+// A template can either be based on a fleet boat — which pins its boat
+// class/category and leaves just name/notes to fill in, since the boat
+// already answered those questions — or, for boat-less crews (masters,
+// development, or a class not yet in the fleet), built from scratch.
 export async function createLineupTemplate(formData: FormData) {
   const supabase = await createClient();
   const { user } = await requireManager(supabase);
 
-  const name = String(formData.get("name") ?? "").trim();
-  const boatClass = String(formData.get("boat_class") ?? "").trim();
   const boatId = String(formData.get("boat_id") ?? "").trim() || null;
-  const categoryRaw = String(formData.get("category") ?? "").trim();
-  const category = LINEUP_CATEGORY_OPTIONS.includes(categoryRaw) ? (categoryRaw as LineupCategory) : null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
-
-  if (!name || !BOAT_CLASSES[boatClass]) {
-    throw new Error("Name and a valid boat class are required.");
-  }
+  let name = String(formData.get("name") ?? "").trim();
+  let boatClass: string;
+  let category: LineupCategory | null;
 
   if (boatId) {
     const { data: boat, error: boatError } = await supabase
       .from("boats")
-      .select("boat_class")
+      .select("boat_class, category")
       .eq("id", boatId)
       .single();
     if (boatError || !boat) throw new Error("That boat couldn't be found.");
-    if (boat.boat_class !== boatClass) {
-      throw new Error("The default boat's class doesn't match the template's boat class.");
-    }
+    boatClass = boat.boat_class;
+    category = boat.category;
+    if (!name && category) name = LINEUP_CATEGORIES[category] ?? "";
+  } else {
+    boatClass = String(formData.get("boat_class") ?? "").trim();
+    if (!BOAT_CLASSES[boatClass]) throw new Error("A valid boat class is required.");
+    const categoryRaw = String(formData.get("category") ?? "").trim();
+    category = LINEUP_CATEGORY_OPTIONS.includes(categoryRaw) ? (categoryRaw as LineupCategory) : null;
   }
+
+  if (!name) throw new Error("A template name is required.");
 
   const seats = seatsForBoatClass(boatClass);
 
@@ -486,7 +499,10 @@ export async function createLineupTemplate(formData: FormData) {
     notes,
     created_by: user.id,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (boatId && isUniqueViolation(error)) throw new Error("That boat already has a saved crew.");
+    throw new Error(error.message);
+  }
 
   const { error: seatsError } = await supabase
     .from("lineup_template_seats")
@@ -520,7 +536,10 @@ export async function updateTemplateBoat(formData: FormData) {
     .from("lineup_templates")
     .update({ boat_id: boatId })
     .eq("id", templateId);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (boatId && isUniqueViolation(error)) throw new Error("That boat already has a saved crew.");
+    throw new Error(error.message);
+  }
 
   revalidatePath("/lineups");
 }
@@ -547,91 +566,6 @@ export async function assignTemplateSeat(seatId: string, rowerId: string | null)
   if (error) throw new Error(error.message);
 
   revalidatePath("/lineups");
-}
-
-// Applies a saved lineup template to a pending race: picks a boat (must
-// match the template's boat class, since that determines seat count),
-// creates a real lineup with the template's crew pre-filled, and marks the
-// race as no longer pending. The new lineup is an independent copy — later
-// edits to the template, or to this lineup's seats, don't affect each other.
-export async function applyTemplateToRace(formData: FormData) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
-
-  const raceId = String(formData.get("race_id") ?? "").trim();
-  const templateId = String(formData.get("template_id") ?? "").trim();
-  const boatId = String(formData.get("boat_id") ?? "").trim();
-  if (!raceId || !templateId || !boatId) {
-    throw new Error("Please choose a template and a boat.");
-  }
-
-  const { data: race, error: raceError } = await supabase
-    .from("races")
-    .select("event_id, category, race_name, race_time, lineup_id")
-    .eq("id", raceId)
-    .single();
-  if (raceError || !race) throw new Error("That race couldn't be found.");
-  if (race.lineup_id) throw new Error("This race already has a lineup.");
-
-  const { data: template, error: templateError } = await supabase
-    .from("lineup_templates")
-    .select("name, boat_class, category, notes")
-    .eq("id", templateId)
-    .single();
-  if (templateError || !template) throw new Error("That template couldn't be found.");
-
-  const { data: boat, error: boatError } = await supabase
-    .from("boats")
-    .select("name, boat_class")
-    .eq("id", boatId)
-    .single();
-  if (boatError || !boat) throw new Error("That boat couldn't be found.");
-
-  if (boat.boat_class !== template.boat_class) {
-    throw new Error(
-      `${template.name} needs a ${BOAT_CLASSES[template.boat_class]?.label ?? template.boat_class} boat.`
-    );
-  }
-
-  const { data: templateSeats, error: templateSeatsError } = await supabase
-    .from("lineup_template_seats")
-    .select("seat_number, seat_role, rower_id")
-    .eq("template_id", templateId);
-  if (templateSeatsError) throw new Error(templateSeatsError.message);
-
-  const lineupId = crypto.randomUUID();
-  const { error } = await supabase.from("lineups").insert({
-    id: lineupId,
-    event_id: race.event_id,
-    boat_id: boatId,
-    boat_name: boat.name,
-    boat_class: boat.boat_class,
-    category: template.category ?? race.category,
-    notes: template.notes,
-    race_name: race.race_name,
-    race_time: race.race_time,
-    created_by: user.id,
-  });
-  if (error) throw new Error(error.message);
-
-  const { error: seatsError } = await supabase.from("lineup_seats").insert(
-    (templateSeats ?? []).map((s) => ({
-      lineup_id: lineupId,
-      seat_number: s.seat_number,
-      seat_role: s.seat_role,
-      rower_id: s.rower_id,
-    }))
-  );
-  if (seatsError) throw new Error(seatsError.message);
-
-  const { error: raceUpdateError } = await supabase
-    .from("races")
-    .update({ lineup_id: lineupId })
-    .eq("id", raceId);
-  if (raceUpdateError) throw new Error(raceUpdateError.message);
-
-  revalidatePath("/lineups");
-  revalidatePath("/");
 }
 
 export async function updateLineupRace(formData: FormData) {

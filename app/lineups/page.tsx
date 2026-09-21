@@ -198,7 +198,6 @@ export default async function LineupsPage() {
                       key={race.id}
                       race={race}
                       boats={boats}
-                      templates={templates}
                       canManage={canManage}
                     />
                   ))}
