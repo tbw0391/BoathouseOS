@@ -6,6 +6,7 @@ import { BoatsSection } from "./BoatsSection";
 import { CreateLineupForm } from "./CreateLineupForm";
 import { SeatAssign } from "./SeatAssign";
 import { DeleteLineupButton } from "./DeleteLineupButton";
+import { EditRaceInfo } from "./EditRaceInfo";
 
 const SEAT_ROLE_LABEL: Record<LineupSeat["seat_role"], string> = {
   rower: "Seat",
@@ -98,6 +99,7 @@ export default async function LineupsPage() {
               </span>
             </p>
             {lineup.notes && <p className="text-sm text-gray-500">{lineup.notes}</p>}
+            <EditRaceInfo lineup={lineup} canManage={canManage} />
           </div>
           {canManage && <DeleteLineupButton lineupId={lineup.id} />}
         </div>

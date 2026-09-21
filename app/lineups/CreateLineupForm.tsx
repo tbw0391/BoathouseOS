@@ -74,6 +74,19 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
           </option>
         ))}
       </select>
+      <input
+        name="race_name"
+        placeholder="Race name (optional, e.g. Event 4 - Women's V8+)"
+        className="border rounded px-3 py-2 text-sm"
+      />
+      <label className="flex flex-col gap-1 text-xs text-gray-500">
+        Race time (optional)
+        <input
+          type="datetime-local"
+          name="race_time"
+          className="border rounded px-3 py-2 text-sm text-black"
+        />
+      </label>
       <textarea
         name="notes"
         rows={2}

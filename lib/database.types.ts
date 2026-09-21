@@ -90,6 +90,8 @@ export interface Lineup {
   boat_class: string;
   category: LineupCategory | null;
   notes: string | null;
+  race_time: string | null;
+  race_name: string | null;
   created_by: string | null;
   created_at: string;
 }

@@ -185,7 +185,14 @@ export default async function Home() {
     }
   }
 
-  let lineupBanners: { rowerName: string | null; boatName: string; eventTitle: string; eventDate: string }[] = [];
+  let lineupBanners: {
+    rowerName: string | null;
+    boatName: string;
+    raceName: string | null;
+    raceTimeLabel: string | null;
+    eventTitle: string;
+    eventDate: string;
+  }[] = [];
 
   if (user) {
     // Whose lineup assignments this viewer should hear about: their own if
@@ -251,6 +258,13 @@ export default async function Home() {
             return {
               rowerName: isParent ? rowerNameById.get(seat.rower_id) ?? "Someone" : null,
               boatName: lineup.boat_name,
+              raceName: lineup.race_name,
+              raceTimeLabel: lineup.race_time
+                ? new Date(lineup.race_time).toLocaleTimeString([], {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })
+                : null,
               eventTitle: event.title,
               eventDate: new Date(event.starts_at).toLocaleDateString(),
             };
@@ -315,7 +329,14 @@ export default async function Home() {
               ) : (
                 "You're"
               )}{" "}
-              in the boat for <strong>{b.boatName}</strong> at {b.eventTitle} ({b.eventDate})
+              in the boat for <strong>{b.boatName}</strong>
+              {b.raceName && (
+                <>
+                  {" "}(<strong>{b.raceName}</strong>)
+                </>
+              )}{" "}
+              at {b.eventTitle} ({b.eventDate}
+              {b.raceTimeLabel && <>, racing at <strong>{b.raceTimeLabel}</strong></>})
             </div>
           ))}
         </div>

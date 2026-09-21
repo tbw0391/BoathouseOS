@@ -150,6 +150,9 @@ export async function createLineup(formData: FormData) {
   const boatId = String(formData.get("boat_id") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
+  const raceName = String(formData.get("race_name") ?? "").trim() || null;
+  const raceTimeRaw = String(formData.get("race_time") ?? "").trim();
+  const raceTime = raceTimeRaw ? new Date(raceTimeRaw).toISOString() : null;
 
   if (!eventId || !boatId) {
     throw new Error("Please choose a boat.");
@@ -177,6 +180,8 @@ export async function createLineup(formData: FormData) {
       boat_class: boat.boat_class,
       category: category as LineupCategory,
       notes,
+      race_name: raceName,
+      race_time: raceTime,
       created_by: user.id,
     })
     .select("id")
@@ -202,6 +207,28 @@ export async function createLineup(formData: FormData) {
   if (seatsError) throw new Error(seatsError.message);
 
   revalidatePath("/lineups");
+}
+
+export async function updateLineupRace(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const lineupId = String(formData.get("lineup_id") ?? "").trim();
+  if (!lineupId) throw new Error("Missing boat.");
+
+  const raceName = String(formData.get("race_name") ?? "").trim() || null;
+  const raceTimeRaw = String(formData.get("race_time") ?? "").trim();
+  const raceTime = raceTimeRaw ? new Date(raceTimeRaw).toISOString() : null;
+
+  const { error } = await supabase
+    .from("lineups")
+    .update({ race_name: raceName, race_time: raceTime })
+    .eq("id", lineupId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/lineups");
+  revalidatePath("/");
 }
 
 export async function deleteLineup(formData: FormData) {
