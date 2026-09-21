@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { createLineup } from "./actions";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS } from "@/lib/lineupCategories";
+import { LINEUP_CATEGORIES, LINEUP_CATEGORY_GROUPS } from "@/lib/lineupCategories";
 import type { Boat } from "@/lib/database.types";
 
 export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: Boat[] }) {
@@ -68,10 +68,14 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
         <option value="" disabled>
           Category
         </option>
-        {LINEUP_CATEGORY_OPTIONS.map((cat) => (
-          <option key={cat} value={cat}>
-            {LINEUP_CATEGORIES[cat]}
-          </option>
+        {LINEUP_CATEGORY_GROUPS.map((group) => (
+          <optgroup key={group.label} label={group.label}>
+            {group.options.map((cat) => (
+              <option key={cat} value={cat}>
+                {LINEUP_CATEGORIES[cat]}
+              </option>
+            ))}
+          </optgroup>
         ))}
       </select>
       <input

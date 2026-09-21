@@ -7,7 +7,7 @@ import {
   assignTemplateSeat,
 } from "./actions";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
-import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS } from "@/lib/lineupCategories";
+import { LINEUP_CATEGORIES, LINEUP_CATEGORY_GROUPS } from "@/lib/lineupCategories";
 import { SeatAssign } from "./SeatAssign";
 import type { LineupTemplate, LineupTemplateSeat, Profile } from "@/lib/database.types";
 
@@ -141,10 +141,14 @@ export function LineupTemplatesSection({
         </select>
         <select name="category" defaultValue="" className="border rounded px-3 py-2 text-sm">
           <option value="">Any category</option>
-          {LINEUP_CATEGORY_OPTIONS.map((cat) => (
-            <option key={cat} value={cat}>
-              {LINEUP_CATEGORIES[cat]}
-            </option>
+          {LINEUP_CATEGORY_GROUPS.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.options.map((cat) => (
+                <option key={cat} value={cat}>
+                  {LINEUP_CATEGORIES[cat]}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         <input name="notes" placeholder="Notes (optional)" className="border rounded px-3 py-2 text-sm" />

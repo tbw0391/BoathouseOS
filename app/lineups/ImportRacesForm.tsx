@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { read, utils } from "xlsx";
 import { importRaces, type RaceImportRow } from "./actions";
-import { LINEUP_CATEGORIES } from "@/lib/lineupCategories";
 
 function normalizeKey(key: string) {
   return key.trim().toLowerCase().replace(/\s+/g, "_");
@@ -82,9 +81,10 @@ export function ImportRacesForm({ eventId }: { eventId: string }) {
 
       <p className="text-sm text-gray-500">
         Columns expected (case-insensitive): Race Name (or Race/Event), Category, Race Time. Only
-        Race Name is required. Category should be one of:{" "}
-        {Object.values(LINEUP_CATEGORIES).join(", ")} — anything else is left uncategorized rather
-        than blocking the import.
+        Race Name is required. Category can be written like &quot;Men&apos;s 1V8&quot; or
+        &quot;Women&apos;s 3V4+&quot; (1st–4th, for 8+/4+/4x/4- only — no depth for
+        singles/doubles/pairs), or Masters/Development. Anything else is left uncategorized
+        rather than blocking the import.
       </p>
 
       <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFile} className="text-sm" />

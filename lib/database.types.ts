@@ -74,13 +74,11 @@ export interface EventRsvp {
   responded_at: string;
 }
 
-export type LineupCategory =
-  | 'mens_varsity'
-  | 'mens_novice'
-  | 'womens_varsity'
-  | 'womens_novice'
-  | 'masters'
-  | 'development';
+// Generated at runtime from LINEUP_CATEGORY_OPTIONS in lib/lineupCategories.ts
+// (gender x depth 1-4 x team boat class, plus masters/development) — too
+// large a set to hand-maintain as a literal union; validity is enforced by
+// that list at the app layer and by a check constraint in the database.
+export type LineupCategory = string;
 
 export interface Lineup {
   id: string;

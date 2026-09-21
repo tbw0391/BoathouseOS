@@ -44,9 +44,14 @@
 - [x] Assign rowers/coxswain to seats (coach/admin only, everyone else sees
       read-only names)
 - [x] View lineups by event, grouped under each schedule event like Food Tent
-- [x] Category per boat: Men's Varsity, Men's Novice, Women's Varsity,
-      Women's Novice, Masters, Development — boats grouped under a heading
-      per category within each event
+- [x] Category per boat (2026-09-21 decision: replaced the Varsity/Novice
+      split with a numbered depth chart, since depth is per boat class, not
+      a fixed team-wide rank — e.g. someone can be in the 1V8 and the 2V4
+      at the same regatta): Men's/Women's 1st-4th for each team boat class
+      (8+, 4+, 4x, 4-; singles/doubles/pairs intentionally have no depth
+      categories), plus Masters and Development. Boats grouped under a
+      heading per category within each event; category dropdowns grouped
+      by Men's/Women's/Other since it's now 34 options.
 - [x] Seat assignment is restricted to the matching roster group (e.g. a
       Men's boat can only pull from the Men's group, Masters only from
       Masters) — an already-assigned person outside the group still shows
