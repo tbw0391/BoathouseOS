@@ -2,10 +2,11 @@
 
 import { useRef, useState, useTransition } from "react";
 import { createLineup } from "./actions";
-import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
+import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS } from "@/lib/lineupCategories";
+import type { Boat } from "@/lib/database.types";
 
-export function CreateLineupForm({ eventId }: { eventId: string }) {
+export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: Boat[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +36,17 @@ export function CreateLineupForm({ eventId }: { eventId: string }) {
     );
   }
 
+  if (boats.length === 0) {
+    return (
+      <p className="text-sm text-gray-500">
+        Add a boat to the fleet above before creating a lineup.{" "}
+        <button onClick={() => setOpen(false)} className="underline">
+          Close
+        </button>
+      </p>
+    );
+  }
+
   return (
     <form
       ref={formRef}
@@ -42,12 +54,16 @@ export function CreateLineupForm({ eventId }: { eventId: string }) {
       className="border rounded-lg p-3 flex flex-col gap-2 max-w-sm"
     >
       <input type="hidden" name="event_id" value={eventId} />
-      <input
-        name="boat_name"
-        placeholder="Boat name (e.g. Varsity 8)"
-        required
-        className="border rounded px-3 py-2 text-sm"
-      />
+      <select name="boat_id" defaultValue="" required className="border rounded px-3 py-2 text-sm">
+        <option value="" disabled>
+          Boat
+        </option>
+        {boats.map((boat) => (
+          <option key={boat.id} value={boat.id}>
+            {boat.name} ({BOAT_CLASSES[boat.boat_class]?.label ?? boat.boat_class})
+          </option>
+        ))}
+      </select>
       <select name="category" defaultValue="" required className="border rounded px-3 py-2 text-sm">
         <option value="" disabled>
           Category
@@ -55,16 +71,6 @@ export function CreateLineupForm({ eventId }: { eventId: string }) {
         {LINEUP_CATEGORY_OPTIONS.map((cat) => (
           <option key={cat} value={cat}>
             {LINEUP_CATEGORIES[cat]}
-          </option>
-        ))}
-      </select>
-      <select name="boat_class" defaultValue="" required className="border rounded px-3 py-2 text-sm">
-        <option value="" disabled>
-          Boat class
-        </option>
-        {BOAT_CLASS_OPTIONS.map((cls) => (
-          <option key={cls} value={cls}>
-            {BOAT_CLASSES[cls].label}
           </option>
         ))}
       </select>

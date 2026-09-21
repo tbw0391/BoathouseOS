@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Lineup, LineupSeat, Profile, ProfileTeam, ScheduleEvent } from "@/lib/database.types";
+import type { Boat, Lineup, LineupSeat, Profile, ProfileTeam, ScheduleEvent } from "@/lib/database.types";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
+import { BoatsSection } from "./BoatsSection";
 import { CreateLineupForm } from "./CreateLineupForm";
 import { SeatAssign } from "./SeatAssign";
 import { DeleteLineupButton } from "./DeleteLineupButton";
@@ -37,6 +38,12 @@ export default async function LineupsPage() {
     .select("*")
     .order("created_at", { ascending: true });
   const lineups = (lineupsData as Lineup[] | null) ?? [];
+
+  const { data: boatsData } = await supabase
+    .from("boats")
+    .select("*")
+    .order("name", { ascending: true });
+  const boats = (boatsData as Boat[] | null) ?? [];
 
   const { data: seatsData } = await supabase
     .from("lineup_seats")
@@ -163,7 +170,7 @@ export default async function LineupsPage() {
             </div>
           )}
 
-          {canManage && <CreateLineupForm eventId={event.id} />}
+          {canManage && <CreateLineupForm eventId={event.id} boats={boats} />}
           {!canManage && eventLineups.length === 0 && (
             <p className="text-sm text-gray-500">No lineups posted yet.</p>
           )}
@@ -175,6 +182,8 @@ export default async function LineupsPage() {
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">Lineups</h1>
+
+      {canManage && <BoatsSection boats={boats} />}
 
       {upcoming.length === 0 && past.length === 0 && (
         <p className="text-sm text-gray-500">No events on the schedule yet.</p>
