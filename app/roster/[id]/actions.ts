@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { BoatSide, Team } from "@/lib/database.types";
+import type { BoatSide, Role, Team } from "@/lib/database.types";
+
+const VALID_ROLES: Role[] = ["rower", "coxswain", "coach", "parent", "admin"];
 
 export async function updateBio(profileId: string, formData: FormData) {
   const supabase = await createClient();
@@ -58,6 +60,20 @@ export async function updateBio(profileId: string, formData: FormData) {
     spouseUpdate.spouse_id = spouseId;
   }
 
+  // The role field is only rendered to admins in the UI, but re-check
+  // server-side too — a crafted request must not be able to self-promote.
+  const roleUpdate: { role?: Role } = {};
+  if (formData.has("role")) {
+    if (callerRole !== "admin") {
+      throw new Error("Only admins can change a member's role.");
+    }
+    const roleRaw = String(formData.get("role") ?? "").trim();
+    if (!VALID_ROLES.includes(roleRaw as Role)) {
+      throw new Error("Invalid role.");
+    }
+    roleUpdate.role = roleRaw as Role;
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -77,6 +93,7 @@ export async function updateBio(profileId: string, formData: FormData) {
       erg_5k_time: erg5kTime,
       us_rowing_number: usRowingNumber,
       ...spouseUpdate,
+      ...roleUpdate,
     })
     .eq("id", profileId);
 

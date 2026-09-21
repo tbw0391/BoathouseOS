@@ -115,6 +115,35 @@ export interface LineupSeat {
   rower_id: string | null;
 }
 
+export interface Race {
+  id: string;
+  event_id: string;
+  category: LineupCategory | null;
+  race_name: string;
+  race_time: string | null;
+  lineup_id: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface LineupTemplate {
+  id: string;
+  name: string;
+  boat_class: string;
+  category: LineupCategory | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface LineupTemplateSeat {
+  id: string;
+  template_id: string;
+  seat_number: number;
+  seat_role: SeatRole;
+  rower_id: string | null;
+}
+
 export interface VolunteerNeed {
   id: string;
   event_id: string | null;

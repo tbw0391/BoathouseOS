@@ -29,6 +29,7 @@ import type {
   Lineup,
   LineupSeat,
   Profile,
+  Race,
   ScheduleEvent,
 } from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
@@ -274,6 +275,36 @@ export default async function Home() {
     }
   }
 
+  // Coach/admin notification: races that have been collected (e.g. via a
+  // heat sheet import) but don't have a boat/crew assigned yet.
+  let pendingRaceBanners: { eventTitle: string; eventDate: string; count: number }[] = [];
+
+  if (user && isCoachOrAdmin) {
+    const { data: pendingRaceRows } = await supabase
+      .from("races")
+      .select("*")
+      .is("lineup_id", null);
+    const pendingRacesData = (pendingRaceRows as Race[] | null) ?? [];
+
+    if (pendingRacesData.length > 0) {
+      const eventIds = [...new Set(pendingRacesData.map((r) => r.event_id))];
+      const { data: eventRows } = await supabase
+        .from("schedule_events")
+        .select("*")
+        .in("id", eventIds)
+        .gte("starts_at", new Date().toISOString());
+      const eventsData = (eventRows as ScheduleEvent[] | null) ?? [];
+
+      pendingRaceBanners = eventsData
+        .map((event) => ({
+          eventTitle: event.title,
+          eventDate: new Date(event.starts_at).toLocaleDateString(),
+          count: pendingRacesData.filter((r) => r.event_id === event.id).length,
+        }))
+        .filter((b) => b.count > 0);
+    }
+  }
+
   return (
     <div className="min-h-screen p-8 flex flex-col items-center gap-8">
       <div className="text-center">
@@ -286,6 +317,26 @@ export default async function Home() {
           className="w-40 h-auto mx-auto"
         />
       </div>
+
+      {pendingRaceBanners.length > 0 && (
+        <div className="w-full max-w-md flex flex-col gap-2">
+          {pendingRaceBanners.map((b, i) => (
+            <Link
+              key={i}
+              href="/lineups"
+              className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+            >
+              <Waves className="w-5 h-5 shrink-0" />
+              <span>
+                <strong>
+                  {b.count} race{b.count === 1 ? "" : "s"}
+                </strong>{" "}
+                still need{b.count === 1 ? "s" : ""} a lineup for {b.eventTitle} ({b.eventDate})
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {upcomingRegatta && (
         <div className="w-full max-w-md flex flex-col gap-2">

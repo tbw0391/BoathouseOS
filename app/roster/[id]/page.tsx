@@ -146,6 +146,7 @@ export default async function BioPage({
           spouseOptions={spouseOptions}
           familyOptions={familyOptions}
           familyValue={familyValue}
+          canEditRole={isCallerAdmin}
         />
       </div>
     );

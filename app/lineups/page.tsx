@@ -1,5 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Boat, Lineup, LineupSeat, Profile, ProfileTeam, ScheduleEvent } from "@/lib/database.types";
+import type {
+  Boat,
+  Lineup,
+  LineupSeat,
+  LineupTemplate,
+  LineupTemplateSeat,
+  Profile,
+  ProfileTeam,
+  Race,
+  ScheduleEvent,
+} from "@/lib/database.types";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { BoatsSection } from "./BoatsSection";
@@ -7,6 +17,9 @@ import { CreateLineupForm } from "./CreateLineupForm";
 import { SeatAssign } from "./SeatAssign";
 import { DeleteLineupButton } from "./DeleteLineupButton";
 import { EditRaceInfo } from "./EditRaceInfo";
+import { LineupTemplatesSection } from "./LineupTemplatesSection";
+import { ImportRacesForm } from "./ImportRacesForm";
+import { PendingRaceRow } from "./PendingRaceRow";
 
 const SEAT_ROLE_LABEL: Record<LineupSeat["seat_role"], string> = {
   rower: "Seat",
@@ -52,6 +65,25 @@ export default async function LineupsPage() {
     .order("seat_number", { ascending: true });
   const seats = (seatsData as LineupSeat[] | null) ?? [];
 
+  const { data: racesData } = await supabase
+    .from("races")
+    .select("*")
+    .order("race_time", { ascending: true, nullsFirst: false });
+  const races = (racesData as Race[] | null) ?? [];
+  const pendingRaces = races.filter((r) => !r.lineup_id);
+
+  const { data: templatesData } = await supabase
+    .from("lineup_templates")
+    .select("*")
+    .order("name", { ascending: true });
+  const templates = (templatesData as LineupTemplate[] | null) ?? [];
+
+  const { data: templateSeatsData } = await supabase
+    .from("lineup_template_seats")
+    .select("*")
+    .order("seat_number", { ascending: true });
+  const templateSeats = (templateSeatsData as LineupTemplateSeat[] | null) ?? [];
+
   const { data: rosterData } = await supabase
     .from("profiles")
     .select("id, display_name")
@@ -76,9 +108,13 @@ export default async function LineupsPage() {
   }
 
   const eventIdsWithLineups = new Set(lineups.map((l) => l.event_id));
+  const eventIdsWithRaces = new Set(races.map((r) => r.event_id));
   const now = new Date();
   const relevantEvents = events.filter(
-    (e) => new Date(e.starts_at).getTime() >= now.getTime() || eventIdsWithLineups.has(e.id)
+    (e) =>
+      new Date(e.starts_at).getTime() >= now.getTime() ||
+      eventIdsWithLineups.has(e.id) ||
+      eventIdsWithRaces.has(e.id)
   );
   const upcoming = relevantEvents.filter((e) => new Date(e.starts_at).getTime() >= now.getTime());
   const past = relevantEvents
@@ -138,6 +174,7 @@ export default async function LineupsPage() {
   function EventSection({ event }: { event: ScheduleEvent }) {
     const eventLineups = lineups.filter((l) => l.event_id === event.id);
     const uncategorized = eventLineups.filter((l) => !l.category);
+    const eventPendingRaces = pendingRaces.filter((r) => r.event_id === event.id);
 
     return (
       <div>
@@ -149,6 +186,28 @@ export default async function LineupsPage() {
         </h2>
 
         <div className="mt-3 flex flex-col gap-5 max-w-lg">
+          {(eventPendingRaces.length > 0 || canManage) && (
+            <div>
+              <h3 className="text-sm font-medium text-[#022e5d] mb-2">
+                Races needing a lineup {eventPendingRaces.length > 0 && `(${eventPendingRaces.length})`}
+              </h3>
+              {eventPendingRaces.length > 0 && (
+                <div className="flex flex-col gap-3 mb-3">
+                  {eventPendingRaces.map((race) => (
+                    <PendingRaceRow
+                      key={race.id}
+                      race={race}
+                      boats={boats}
+                      templates={templates}
+                      canManage={canManage}
+                    />
+                  ))}
+                </div>
+              )}
+              {canManage && <ImportRacesForm eventId={event.id} />}
+            </div>
+          )}
+
           {LINEUP_CATEGORY_OPTIONS.map((cat) => {
             const categoryLineups = eventLineups.filter((l) => l.category === cat);
             if (categoryLineups.length === 0) return null;
@@ -186,6 +245,9 @@ export default async function LineupsPage() {
       <h1 className="text-2xl font-bold mb-6">Lineups</h1>
 
       {canManage && <BoatsSection boats={boats} />}
+      {canManage && (
+        <LineupTemplatesSection templates={templates} templateSeats={templateSeats} roster={roster} />
+      )}
 
       {upcoming.length === 0 && past.length === 0 && (
         <p className="text-sm text-gray-500">No events on the schedule yet.</p>

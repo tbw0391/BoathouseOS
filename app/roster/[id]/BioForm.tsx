@@ -8,18 +8,28 @@ import { updateBio } from "./actions";
 import { TEAM_LABELS, TEAM_OPTIONS } from "@/lib/teams";
 import type { Team } from "@/lib/database.types";
 
+const ROLE_OPTIONS: { value: Profile["role"]; label: string }[] = [
+  { value: "rower", label: "Rower" },
+  { value: "coxswain", label: "Coxswain" },
+  { value: "coach", label: "Coach" },
+  { value: "parent", label: "Parent" },
+  { value: "admin", label: "Admin" },
+];
+
 export function BioForm({
   profile,
   teams,
   spouseOptions = [],
   familyOptions = [],
   familyValue = [],
+  canEditRole = false,
 }: {
   profile: Profile;
   teams: Team[];
   spouseOptions?: Pick<Profile, "id" | "display_name">[];
   familyOptions?: Pick<Profile, "id" | "display_name">[];
   familyValue?: string[];
+  canEditRole?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -122,6 +132,23 @@ export function BioForm({
         disabled
         className="border rounded px-3 py-2 text-sm bg-gray-100 text-gray-500"
       />
+
+      {canEditRole && (
+        <>
+          <label className="text-sm font-medium">Role</label>
+          <select
+            name="role"
+            defaultValue={profile.role}
+            className="border rounded px-3 py-2 text-sm"
+          >
+            {ROLE_OPTIONS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
 
       <label className="text-sm font-medium">Birthday</label>
       <input

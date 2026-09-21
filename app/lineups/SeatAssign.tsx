@@ -8,17 +8,19 @@ export function SeatAssign({
   seatId,
   currentRowerId,
   roster,
+  onAssign = assignSeat,
 }: {
   seatId: string;
   currentRowerId: string | null;
   roster: Pick<Profile, "id" | "display_name">[];
+  onAssign?: (seatId: string, rowerId: string | null) => Promise<void>;
 }) {
   const [isPending, startTransition] = useTransition();
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const rowerId = e.target.value || null;
     startTransition(async () => {
-      await assignSeat(seatId, rowerId);
+      await onAssign(seatId, rowerId);
     });
   }
 
