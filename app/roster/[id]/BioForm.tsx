@@ -24,14 +24,12 @@ export function BioForm({ profile, teams }: { profile: Profile; teams: Team[] })
     try {
       const supabase = createClient();
       const ext = file.name.split(".").pop();
-      const path = `${profile.id}/photo.${ext}`;
+      // A unique path per upload (matching the photo gallery's own
+      // convention in PhotoUploadForm.tsx) means this is always a plain
+      // INSERT, never an update/upsert/delete of an existing object — those
+      // paths hit storage.objects RLS behavior that isn't reliable here.
+      const path = `${profile.id}/${Date.now()}.${ext}`;
 
-      // Upload without { upsert: true }: Postgres's INSERT ... ON CONFLICT DO
-      // UPDATE path that upsert relies on requires the UPDATE policy to be
-      // satisfiable even for a brand-new object, which storage.objects RLS
-      // here doesn't guarantee. Removing any existing object first sidesteps
-      // that entirely and only ever needs the INSERT policy.
-      await supabase.storage.from("avatars").remove([path]);
       const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file);
       if (uploadError) throw uploadError;
 
