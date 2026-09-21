@@ -39,9 +39,11 @@
       timing feed, if the regatta provides one
 
 ## Lineups
-- [ ] Create a lineup for an event (boat name, boat class)
-- [ ] Assign rowers/coxswain to seats
-- [ ] View lineups by event
+- [x] Create a lineup/boat for an event (boat name, boat class from a
+      standard list — 1x/2x/2-/4+/4x/4-/8+ — auto-generates the right seats)
+- [x] Assign rowers/coxswain to seats (coach/admin only, everyone else sees
+      read-only names)
+- [x] View lineups by event, grouped under each schedule event like Food Tent
 
 ## Volunteer needs
 - [ ] Post volunteer needs (e.g. regatta day tent/food requests), tied to an event
