@@ -5,8 +5,23 @@
 -- 2x, 2-) intentionally have no depth categories. Masters and Development
 -- are unchanged.
 
--- Constraints first, so the data migration below (which writes the new
--- category values) doesn't get rejected by the still-old constraint.
+-- Step 1: drop the old constraints entirely first, so neither the old nor
+-- new category values are validated while we're transitioning between them
+-- (the old constraint blocks writing new values; the new one would block
+-- the still-unmigrated old values if added too early).
+alter table lineups drop constraint if exists lineups_category_check;
+alter table races drop constraint if exists races_category_check;
+alter table lineup_templates drop constraint if exists lineup_templates_category_check;
+
+-- Step 2: migrate the 2 existing lineups using the old category values.
+-- "Varsity" -> 1st, "Novice" -> 2nd is a reasonable default, not a perfect
+-- mapping — worth a manual double-check.
+update lineups set category = 'mens_1_8plus' where category = 'mens_varsity';
+update lineups set category = 'womens_1_8plus' where category = 'womens_varsity';
+update lineups set category = 'mens_2_8plus' where category = 'mens_novice';
+update lineups set category = 'womens_2_8plus' where category = 'womens_novice';
+
+-- Step 3: now that all data matches the new set, add the new constraints.
 do $$
 declare
   new_categories text := $list$(
@@ -21,20 +36,7 @@ declare
     'masters','development'
   )$list$;
 begin
-  alter table lineups drop constraint if exists lineups_category_check;
   execute format('alter table lineups add constraint lineups_category_check check (category in %s)', new_categories);
-
-  alter table races drop constraint if exists races_category_check;
   execute format('alter table races add constraint races_category_check check (category in %s)', new_categories);
-
-  alter table lineup_templates drop constraint if exists lineup_templates_category_check;
   execute format('alter table lineup_templates add constraint lineup_templates_category_check check (category in %s)', new_categories);
 end $$;
-
--- Migrate the 2 existing lineups using the old category values, now that
--- the constraint allows the new ones. "Varsity" -> 1st, "Novice" -> 2nd is
--- a reasonable default, not a perfect mapping — worth a manual double-check.
-update lineups set category = 'mens_1_8plus' where category = 'mens_varsity';
-update lineups set category = 'womens_1_8plus' where category = 'womens_varsity';
-update lineups set category = 'mens_2_8plus' where category = 'mens_novice';
-update lineups set category = 'womens_2_8plus' where category = 'womens_novice';
