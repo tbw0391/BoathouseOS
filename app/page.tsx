@@ -21,7 +21,16 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { ChatGroup, FoodTentItem, FoodTentSignup, Profile, ScheduleEvent } from "@/lib/database.types";
+import type {
+  ChatGroup,
+  FamilyLink,
+  FoodTentItem,
+  FoodTentSignup,
+  Lineup,
+  LineupSeat,
+  Profile,
+  ScheduleEvent,
+} from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getUnreadScheduleCount } from "@/lib/schedule";
@@ -77,6 +86,7 @@ export default async function Home() {
   let isAdmin = false;
   let isCoachOrAdmin = false;
   let isParent = false;
+  let isRowerOrCoxswain = false;
 
   let householdUserIds: string[] = [];
 
@@ -94,6 +104,7 @@ export default async function Home() {
     isAdmin = callerRole === "admin";
     isCoachOrAdmin = callerRole === "admin" || callerRole === "coach";
     isParent = callerRole === "parent";
+    isRowerOrCoxswain = callerRole === "rower" || callerRole === "coxswain";
 
     householdUserIds = [user.id];
     if (isParent) {
@@ -174,6 +185,81 @@ export default async function Home() {
     }
   }
 
+  let lineupBanners: { rowerName: string | null; boatName: string; eventTitle: string; eventDate: string }[] = [];
+
+  if (user) {
+    // Whose lineup assignments this viewer should hear about: their own if
+    // they're a rower/coxswain, or their linked rower/coxswain kid(s)' if
+    // they're a parent (covering the whole household, not just whoever set
+    // the family link).
+    let lineupRowerIds: string[] = [];
+    if (isRowerOrCoxswain) {
+      lineupRowerIds = [user.id];
+    } else if (isParent) {
+      const { data: familyLinkRows } = await supabase
+        .from("family_links")
+        .select("rower_id")
+        .in("guardian_id", householdUserIds);
+      lineupRowerIds = [
+        ...new Set(
+          ((familyLinkRows as Pick<FamilyLink, "rower_id">[] | null) ?? []).map((l) => l.rower_id)
+        ),
+      ];
+    }
+
+    if (lineupRowerIds.length > 0) {
+      const { data: seatRows } = await supabase
+        .from("lineup_seats")
+        .select("*")
+        .in("rower_id", lineupRowerIds);
+      const seats = (seatRows as LineupSeat[] | null) ?? [];
+
+      if (seats.length > 0) {
+        const lineupIds = [...new Set(seats.map((s) => s.lineup_id))];
+        const { data: lineupRows } = await supabase.from("lineups").select("*").in("id", lineupIds);
+        const lineupsData = (lineupRows as Lineup[] | null) ?? [];
+        const lineupById = new Map(lineupsData.map((l) => [l.id, l]));
+
+        const eventIds = [
+          ...new Set(lineupsData.map((l) => l.event_id).filter((id): id is string => !!id)),
+        ];
+        const { data: eventRows } = await supabase
+          .from("schedule_events")
+          .select("*")
+          .in("id", eventIds)
+          .gte("starts_at", new Date().toISOString());
+        const eventsData = (eventRows as ScheduleEvent[] | null) ?? [];
+        const eventById = new Map(eventsData.map((e) => [e.id, e]));
+
+        const rowerNameById = new Map<string, string>();
+        if (isParent) {
+          const { data: rowerNameRows } = await supabase
+            .from("profiles")
+            .select("id, display_name")
+            .in("id", lineupRowerIds);
+          for (const p of (rowerNameRows as Pick<Profile, "id" | "display_name">[] | null) ?? []) {
+            rowerNameById.set(p.id, p.display_name);
+          }
+        }
+
+        lineupBanners = seats
+          .map((seat) => {
+            if (!seat.rower_id) return null;
+            const lineup = lineupById.get(seat.lineup_id);
+            const event = lineup?.event_id ? eventById.get(lineup.event_id) : undefined;
+            if (!lineup || !event) return null;
+            return {
+              rowerName: isParent ? rowerNameById.get(seat.rower_id) ?? "Someone" : null,
+              boatName: lineup.boat_name,
+              eventTitle: event.title,
+              eventDate: new Date(event.starts_at).toLocaleDateString(),
+            };
+          })
+          .filter((b): b is NonNullable<typeof b> => b !== null);
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen p-8 flex flex-col items-center gap-8">
       <div className="text-center">
@@ -214,6 +300,24 @@ export default async function Home() {
             <MessageCircle className="w-5 h-5 shrink-0" />
             Read coaches&apos; messages
           </Link>
+        </div>
+      )}
+
+      {lineupBanners.length > 0 && (
+        <div className="w-full max-w-md flex flex-col gap-2">
+          {lineupBanners.map((b, i) => (
+            <div key={i} className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
+              🚣{" "}
+              {b.rowerName ? (
+                <>
+                  <strong>{b.rowerName}</strong> is
+                </>
+              ) : (
+                "You're"
+              )}{" "}
+              in the boat for <strong>{b.boatName}</strong> at {b.eventTitle} ({b.eventDate})
+            </div>
+          ))}
         </div>
       )}
 
