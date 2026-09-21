@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { FoodTentItem, FoodTentSignup, Profile, ScheduleEvent } from "@/lib/database.types";
 import { EventForm } from "./EventForm";
 import { ItemForm } from "./ItemForm";
+import { ItemRow } from "./ItemRow";
 import { SignupControl } from "./SignupControl";
 
 export default async function FoodTentPage() {
@@ -17,7 +18,9 @@ export default async function FoodTentPage() {
     .single();
 
   const caller = callerProfile as { role: string; is_tent_leader: boolean } | null;
-  const isManager = caller?.role === "admin" || caller?.role === "coach" || caller?.is_tent_leader;
+  const isManager = Boolean(
+    caller?.role === "admin" || caller?.role === "coach" || caller?.is_tent_leader
+  );
 
   const { data: eventsData } = await supabase
     .from("schedule_events")
@@ -77,22 +80,12 @@ export default async function FoodTentPage() {
 
                   return (
                     <div key={item.id} className="border rounded-lg p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">
-                            {item.title}{" "}
-                            <span className="text-sm text-gray-500">
-                              ({totalSignedUp}/{item.quantity_needed})
-                            </span>
-                          </p>
-                          {item.notes && (
-                            <p className="text-sm text-gray-500">{item.notes}</p>
-                          )}
-                        </div>
-                        {fullyClaimed && !mySignup && (
-                          <span className="text-sm text-gray-500">Fully claimed</span>
-                        )}
-                      </div>
+                      <ItemRow
+                        item={item}
+                        totalSignedUp={totalSignedUp}
+                        showFullyClaimed={fullyClaimed && !mySignup}
+                        isManager={isManager}
+                      />
 
                       {itemSignups.length > 0 && (
                         <ul className="text-sm text-gray-500 mt-2 list-disc list-inside">

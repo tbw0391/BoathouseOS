@@ -76,6 +76,40 @@ export async function addFoodTentItem(formData: FormData) {
   revalidatePath("/food-tent");
 }
 
+export async function updateFoodTentItem(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const itemId = String(formData.get("item_id") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const quantityRaw = String(formData.get("quantity_needed") ?? "1").trim();
+  const quantityNeeded = Math.max(1, Number(quantityRaw) || 1);
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  if (!itemId || !title) {
+    throw new Error("Item name is required.");
+  }
+
+  const { error } = await supabase
+    .from("food_tent_items")
+    .update({ title, quantity_needed: quantityNeeded, notes })
+    .eq("id", itemId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/food-tent");
+}
+
+export async function deleteFoodTentItem(itemId: string) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const { error } = await supabase.from("food_tent_items").delete().eq("id", itemId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/food-tent");
+}
+
 export async function signUpForItem(formData: FormData) {
   const supabase = await createClient();
   const {
