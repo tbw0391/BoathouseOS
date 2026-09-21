@@ -51,9 +51,14 @@
       Men's boat can only pull from the Men's group, Masters only from
       Masters) — an already-assigned person outside the group still shows
       correctly, just can't be newly picked for a mismatched boat
-- [ ] Edit an existing boat's category/name/class (currently create-or-delete
-      only; the two real boats already added under Head of the Cuyahoga
-      before this feature existed have no category and show uncategorized)
+- [x] Reusable boat fleet: named boats (Chase, OSU, Tin Tin, Athena, New M,
+      Ulysses, Mantis, Killer Queen, M2, 08 — all seeded as 8+ for now) with
+      a fixed class each, editable anytime from the Fleet section on the
+      Lineups page. Creating a lineup now picks a boat from this list instead
+      of typing a name/class each time.
+- [ ] Edit an existing lineup's category/notes (the boat itself is now
+      editable via the fleet, but a lineup entry is still create-or-delete
+      only for category/notes)
 
 ## Volunteer needs
 - [ ] Post volunteer needs (e.g. regatta day tent/food requests), tied to an event
