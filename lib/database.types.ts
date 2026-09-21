@@ -38,6 +38,12 @@ export interface ProfileTeam {
   team: Team;
 }
 
+export interface FamilyLink {
+  guardian_id: string;
+  rower_id: string;
+  created_at: string;
+}
+
 export type EventType = 'practice' | 'regatta' | 'meeting' | 'other';
 export type ScheduleRecurrence = 'none' | 'weekly' | 'monthly' | 'yearly';
 

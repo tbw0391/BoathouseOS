@@ -12,10 +12,14 @@ export function BioForm({
   profile,
   teams,
   spouseOptions = [],
+  familyOptions = [],
+  familyValue = [],
 }: {
   profile: Profile;
   teams: Team[];
   spouseOptions?: Pick<Profile, "id" | "display_name">[];
+  familyOptions?: Pick<Profile, "id" | "display_name">[];
+  familyValue?: string[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -187,6 +191,41 @@ export function BioForm({
           </select>
           <p className="text-xs text-gray-500 -mt-2">
             Link your spouse so you both get food tent alerts when either of you signs up.
+          </p>
+        </>
+      )}
+
+      {(profile.role === "parent" || profile.role === "rower" || profile.role === "coxswain") && (
+        <>
+          <label className="text-sm font-medium">
+            {profile.role === "parent" ? "Children" : "Parent/Guardian(s)"}
+          </label>
+          <input type="hidden" name="family_field_present" value="1" />
+          {familyOptions.length === 0 ? (
+            <p className="text-xs text-gray-500">
+              {profile.role === "parent"
+                ? "No rowers/coxswains on the roster yet."
+                : "No parents on the roster yet."}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1 max-h-40 overflow-y-auto border rounded p-2">
+              {familyOptions.map((p) => (
+                <label key={p.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="family_member_id"
+                    value={p.id}
+                    defaultChecked={familyValue.includes(p.id)}
+                  />
+                  {p.display_name}
+                </label>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-gray-500 -mt-2">
+            {profile.role === "parent"
+              ? "Linking a rower/coxswain shows you a banner when they're added to a race lineup."
+              : "Linking a parent shows them a banner when you're added to a race lineup."}
           </p>
         </>
       )}

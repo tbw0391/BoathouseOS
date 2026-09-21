@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Photo, PhotoTag, Profile, ProfileTeam } from "@/lib/database.types";
+import type { FamilyLink, Photo, PhotoTag, Profile, ProfileTeam } from "@/lib/database.types";
 import { BioForm } from "./BioForm";
 import { RoleToggle } from "./RoleToggle";
 import { RemoveMemberButton } from "./RemoveMemberButton";
@@ -92,6 +92,47 @@ export default async function BioPage({
     }
   }
 
+  let familyOptions: Pick<Profile, "id" | "display_name">[] = [];
+  let familyValue: string[] = [];
+  let familyNames: string[] = [];
+  if (profile.role === "parent") {
+    const { data: rowerRows } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .in("role", ["rower", "coxswain"])
+      .is("disabled_at", null)
+      .order("display_name", { ascending: true });
+    familyOptions = (rowerRows as Pick<Profile, "id" | "display_name">[] | null) ?? [];
+
+    const { data: linkRows } = await supabase
+      .from("family_links")
+      .select("*")
+      .eq("guardian_id", profile.id);
+    const links = (linkRows as FamilyLink[] | null) ?? [];
+    familyValue = links.map((l) => l.rower_id);
+    familyNames = familyValue.map(
+      (id) => familyOptions.find((p) => p.id === id)?.display_name ?? "Unknown"
+    );
+  } else if (profile.role === "rower" || profile.role === "coxswain") {
+    const { data: parentRows } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .eq("role", "parent")
+      .is("disabled_at", null)
+      .order("display_name", { ascending: true });
+    familyOptions = (parentRows as Pick<Profile, "id" | "display_name">[] | null) ?? [];
+
+    const { data: linkRows } = await supabase
+      .from("family_links")
+      .select("*")
+      .eq("rower_id", profile.id);
+    const links = (linkRows as FamilyLink[] | null) ?? [];
+    familyValue = links.map((l) => l.guardian_id);
+    familyNames = familyValue.map(
+      (id) => familyOptions.find((p) => p.id === id)?.display_name ?? "Unknown"
+    );
+  }
+
   if (edit === "1" && canEdit) {
     return (
       <div className="min-h-screen p-8">
@@ -99,7 +140,13 @@ export default async function BioPage({
           ← Back
         </Link>
         <h1 className="text-2xl font-bold mt-4 mb-4">Edit bio</h1>
-        <BioForm profile={profile} teams={teams} spouseOptions={spouseOptions} />
+        <BioForm
+          profile={profile}
+          teams={teams}
+          spouseOptions={spouseOptions}
+          familyOptions={familyOptions}
+          familyValue={familyValue}
+        />
       </div>
     );
   }
@@ -215,6 +262,13 @@ export default async function BioPage({
           <>
             <dt className="text-gray-500">Spouse</dt>
             <dd>{spouseName ?? "—"}</dd>
+          </>
+        )}
+
+        {(profile.role === "parent" || profile.role === "rower" || profile.role === "coxswain") && (
+          <>
+            <dt className="text-gray-500">{profile.role === "parent" ? "Children" : "Parent/Guardian"}</dt>
+            <dd>{familyNames.length > 0 ? familyNames.join(", ") : "—"}</dd>
           </>
         )}
 

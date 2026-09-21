@@ -95,6 +95,51 @@ export async function updateBio(profileId: string, formData: FormData) {
     if (teamsError) throw new Error(teamsError.message);
   }
 
+  // The family picker is only rendered for parent/rower/coxswain profiles,
+  // and its direction depends on which one is being edited: a parent picks
+  // their rower children (they become the guardian side), a rower/coxswain
+  // picks their parent(s) (they become the rower side).
+  if (formData.has("family_field_present")) {
+    const familyMemberIds = [...new Set(formData.getAll("family_member_id").map(String))];
+
+    const { data: targetProfileData } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", profileId)
+      .single();
+    const targetRole = (targetProfileData as { role: string } | null)?.role;
+
+    if (targetRole === "parent") {
+      const { error: deleteFamilyError } = await supabase
+        .from("family_links")
+        .delete()
+        .eq("guardian_id", profileId);
+      if (deleteFamilyError) throw new Error(deleteFamilyError.message);
+
+      if (familyMemberIds.length > 0) {
+        const { error: familyError } = await supabase
+          .from("family_links")
+          .insert(familyMemberIds.map((rowerId) => ({ guardian_id: profileId, rower_id: rowerId })));
+        if (familyError) throw new Error(familyError.message);
+      }
+    } else if (targetRole === "rower" || targetRole === "coxswain") {
+      const { error: deleteFamilyError } = await supabase
+        .from("family_links")
+        .delete()
+        .eq("rower_id", profileId);
+      if (deleteFamilyError) throw new Error(deleteFamilyError.message);
+
+      if (familyMemberIds.length > 0) {
+        const { error: familyError } = await supabase
+          .from("family_links")
+          .insert(
+            familyMemberIds.map((guardianId) => ({ guardian_id: guardianId, rower_id: profileId }))
+          );
+        if (familyError) throw new Error(familyError.message);
+      }
+    }
+  }
+
   revalidatePath(`/roster/${profileId}`);
   revalidatePath("/roster");
 }
