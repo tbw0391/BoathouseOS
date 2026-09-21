@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
-import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS } from "@/lib/lineupCategories";
+import {
+  LINEUP_CATEGORIES,
+  LINEUP_CATEGORY_OPTIONS,
+  FLEET_CATEGORY_OPTIONS,
+  CATEGORY_BOAT_CLASS,
+} from "@/lib/lineupCategories";
 import type { LineupCategory } from "@/lib/database.types";
 
 function seatsForBoatClass(boatClass: string): { seat_number: number; seat_role: "rower" | "coxswain" }[] {
@@ -18,6 +23,88 @@ function seatsForBoatClass(boatClass: string): { seat_number: number; seat_role:
     seats.push({ seat_number: classSpec.rowerSeats + 1, seat_role: "coxswain" });
   }
   return seats;
+}
+
+// A boat's "type" is either a Men's/Women's depth category (which also
+// pins down its boat class) or, for boats out of that scheme (1x/2x/2-), a
+// raw boat class. Both are offered from the same <select> in BoatsSection.
+function resolveBoatType(boatType: string): { category: LineupCategory | null; boatClass: string } {
+  if (FLEET_CATEGORY_OPTIONS.includes(boatType)) {
+    return { category: boatType as LineupCategory, boatClass: CATEGORY_BOAT_CLASS[boatType] };
+  }
+  if (BOAT_CLASSES[boatType]) {
+    return { category: null, boatClass: boatType };
+  }
+  throw new Error("Please choose a valid boat type.");
+}
+
+function isUniqueViolation(error: { code?: string }): boolean {
+  return error.code === "23505";
+}
+
+// A fleet boat's crew: seats copied from its linked saved template (if any),
+// falling back to an empty roster sized for its boat class. Also surfaces
+// the template's category/notes so a race-lineup can inherit them.
+async function boatLineupDefaults(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  boatId: string,
+  boatClass: string
+): Promise<{
+  category: LineupCategory | null;
+  notes: string | null;
+  seats: { seat_number: number; seat_role: "rower" | "coxswain" | "coach"; rower_id: string | null }[];
+}> {
+  const { data: template } = await supabase
+    .from("lineup_templates")
+    .select("id, category, notes")
+    .eq("boat_id", boatId)
+    .maybeSingle();
+
+  if (template) {
+    const { data: templateSeats, error } = await supabase
+      .from("lineup_template_seats")
+      .select("seat_number, seat_role, rower_id")
+      .eq("template_id", template.id);
+    if (error) throw new Error(error.message);
+    if (templateSeats && templateSeats.length > 0) {
+      return { category: template.category, notes: template.notes, seats: templateSeats };
+    }
+  }
+
+  return {
+    category: null,
+    notes: null,
+    seats: seatsForBoatClass(boatClass).map((s) => ({ ...s, rower_id: null })),
+  };
+}
+
+// Creates the saved crew a fleet boat carries once it's given a category —
+// an empty-seat lineup_templates row linked 1:1 to the boat.
+async function createLinkedTemplate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  {
+    boatId,
+    boatClass,
+    category,
+    userId,
+  }: { boatId: string; boatClass: string; category: LineupCategory; userId: string }
+) {
+  const seats = seatsForBoatClass(boatClass);
+  const templateId = crypto.randomUUID();
+  const { error } = await supabase.from("lineup_templates").insert({
+    id: templateId,
+    name: LINEUP_CATEGORIES[category] ?? category,
+    boat_class: boatClass,
+    boat_id: boatId,
+    category,
+    created_by: userId,
+  });
+  if (error) throw new Error(error.message);
+
+  const { error: seatsError } = await supabase
+    .from("lineup_template_seats")
+    .insert(seats.map((s) => ({ ...s, template_id: templateId })));
+  if (seatsError) throw new Error(seatsError.message);
 }
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -45,18 +132,21 @@ export async function createBoat(formData: FormData) {
   const { user } = await requireManager(supabase);
 
   const name = String(formData.get("name") ?? "").trim();
-  const boatClass = String(formData.get("boat_class") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
+  if (!name) throw new Error("Boat name is required.");
 
-  if (!name || !BOAT_CLASSES[boatClass]) {
-    throw new Error("Boat name and a valid boat class are required.");
-  }
+  const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
 
+  const boatId = crypto.randomUUID();
   const { error } = await supabase
     .from("boats")
-    .insert({ name, boat_class: boatClass, notes, created_by: user.id });
+    .insert({ id: boatId, name, boat_class: boatClass, category, notes, created_by: user.id });
 
   if (error) throw new Error(error.message);
+
+  if (category) {
+    await createLinkedTemplate(supabase, { boatId, boatClass, category, userId: user.id });
+  }
 
   revalidatePath("/lineups");
 }
@@ -122,23 +212,38 @@ export async function importBoats(rows: BoatImportRow[]) {
 
 export async function updateBoat(formData: FormData) {
   const supabase = await createClient();
-  await requireManager(supabase);
+  const { user } = await requireManager(supabase);
 
   const boatId = String(formData.get("boat_id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
-  const boatClass = String(formData.get("boat_class") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
+  if (!boatId || !name) throw new Error("Boat name is required.");
 
-  if (!boatId || !name || !BOAT_CLASSES[boatClass]) {
-    throw new Error("Boat name and a valid boat class are required.");
-  }
+  const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
 
   const { error } = await supabase
     .from("boats")
-    .update({ name, boat_class: boatClass, notes })
+    .update({ name, boat_class: boatClass, category, notes })
     .eq("id", boatId);
 
   if (error) throw new Error(error.message);
+
+  if (category) {
+    const { data: existingTemplate } = await supabase
+      .from("lineup_templates")
+      .select("id")
+      .eq("boat_id", boatId)
+      .maybeSingle();
+
+    if (existingTemplate) {
+      await supabase
+        .from("lineup_templates")
+        .update({ boat_class: boatClass, category })
+        .eq("id", existingTemplate.id);
+    } else {
+      await createLinkedTemplate(supabase, { boatId, boatClass, category, userId: user.id });
+    }
+  }
 
   revalidatePath("/lineups");
 }
@@ -182,7 +287,7 @@ export async function createLineup(formData: FormData) {
     .single();
   if (boatError || !boat) throw new Error("That boat couldn't be found.");
 
-  const seats = seatsForBoatClass(boat.boat_class);
+  const { seats } = await boatLineupDefaults(supabase, boatId, boat.boat_class);
 
   const lineupId = crypto.randomUUID();
   const { error } = await supabase.from("lineups").insert({

@@ -98,6 +98,7 @@ export interface Boat {
   id: string;
   name: string;
   boat_class: string;
+  category: LineupCategory | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;
