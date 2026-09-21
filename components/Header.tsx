@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Camera, MessageCircle, CircleUserRound } from "lucide-react";
+import { Camera, MessageCircle, CircleUserRound, Music } from "lucide-react";
 
 export function Header({
   unreadCount,
@@ -16,6 +16,9 @@ export function Header({
       <div className="absolute left-4 flex items-center gap-4">
         <Link href="/photos" aria-label="Photos" className="inline-flex items-center justify-center text-[#022e5d]">
           <Camera className="w-7 h-7" />
+        </Link>
+        <Link href="/walk-up-songs" aria-label="Walk up songs" className="inline-flex items-center justify-center text-[#022e5d]">
+          <Music className="w-7 h-7" />
         </Link>
         {unreadCount !== null && (
           <Link

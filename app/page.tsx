@@ -236,12 +236,27 @@ export default async function Home() {
 
       <div className="w-full max-w-md grid grid-cols-3 gap-4">
         {NAV_SECTIONS.filter((s) => s.href !== "/coach/tracking" || isCoachOrAdmin)
-          .filter((s) => !disabledHrefSet.has(s.href))
+          .filter((s) => isAdmin || !disabledHrefSet.has(s.href))
           .concat(isAdmin ? [{ href: "/todo", label: "To-do List" }, { href: "/admin", label: "Admin Settings" }] : [])
           .map((s) => {
             const Icon = ICONS_BY_HREF[s.href];
             const badgeCount =
               s.href === "/messages" ? unreadCount : s.href === "/schedule" ? unreadScheduleCount : 0;
+            const isDisabled = disabledHrefSet.has(s.href);
+
+            if (isDisabled) {
+              return (
+                <div
+                  key={s.href}
+                  title="Turned off for everyone — re-enable it in Admin Settings"
+                  className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-gray-300 px-4 py-6 font-medium text-gray-400 grayscale opacity-50"
+                >
+                  <Icon className="w-6 h-6" />
+                  {s.label}
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={s.href}
