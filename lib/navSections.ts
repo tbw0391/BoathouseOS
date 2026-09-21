@@ -16,6 +16,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   { href: "/volunteer", label: "Volunteer Needs" },
   { href: "/photos", label: "Photos" },
   { href: "/messages", label: "Messages" },
+  { href: "/polls", label: "Polls" },
   { href: "/suggestions", label: "Suggestions" },
   { href: "/boat-maintenance", label: "Boat Maintenance" },
   { href: "/site-maintenance", label: "Site Maintenance" },

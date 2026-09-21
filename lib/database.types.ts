@@ -168,6 +168,30 @@ export interface FoodTentSignup {
   signed_up_at: string;
 }
 
+export interface Poll {
+  id: string;
+  question: string;
+  allow_multiple: boolean;
+  created_by: string | null;
+  created_at: string;
+  closed_at: string | null;
+}
+
+export interface PollOption {
+  id: string;
+  poll_id: string;
+  label: string;
+  position: number;
+  created_at: string;
+}
+
+export interface PollVote {
+  poll_id: string;
+  option_id: string;
+  user_id: string;
+  voted_at: string;
+}
+
 export interface Photo {
   id: string;
   url: string;

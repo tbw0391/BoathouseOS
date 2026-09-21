@@ -17,6 +17,7 @@ import {
   Navigation,
   MapPin,
   Settings,
+  Vote,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -36,6 +37,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/volunteer": HelpingHand,
   "/photos": Camera,
   "/messages": MessageCircle,
+  "/polls": Vote,
   "/suggestions": Lightbulb,
   "/boat-maintenance": Wrench,
   "/site-maintenance": Hammer,
