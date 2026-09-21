@@ -47,6 +47,29 @@ export async function createBoat(formData: FormData) {
   revalidatePath("/lineups");
 }
 
+export async function updateBoat(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const boatId = String(formData.get("boat_id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const boatClass = String(formData.get("boat_class") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  if (!boatId || !name || !BOAT_CLASSES[boatClass]) {
+    throw new Error("Boat name and a valid boat class are required.");
+  }
+
+  const { error } = await supabase
+    .from("boats")
+    .update({ name, boat_class: boatClass, notes })
+    .eq("id", boatId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/lineups");
+}
+
 export async function deleteBoat(formData: FormData) {
   const supabase = await createClient();
   await requireManager(supabase);
