@@ -44,8 +44,13 @@
 - [x] Assign rowers/coxswain to seats (coach/admin only, everyone else sees
       read-only names)
 - [x] View lineups by event, grouped under each schedule event like Food Tent
-- [x] Category per boat (Men's/Women's × Varsity/Novice), boats grouped under
-      a heading per category within each event
+- [x] Category per boat: Men's Varsity, Men's Novice, Women's Varsity,
+      Women's Novice, Masters, Development — boats grouped under a heading
+      per category within each event
+- [x] Seat assignment is restricted to the matching roster group (e.g. a
+      Men's boat can only pull from the Men's group, Masters only from
+      Masters) — an already-assigned person outside the group still shows
+      correctly, just can't be newly picked for a mismatched boat
 - [ ] Edit an existing boat's category/name/class (currently create-or-delete
       only; the two real boats already added under Head of the Cuyahoga
       before this feature existed have no category and show uncategorized)
