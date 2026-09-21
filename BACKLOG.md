@@ -59,6 +59,27 @@
 - [ ] Edit an existing lineup's category/notes (the boat itself is now
       editable via the fleet, but a lineup entry is still create-or-delete
       only for category/notes)
+- [x] Race time/name per lineup (distinct from the regatta's overall start
+      time), editable inline; shown on the rower/parent home-page banner
+- [x] Races collected before assignment: a `races` table (name, category,
+      time, tied to an event) that a coach bulk-imports from Excel/CSV,
+      independent of any boat/crew. A race with no lineup yet shows under
+      "Races needing a lineup" on the Lineups page for that event.
+- [x] Home-screen banner for coaches/admins: "N races still need a lineup
+      for <regatta>" once races have been imported without an assignment.
+- [x] Lineup Templates: a reusable named crew (e.g. "Men's 1V8", "Men's
+      2V8") a coach defines once — boat class + seat-by-seat crew, no
+      specific physical boat attached — managed from a "Lineup Templates"
+      section on the Lineups page. Applying a template to a pending race
+      asks which physical boat from the fleet to use (must match the
+      template's boat class), creates a real lineup with the crew
+      pre-filled, and the race is no longer pending. The template itself is
+      untouched by later edits to that lineup, and can be reapplied to
+      other races (e.g. week after week) independently.
+- [ ] Template roster restriction: unlike a live lineup's seat picker (which
+      only offers the matching squad group), a template's seat picker
+      currently offers the full roster regardless of category — fine for
+      now, but worth tightening later if it causes mistakes.
 
 ## Volunteer needs
 - [ ] Post volunteer needs (e.g. regatta day tent/food requests), tied to an event
