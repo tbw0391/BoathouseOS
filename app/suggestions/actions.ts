@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { SuggestionCategory } from "@/lib/database.types";
+
+const VALID_CATEGORIES: SuggestionCategory[] = ["club", "app"];
 
 export async function submitSuggestion(formData: FormData) {
   const supabase = await createClient();
@@ -13,9 +16,14 @@ export async function submitSuggestion(formData: FormData) {
   const body = String(formData.get("body") ?? "").trim();
   if (!body) throw new Error("Write your suggestion first.");
 
+  const category = String(formData.get("category") ?? "");
+  if (!VALID_CATEGORIES.includes(category as SuggestionCategory)) {
+    throw new Error("Please choose whether this is about the club or the app.");
+  }
+
   const { error } = await supabase
     .from("suggestions")
-    .insert({ submitted_by: user.id, body });
+    .insert({ submitted_by: user.id, body, category });
 
   if (error) throw new Error(error.message);
 

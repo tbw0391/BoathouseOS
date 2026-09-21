@@ -58,7 +58,10 @@ export default async function SuggestionsPage() {
               />
             ) : (
               <div key={s.id} className="border rounded-lg p-4">
-                <p className="text-sm">{s.body}</p>
+                <span className="self-start text-[10px] font-medium uppercase tracking-wide rounded-full px-2 py-0.5 bg-gray-100 text-gray-600">
+                  {s.category === "app" ? "App" : "Club"}
+                </span>
+                <p className="text-sm mt-2">{s.body}</p>
                 <p className="text-xs text-gray-500 mt-2">
                   {new Date(s.created_at).toLocaleDateString()}
                   {s.status === "reviewed" && " · Reviewed"}

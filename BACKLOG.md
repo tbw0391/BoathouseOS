@@ -132,8 +132,18 @@
 ## Suggestions
 - [x] Suggestion box: anyone can submit an idea from a "Suggestions" tile on
       the home page
-- [x] Coaches/admins see all submitted suggestions, can mark them reviewed
-      or delete them once acted on (e.g. added to this backlog)
+- [x] Admin-only visibility (2026-09-21 decision: narrowed from
+      coaches+admins to admins only) — admins see all submitted suggestions,
+      can mark them reviewed or delete them once acted on (e.g. added to
+      this backlog)
+- [x] Submitter picks a category: Club (about club operations) or App
+      (about the software) — required at submission, shown as a badge on
+      each suggestion
+- [ ] Route by category once Club admin / Global admin roles exist (depends
+      on the Multi-tenant SaaS work below): "app" suggestions go to Global
+      admins, "club" suggestions go to that club's own admins. For now both
+      categories are just captured and shown to the single admin role, since
+      there's only one club and no global-admin concept yet.
 
 ## Safe Sport compliance
 - [ ] Make the app compliant with US Rowing / Safe Sport requirements —
@@ -158,7 +168,10 @@
       club_settings' primary key, storage bucket read-isolation limits, etc.)
 - [ ] Phase 2+ (deferred, not yet designed): dynamic branding/theming per
       club, self-serve club signup/onboarding (the QR-code invite can encode
-      which club), Stripe billing, a super-admin view to manage clubs.
+      which club), Stripe billing, a super-admin view to manage clubs. The
+      "super-admin" here is the Global admin referenced under Suggestions
+      above (Todd, across all clubs) — distinct from each club's own
+      Club admin (today's `role = 'admin'`, scoped to their club_id).
 - [ ] Pricing model TBD — leaning toward flat monthly/annual fee tiered by
       roster size (matches how similar tools like TeamSnap/Spond price, and
       is easy for a volunteer club treasurer to approve) over per-athlete or

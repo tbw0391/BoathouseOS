@@ -29,6 +29,9 @@ export function SuggestionRow({
 
   return (
     <div className={`border rounded-lg p-4 flex flex-col gap-2 ${reviewed ? "opacity-50" : ""}`}>
+      <span className="self-start text-[10px] font-medium uppercase tracking-wide rounded-full px-2 py-0.5 bg-gray-100 text-gray-600">
+        {suggestion.category === "app" ? "App" : "Club"}
+      </span>
       <p className="text-sm">{suggestion.body}</p>
       <div className="flex items-center justify-between text-xs text-gray-500">
         <span>

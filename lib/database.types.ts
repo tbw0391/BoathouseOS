@@ -223,12 +223,14 @@ export interface PhotoTag {
 }
 
 export type SuggestionStatus = 'new' | 'reviewed';
+export type SuggestionCategory = 'club' | 'app';
 
 export interface Suggestion {
   id: string;
   submitted_by: string | null;
   body: string;
   status: SuggestionStatus;
+  category: SuggestionCategory;
   created_at: string;
 }
 

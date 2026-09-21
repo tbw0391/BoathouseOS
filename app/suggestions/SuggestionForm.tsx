@@ -30,6 +30,19 @@ export function SuggestionForm() {
       className="flex flex-col gap-3 max-w-md border rounded-lg p-4"
     >
       <label className="text-sm font-medium">Got an idea for the app or the club?</label>
+
+      <fieldset className="flex gap-4">
+        <legend className="text-xs text-gray-500 mb-1">Is this about...</legend>
+        <label className="flex items-center gap-1.5 text-sm">
+          <input type="radio" name="category" value="club" required className="w-4 h-4" />
+          The club (practices, events, gear, etc.)
+        </label>
+        <label className="flex items-center gap-1.5 text-sm">
+          <input type="radio" name="category" value="app" required className="w-4 h-4" />
+          This app (a feature, a bug, etc.)
+        </label>
+      </fieldset>
+
       <textarea
         name="body"
         required
