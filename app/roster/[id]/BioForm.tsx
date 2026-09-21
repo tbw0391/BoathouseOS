@@ -142,6 +142,14 @@ export function BioForm({
         className="border rounded px-3 py-2 text-sm"
       />
 
+      <label className="text-sm font-medium">Walk up song</label>
+      <input
+        name="walk_up_song"
+        placeholder="e.g. Eye of the Tiger"
+        defaultValue={profile.walk_up_song ?? ""}
+        className="border rounded px-3 py-2 text-sm"
+      />
+
       <label className="text-sm font-medium">Something we don&apos;t know about you</label>
       <textarea
         name="fun_fact"

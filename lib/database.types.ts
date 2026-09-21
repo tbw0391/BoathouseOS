@@ -30,6 +30,7 @@ export interface Profile {
   is_tent_leader: boolean;
   us_rowing_number: string | null;
   spouse_id: string | null;
+  walk_up_song: string | null;
 }
 
 export interface ProfileTeam {

@@ -1,14 +1,16 @@
-"use client";
-
-import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Camera, MessageCircle } from "lucide-react";
+import { Camera, MessageCircle, CircleUserRound } from "lucide-react";
 
-export function Header({ unreadCount }: { unreadCount: number | null }) {
-  const pathname = usePathname();
-  if (pathname === "/") return null;
-
+export function Header({
+  unreadCount,
+  userId,
+  photoUrl,
+}: {
+  unreadCount: number | null;
+  userId: string | null;
+  photoUrl: string | null;
+}) {
   return (
     <header className="sticky top-0 z-10 relative flex items-center justify-center border-b bg-white px-4 py-2">
       <div className="absolute left-4 flex items-center gap-4">
@@ -40,6 +42,22 @@ export function Header({ unreadCount }: { unreadCount: number | null }) {
           className="w-14 h-14"
         />
       </Link>
+      {userId && (
+        <div className="absolute right-4 flex items-center">
+          <Link href={`/roster/${userId}`} aria-label="My profile" className="inline-flex items-center justify-center">
+            {photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={photoUrl}
+                alt=""
+                className="w-8 h-8 rounded-full object-cover border"
+              />
+            ) : (
+              <CircleUserRound className="w-8 h-8 text-[#022e5d]" />
+            )}
+          </Link>
+        </div>
+      )}
     </header>
   );
 }

@@ -208,6 +208,9 @@ export default async function BioPage({
         <dt className="text-gray-500">US Rowing #</dt>
         <dd>{profile.us_rowing_number ?? "—"}</dd>
 
+        <dt className="text-gray-500">Walk up song</dt>
+        <dd>{profile.walk_up_song ?? "—"}</dd>
+
         {profile.role === "parent" && (
           <>
             <dt className="text-gray-500">Spouse</dt>

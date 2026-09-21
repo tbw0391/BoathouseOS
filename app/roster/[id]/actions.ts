@@ -32,6 +32,7 @@ export async function updateBio(profileId: string, formData: FormData) {
   const gradYearRaw = String(formData.get("grad_year") ?? "").trim();
   const gradYear = gradYearRaw ? Number(gradYearRaw) : null;
   const funFact = String(formData.get("fun_fact") ?? "").trim() || null;
+  const walkUpSong = String(formData.get("walk_up_song") ?? "").trim() || null;
   const birthday = String(formData.get("birthday") ?? "").trim() || null;
   const boatSideRaw = String(formData.get("boat_side") ?? "");
   const boatSide = (boatSideRaw || null) as BoatSide | null;
@@ -68,6 +69,7 @@ export async function updateBio(profileId: string, formData: FormData) {
       high_school: highSchool,
       grad_year: gradYear,
       fun_fact: funFact,
+      walk_up_song: walkUpSong,
       birthday,
       boat_side: boatSide,
       photo_url: photoUrl,

@@ -41,12 +41,22 @@ export default async function RootLayout({
   } = await supabase.auth.getUser();
   const unreadCount = user ? await getUnreadChatCount(user.id) : null;
 
+  let photoUrl: string | null = null;
+  if (user) {
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("photo_url")
+      .eq("id", user.id)
+      .single();
+    photoUrl = (profileData as { photo_url: string | null } | null)?.photo_url ?? null;
+  }
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header unreadCount={unreadCount} />
+        <Header unreadCount={unreadCount} userId={user?.id ?? null} photoUrl={photoUrl} />
         {children}
       </body>
     </html>
