@@ -128,6 +128,7 @@ export interface LineupTemplate {
   id: string;
   name: string;
   boat_class: string;
+  boat_id: string | null;
   category: LineupCategory | null;
   notes: string | null;
   created_by: string | null;

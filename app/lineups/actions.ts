@@ -348,12 +348,25 @@ export async function createLineupTemplate(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const boatClass = String(formData.get("boat_class") ?? "").trim();
+  const boatId = String(formData.get("boat_id") ?? "").trim() || null;
   const categoryRaw = String(formData.get("category") ?? "").trim();
   const category = LINEUP_CATEGORY_OPTIONS.includes(categoryRaw) ? (categoryRaw as LineupCategory) : null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!name || !BOAT_CLASSES[boatClass]) {
     throw new Error("Name and a valid boat class are required.");
+  }
+
+  if (boatId) {
+    const { data: boat, error: boatError } = await supabase
+      .from("boats")
+      .select("boat_class")
+      .eq("id", boatId)
+      .single();
+    if (boatError || !boat) throw new Error("That boat couldn't be found.");
+    if (boat.boat_class !== boatClass) {
+      throw new Error("The default boat's class doesn't match the template's boat class.");
+    }
   }
 
   const seats = seatsForBoatClass(boatClass);
@@ -363,6 +376,7 @@ export async function createLineupTemplate(formData: FormData) {
     id: templateId,
     name,
     boat_class: boatClass,
+    boat_id: boatId,
     category,
     notes,
     created_by: user.id,
@@ -373,6 +387,35 @@ export async function createLineupTemplate(formData: FormData) {
     .from("lineup_template_seats")
     .insert(seats.map((s) => ({ ...s, template_id: templateId })));
   if (seatsError) throw new Error(seatsError.message);
+
+  revalidatePath("/lineups");
+}
+
+export async function updateTemplateBoat(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const templateId = String(formData.get("template_id") ?? "").trim();
+  const boatId = String(formData.get("boat_id") ?? "").trim() || null;
+  if (!templateId) throw new Error("Missing template.");
+
+  if (boatId) {
+    const [{ data: template, error: templateError }, { data: boat, error: boatError }] = await Promise.all([
+      supabase.from("lineup_templates").select("boat_class").eq("id", templateId).single(),
+      supabase.from("boats").select("boat_class").eq("id", boatId).single(),
+    ]);
+    if (templateError || !template) throw new Error("That template couldn't be found.");
+    if (boatError || !boat) throw new Error("That boat couldn't be found.");
+    if (boat.boat_class !== template.boat_class) {
+      throw new Error("That boat's class doesn't match this template's boat class.");
+    }
+  }
+
+  const { error } = await supabase
+    .from("lineup_templates")
+    .update({ boat_id: boatId })
+    .eq("id", templateId);
+  if (error) throw new Error(error.message);
 
   revalidatePath("/lineups");
 }

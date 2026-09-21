@@ -5,11 +5,12 @@ import {
   createLineupTemplate,
   deleteLineupTemplate,
   assignTemplateSeat,
+  updateTemplateBoat,
 } from "./actions";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_GROUPS } from "@/lib/lineupCategories";
 import { SeatAssign } from "./SeatAssign";
-import type { LineupTemplate, LineupTemplateSeat, Profile } from "@/lib/database.types";
+import type { Boat, LineupTemplate, LineupTemplateSeat, Profile } from "@/lib/database.types";
 
 const SEAT_ROLE_LABEL: Record<LineupTemplateSeat["seat_role"], string> = {
   rower: "Seat",
@@ -21,16 +22,35 @@ function TemplateCard({
   template,
   seats,
   roster,
+  boats,
 }: {
   template: LineupTemplate;
   seats: LineupTemplateSeat[];
   roster: Pick<Profile, "id" | "display_name">[];
+  boats: Boat[];
 }) {
   const [isPending, startTransition] = useTransition();
+  const [boatError, setBoatError] = useState<string | null>(null);
+  const matchingBoats = boats.filter((b) => b.boat_class === template.boat_class);
 
   function remove() {
     if (!window.confirm(`Delete the "${template.name}" template?`)) return;
     startTransition(() => deleteLineupTemplate(template.id));
+  }
+
+  function handleBoatChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setBoatError(null);
+    const boatId = e.target.value || null;
+    const formData = new FormData();
+    formData.set("template_id", template.id);
+    if (boatId) formData.set("boat_id", boatId);
+    startTransition(async () => {
+      try {
+        await updateTemplateBoat(formData);
+      } catch (err) {
+        setBoatError(err instanceof Error ? err.message : "Something went wrong.");
+      }
+    });
   }
 
   return (
@@ -52,6 +72,24 @@ function TemplateCard({
           Delete
         </button>
       </div>
+
+      <div className="mt-2 flex items-center gap-2 text-sm">
+        <span className="text-gray-500">Default boat</span>
+        <select
+          defaultValue={template.boat_id ?? ""}
+          onChange={handleBoatChange}
+          disabled={isPending}
+          className="border rounded px-2 py-1 text-sm disabled:opacity-50"
+        >
+          <option value="">— none —</option>
+          {matchingBoats.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      {boatError && <p className="text-xs text-red-600 mt-1">{boatError}</p>}
 
       <ul className="mt-2 flex flex-col gap-1.5">
         {seats.map((seat) => (
@@ -78,15 +116,20 @@ export function LineupTemplatesSection({
   templates,
   templateSeats,
   roster,
+  boats,
 }: {
   templates: LineupTemplate[];
   templateSeats: LineupTemplateSeat[];
   roster: Pick<Profile, "id" | "display_name">[];
+  boats: Boat[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [boatClass, setBoatClass] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const matchingBoats = boats.filter((b) => b.boat_class === boatClass);
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -94,6 +137,7 @@ export function LineupTemplatesSection({
       try {
         await createLineupTemplate(formData);
         formRef.current?.reset();
+        setBoatClass("");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -111,7 +155,7 @@ export function LineupTemplatesSection({
       </summary>
       <p className="mt-2 text-xs text-gray-500">
         A reusable named crew (e.g. &quot;Men&apos;s 1V8&quot;) you can apply to any matching race
-        later, picking the physical boat at that time.
+        later. Give it a default boat from the fleet, or leave it unset and pick one each time.
       </p>
 
       {templates.length > 0 && (
@@ -122,6 +166,7 @@ export function LineupTemplatesSection({
               template={t}
               seats={templateSeats.filter((s) => s.template_id === t.id)}
               roster={roster}
+              boats={boats}
             />
           ))}
         </div>
@@ -129,7 +174,13 @@ export function LineupTemplatesSection({
 
       <form ref={formRef} action={handleSubmit} className="mt-4 flex flex-col gap-2">
         <input name="name" placeholder="Template name (e.g. Men's 1V8)" required className="border rounded px-3 py-2 text-sm" />
-        <select name="boat_class" defaultValue="" required className="border rounded px-3 py-2 text-sm">
+        <select
+          name="boat_class"
+          value={boatClass}
+          onChange={(e) => setBoatClass(e.target.value)}
+          required
+          className="border rounded px-3 py-2 text-sm"
+        >
           <option value="" disabled>
             Boat class
           </option>
@@ -139,6 +190,16 @@ export function LineupTemplatesSection({
             </option>
           ))}
         </select>
+        {boatClass && (
+          <select name="boat_id" defaultValue="" className="border rounded px-3 py-2 text-sm">
+            <option value="">Default boat (optional — pick later instead)</option>
+            {matchingBoats.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        )}
         <select name="category" defaultValue="" className="border rounded px-3 py-2 text-sm">
           <option value="">Any category</option>
           {LINEUP_CATEGORY_GROUPS.map((group) => (
