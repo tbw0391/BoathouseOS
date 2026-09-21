@@ -16,7 +16,7 @@ export default async function SuggestionsPage() {
     .eq("id", user.id)
     .single();
   const callerRole = (callerData as { role: string } | null)?.role;
-  const isStaff = callerRole === "admin" || callerRole === "coach";
+  const isAdmin = callerRole === "admin";
 
   const { data: suggestionsData } = await supabase
     .from("suggestions")
@@ -45,10 +45,10 @@ export default async function SuggestionsPage() {
       {suggestions.length > 0 && (
         <div className="mt-8 flex flex-col gap-3 max-w-md">
           <h2 className="text-sm font-medium text-gray-600">
-            {isStaff ? "All suggestions" : "Your suggestions"}
+            {isAdmin ? "All suggestions" : "Your suggestions"}
           </h2>
           {suggestions.map((s) =>
-            isStaff ? (
+            isAdmin ? (
               <SuggestionRow
                 key={s.id}
                 suggestion={s}
