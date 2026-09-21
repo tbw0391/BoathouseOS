@@ -62,8 +62,47 @@ export default async function LineupsPage() {
     .filter((e) => new Date(e.starts_at).getTime() < now.getTime())
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
 
+  function LineupCard({ lineup }: { lineup: Lineup }) {
+    const lineupSeats = seats.filter((s) => s.lineup_id === lineup.id);
+    return (
+      <div className="border rounded-lg p-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-medium">
+              {lineup.boat_name}{" "}
+              <span className="text-sm text-gray-500">
+                ({BOAT_CLASSES[lineup.boat_class]?.label ?? lineup.boat_class})
+              </span>
+            </p>
+            {lineup.notes && <p className="text-sm text-gray-500">{lineup.notes}</p>}
+          </div>
+          {canManage && <DeleteLineupButton lineupId={lineup.id} />}
+        </div>
+
+        <ul className="mt-2 flex flex-col gap-1.5">
+          {lineupSeats.map((seat) => (
+            <li key={seat.id} className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-gray-500">
+                {seat.seat_role === "rower"
+                  ? `${SEAT_ROLE_LABEL[seat.seat_role]} ${seat.seat_number}`
+                  : SEAT_ROLE_LABEL[seat.seat_role]}
+              </span>
+              {canManage ? (
+                <SeatAssign seatId={seat.id} currentRowerId={seat.rower_id} roster={roster} />
+              ) : (
+                <span>{seat.rower_id ? nameById.get(seat.rower_id) ?? "Unknown" : "—"}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
   function EventSection({ event }: { event: ScheduleEvent }) {
     const eventLineups = lineups.filter((l) => l.event_id === event.id);
+    const uncategorized = eventLineups.filter((l) => !l.category);
+
     return (
       <div>
         <h2 className="text-lg font-semibold">
@@ -73,49 +112,29 @@ export default async function LineupsPage() {
           </span>
         </h2>
 
-        <div className="mt-3 flex flex-col gap-3 max-w-lg">
-          {eventLineups.map((lineup) => {
-            const lineupSeats = seats.filter((s) => s.lineup_id === lineup.id);
+        <div className="mt-3 flex flex-col gap-5 max-w-lg">
+          {LINEUP_CATEGORY_OPTIONS.map((cat) => {
+            const categoryLineups = eventLineups.filter((l) => l.category === cat);
+            if (categoryLineups.length === 0) return null;
             return (
-              <div key={lineup.id} className="border rounded-lg p-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium">
-                      {lineup.boat_name}{" "}
-                      <span className="text-sm text-gray-500">
-                        ({BOAT_CLASSES[lineup.boat_class]?.label ?? lineup.boat_class})
-                      </span>
-                    </p>
-                    {lineup.notes && <p className="text-sm text-gray-500">{lineup.notes}</p>}
-                  </div>
-                  {canManage && <DeleteLineupButton lineupId={lineup.id} />}
-                </div>
-
-                <ul className="mt-2 flex flex-col gap-1.5">
-                  {lineupSeats.map((seat) => (
-                    <li key={seat.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-gray-500">
-                        {seat.seat_role === "rower"
-                          ? `${SEAT_ROLE_LABEL[seat.seat_role]} ${seat.seat_number}`
-                          : SEAT_ROLE_LABEL[seat.seat_role]}
-                      </span>
-                      {canManage ? (
-                        <SeatAssign
-                          seatId={seat.id}
-                          currentRowerId={seat.rower_id}
-                          roster={roster}
-                        />
-                      ) : (
-                        <span>
-                          {seat.rower_id ? nameById.get(seat.rower_id) ?? "Unknown" : "—"}
-                        </span>
-                      )}
-                    </li>
+              <div key={cat}>
+                <h3 className="text-sm font-medium text-[#022e5d] mb-2">{LINEUP_CATEGORIES[cat]}</h3>
+                <div className="flex flex-col gap-3">
+                  {categoryLineups.map((lineup) => (
+                    <LineupCard key={lineup.id} lineup={lineup} />
                   ))}
-                </ul>
+                </div>
               </div>
             );
           })}
+
+          {uncategorized.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {uncategorized.map((lineup) => (
+                <LineupCard key={lineup.id} lineup={lineup} />
+              ))}
+            </div>
+          )}
 
           {canManage && <CreateLineupForm eventId={event.id} />}
           {!canManage && eventLineups.length === 0 && (
