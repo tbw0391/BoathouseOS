@@ -26,30 +26,73 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
   return { user };
 }
 
+export async function createBoat(formData: FormData) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+
+  const name = String(formData.get("name") ?? "").trim();
+  const boatClass = String(formData.get("boat_class") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  if (!name || !BOAT_CLASSES[boatClass]) {
+    throw new Error("Boat name and a valid boat class are required.");
+  }
+
+  const { error } = await supabase
+    .from("boats")
+    .insert({ name, boat_class: boatClass, notes, created_by: user.id });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/lineups");
+}
+
+export async function deleteBoat(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const boatId = String(formData.get("boat_id") ?? "").trim();
+  if (!boatId) throw new Error("Missing boat.");
+
+  const { error } = await supabase.from("boats").delete().eq("id", boatId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/lineups");
+}
+
 export async function createLineup(formData: FormData) {
   const supabase = await createClient();
   const { user } = await requireManager(supabase);
 
   const eventId = String(formData.get("event_id") ?? "").trim();
-  const boatName = String(formData.get("boat_name") ?? "").trim();
-  const boatClass = String(formData.get("boat_class") ?? "").trim();
+  const boatId = String(formData.get("boat_id") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  const classSpec = BOAT_CLASSES[boatClass];
-  if (!eventId || !boatName || !classSpec) {
-    throw new Error("Boat name and a valid boat class are required.");
+  if (!eventId || !boatId) {
+    throw new Error("Please choose a boat.");
   }
   if (!LINEUP_CATEGORY_OPTIONS.includes(category)) {
     throw new Error("Please choose a category.");
   }
 
+  const { data: boat, error: boatError } = await supabase
+    .from("boats")
+    .select("name, boat_class")
+    .eq("id", boatId)
+    .single();
+  if (boatError || !boat) throw new Error("That boat couldn't be found.");
+
+  const classSpec = BOAT_CLASSES[boat.boat_class];
+  if (!classSpec) throw new Error(`Unknown boat class "${boat.boat_class}".`);
+
   const { data: lineup, error } = await supabase
     .from("lineups")
     .insert({
       event_id: eventId,
-      boat_name: boatName,
-      boat_class: boatClass,
+      boat_id: boatId,
+      boat_name: boat.name,
+      boat_class: boat.boat_class,
       category: category as LineupCategory,
       notes,
       created_by: user.id,
