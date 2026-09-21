@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Boat, MaintenanceRequest, Profile } from "@/lib/database.types";
 import { RequestForm } from "../maintenance/RequestForm";
 import { RequestRow } from "../maintenance/RequestRow";
+import { ImportBoatsForm } from "./ImportBoatsForm";
 
 export default async function BoatMaintenancePage() {
   const supabase = await createClient();
@@ -44,6 +45,12 @@ export default async function BoatMaintenancePage() {
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">Boat Maintenance</h1>
+
+      {isStaff && (
+        <div className="mb-6">
+          <ImportBoatsForm />
+        </div>
+      )}
 
       <RequestForm
         type="boat"

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { BOAT_CLASSES } from "@/lib/boatClasses";
+import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 import { LINEUP_CATEGORY_OPTIONS } from "@/lib/lineupCategories";
 import type { LineupCategory } from "@/lib/database.types";
 
@@ -45,6 +45,65 @@ export async function createBoat(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/lineups");
+}
+
+export interface BoatImportRow {
+  name?: string;
+  boat_class?: string;
+  notes?: string;
+}
+
+export async function importBoats(rows: BoatImportRow[]) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+
+  const toUpsert: { name: string; boat_class: string; notes: string | null; created_by: string }[] =
+    [];
+  const rowErrors: string[] = [];
+
+  rows.forEach((row, i) => {
+    const rowLabel = `Row ${i + 2}`; // +2: header row + 1-index
+    const name = String(row.name ?? "").trim();
+    const boatClassRaw = String(row.boat_class ?? "").trim();
+    const boatClass = BOAT_CLASS_OPTIONS.find(
+      (cls) => cls.toLowerCase() === boatClassRaw.toLowerCase()
+    );
+
+    if (!name) {
+      rowErrors.push(`${rowLabel}: missing boat name.`);
+      return;
+    }
+    if (!boatClass) {
+      rowErrors.push(
+        `${rowLabel}: unknown boat class "${row.boat_class ?? ""}". Expected one of ${BOAT_CLASS_OPTIONS.join(", ")}.`
+      );
+      return;
+    }
+
+    toUpsert.push({
+      name,
+      boat_class: boatClass,
+      notes: String(row.notes ?? "").trim() || null,
+      created_by: user.id,
+    });
+  });
+
+  if (toUpsert.length === 0) {
+    return { imported: 0, errors: rowErrors.length ? rowErrors : ["No valid rows found."] };
+  }
+
+  // Upsert by name: re-running an import (e.g. an updated spreadsheet) syncs
+  // class/notes for existing boats instead of failing on the unique name.
+  const { error, data } = await supabase
+    .from("boats")
+    .upsert(toUpsert, { onConflict: "name" })
+    .select("id");
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/lineups");
+  revalidatePath("/boat-maintenance");
+  return { imported: data?.length ?? 0, errors: rowErrors };
 }
 
 export async function updateBoat(formData: FormData) {
