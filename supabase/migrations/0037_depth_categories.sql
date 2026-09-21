@@ -5,14 +5,8 @@
 -- 2x, 2-) intentionally have no depth categories. Masters and Development
 -- are unchanged.
 
--- Migrate the 2 existing lineups using the old category values before the
--- constraint changes under them. "Varsity" -> 1st, "Novice" -> 2nd is a
--- reasonable default, not a perfect mapping — worth a manual double-check.
-update lineups set category = 'mens_1_8plus' where category = 'mens_varsity';
-update lineups set category = 'womens_1_8plus' where category = 'womens_varsity';
-update lineups set category = 'mens_2_8plus' where category = 'mens_novice';
-update lineups set category = 'womens_2_8plus' where category = 'womens_novice';
-
+-- Constraints first, so the data migration below (which writes the new
+-- category values) doesn't get rejected by the still-old constraint.
 do $$
 declare
   new_categories text := $list$(
@@ -36,3 +30,11 @@ begin
   alter table lineup_templates drop constraint if exists lineup_templates_category_check;
   execute format('alter table lineup_templates add constraint lineup_templates_category_check check (category in %s)', new_categories);
 end $$;
+
+-- Migrate the 2 existing lineups using the old category values, now that
+-- the constraint allows the new ones. "Varsity" -> 1st, "Novice" -> 2nd is
+-- a reasonable default, not a perfect mapping — worth a manual double-check.
+update lineups set category = 'mens_1_8plus' where category = 'mens_varsity';
+update lineups set category = 'womens_1_8plus' where category = 'womens_varsity';
+update lineups set category = 'mens_2_8plus' where category = 'mens_novice';
+update lineups set category = 'womens_2_8plus' where category = 'womens_novice';
