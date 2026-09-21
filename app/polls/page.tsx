@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Poll, PollInvitee, PollOption, PollVote, Profile } from "@/lib/database.types";
 import { PollForm } from "./PollForm";
-import { VoteControl } from "./VoteControl";
-import { PollManageControls } from "./PollManageControls";
+import { PollCard } from "./PollCard";
 
 export default async function PollsPage() {
   const supabase = await createClient();
@@ -70,58 +69,32 @@ export default async function PollsPage() {
             .map((v) => v.option_id);
           const closed = poll.closed_at !== null;
           const canManageThis = isAdmin || isBoardMember || poll.created_by === user.id;
-          const inviteeNames = invitees
+          const pollInviteeIds = invitees
             .filter((i) => i.poll_id === poll.id)
-            .map((i) => nameById.get(i.user_id) ?? "Someone")
-            .join(", ");
+            .map((i) => i.user_id);
+          const inviteeNames = pollInviteeIds.map((id) => nameById.get(id) ?? "Someone").join(", ");
+          const optionVotes = pollOptions.map((option) => {
+            const votesForOption = pollVotes.filter((v) => v.option_id === option.id);
+            return {
+              optionId: option.id,
+              count: votesForOption.length,
+              voterNames: votesForOption.map((v) => nameById.get(v.user_id) ?? "Someone").join(", "),
+            };
+          });
 
           return (
-            <div key={poll.id} className="border rounded-lg p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium">{poll.question}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {poll.allow_multiple ? "Pick as many as you like" : "Pick one"}
-                    {poll.board_only && " · Board only"}
-                    {closed && " · Closed"}
-                  </p>
-                  {poll.board_only && inviteeNames && (
-                    <p className="text-xs text-gray-500">Also invited: {inviteeNames}</p>
-                  )}
-                </div>
-                {canManageThis && <PollManageControls pollId={poll.id} closed={closed} />}
-              </div>
-
-              <div className="mt-3 flex flex-col gap-2">
-                {pollOptions.map((option) => {
-                  const optionVotes = pollVotes.filter((v) => v.option_id === option.id);
-                  const voterNames = optionVotes
-                    .map((v) => nameById.get(v.user_id) ?? "Someone")
-                    .join(", ");
-                  return (
-                    <div key={option.id} className="text-sm">
-                      <p>
-                        {option.label}{" "}
-                        <span className="text-gray-500">
-                          — {optionVotes.length} {optionVotes.length === 1 ? "vote" : "votes"}
-                        </span>
-                      </p>
-                      {voterNames && <p className="text-xs text-gray-500">{voterNames}</p>}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-3">
-                <VoteControl
-                  pollId={poll.id}
-                  options={pollOptions.map((o) => ({ id: o.id, label: o.label }))}
-                  allowMultiple={poll.allow_multiple}
-                  myOptionIds={myOptionIds}
-                  closed={closed}
-                />
-              </div>
-            </div>
+            <PollCard
+              key={poll.id}
+              poll={poll}
+              options={pollOptions.map((o) => ({ id: o.id, label: o.label }))}
+              optionVotes={optionVotes}
+              myOptionIds={myOptionIds}
+              canManageThis={canManageThis}
+              closed={closed}
+              coaches={coaches}
+              inviteeIds={pollInviteeIds}
+              inviteeNames={inviteeNames}
+            />
           );
         })}
       </div>

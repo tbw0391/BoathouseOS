@@ -102,6 +102,78 @@ export async function createPoll(formData: FormData) {
   revalidatePath("/polls");
 }
 
+export async function updatePoll(formData: FormData) {
+  const pollId = String(formData.get("poll_id") ?? "").trim();
+  if (!pollId) throw new Error("Missing poll.");
+
+  const supabase = await createClient();
+  await requirePollManager(supabase, pollId);
+
+  const question = String(formData.get("question") ?? "").trim();
+  const allowMultiple = formData.get("allow_multiple") === "on";
+  const boardOnly = formData.get("board_only") === "on";
+  const inviteeIds = [...new Set(formData.getAll("invitee_id").map(String))];
+  const options = String(formData.get("options") ?? "")
+    .split("\n")
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  if (!question) throw new Error("Question is required.");
+  if (options.length < 2) throw new Error("Add at least 2 options (one per line).");
+
+  const { error: pollError } = await supabase
+    .from("polls")
+    .update({ question, allow_multiple: allowMultiple, board_only: boardOnly })
+    .eq("id", pollId);
+  if (pollError) throw new Error(pollError.message);
+
+  // Reconcile options by label instead of wiping and recreating them all:
+  // an option whose label didn't change keeps its id (and its votes), an
+  // option no longer present gets deleted (cascading its votes), and new
+  // labels become new options.
+  const { data: existingOptionsData } = await supabase
+    .from("poll_options")
+    .select("id, label")
+    .eq("poll_id", pollId);
+  const existingOptions = (existingOptionsData as { id: string; label: string }[] | null) ?? [];
+  const existingByLabel = new Map(existingOptions.map((o) => [o.label, o.id]));
+  const keptIds = new Set<string>();
+
+  for (let i = 0; i < options.length; i++) {
+    const label = options[i];
+    const existingId = existingByLabel.get(label);
+    if (existingId && !keptIds.has(existingId)) {
+      keptIds.add(existingId);
+      const { error } = await supabase.from("poll_options").update({ position: i }).eq("id", existingId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase.from("poll_options").insert({ poll_id: pollId, label, position: i });
+      if (error) throw new Error(error.message);
+    }
+  }
+
+  const removedIds = existingOptions.filter((o) => !keptIds.has(o.id)).map((o) => o.id);
+  if (removedIds.length > 0) {
+    const { error } = await supabase.from("poll_options").delete().in("id", removedIds);
+    if (error) throw new Error(error.message);
+  }
+
+  const { error: deleteInviteesError } = await supabase
+    .from("poll_invitees")
+    .delete()
+    .eq("poll_id", pollId);
+  if (deleteInviteesError) throw new Error(deleteInviteesError.message);
+
+  if (boardOnly && inviteeIds.length > 0) {
+    const { error: inviteesError } = await supabase
+      .from("poll_invitees")
+      .insert(inviteeIds.map((userId) => ({ poll_id: pollId, user_id: userId })));
+    if (inviteesError) throw new Error(inviteesError.message);
+  }
+
+  revalidatePath("/polls");
+}
+
 export async function closePoll(pollId: string) {
   const supabase = await createClient();
   await requirePollManager(supabase, pollId);
