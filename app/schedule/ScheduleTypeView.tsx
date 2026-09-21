@@ -1,29 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { EventType, Role, ScheduleEvent } from "@/lib/database.types";
-import { createScheduleEvent, deleteScheduleEvent } from "./actions";
-
-const RECURRENCE_LABEL: Record<ScheduleEvent["recurrence"], string> = {
-  none: "",
-  weekly: "Weekly",
-  monthly: "Monthly",
-  yearly: "Yearly",
-};
-
-function formatWhen(startsAt: string, endsAt: string | null) {
-  const start = new Date(startsAt);
-  const startLabel = start.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  if (!endsAt) return startLabel;
-  const end = new Date(endsAt);
-  const endLabel = end.toLocaleString(undefined, { hour: "numeric", minute: "2-digit" });
-  return `${startLabel} – ${endLabel}`;
-}
+import { createScheduleEvent } from "./actions";
+import { EventCard } from "./EventCard";
 
 export async function ScheduleTypeView({ eventType, label }: { eventType: EventType; label: string }) {
   const supabase = await createClient();
@@ -51,48 +30,6 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
   const past = events
     .filter((e) => new Date(e.starts_at).getTime() < now.getTime())
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
-
-  function EventCard({ event }: { event: ScheduleEvent }) {
-    const recurrenceLabel = RECURRENCE_LABEL[event.recurrence];
-    return (
-      <div className="border rounded-lg p-4">
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="font-medium">{event.title}</h3>
-          <span className="whitespace-nowrap text-xs text-gray-500">
-            {formatWhen(event.starts_at, event.ends_at)}
-          </span>
-        </div>
-        {recurrenceLabel && (
-          <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase text-gray-600">
-            {recurrenceLabel}
-          </span>
-        )}
-        {event.location && <p className="mt-1 text-xs text-gray-500">{event.location}</p>}
-        {event.description && (
-          <div className="mt-2 text-sm text-gray-600">
-            {event.description.split("\n").map((line, i) =>
-              line.trimEnd().endsWith("★") ? (
-                <p key={i} className="rounded bg-yellow-100 px-1 font-semibold text-gray-900">
-                  {line}
-                </p>
-              ) : (
-                <p key={i}>{line || " "}</p>
-              )
-            )}
-          </div>
-        )}
-        {canManage && (
-          <form action={deleteScheduleEvent} className="mt-3 border-t pt-3">
-            <input type="hidden" name="event_id" value={event.id} />
-            <input type="hidden" name="event_type" value={eventType} />
-            <button type="submit" className="text-xs font-medium text-red-600 hover:text-red-700">
-              Delete event
-            </button>
-          </form>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen p-8">
@@ -166,7 +103,9 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
 
       <div className="flex flex-col gap-3">
         {upcoming.length ? (
-          upcoming.map((event) => <EventCard key={event.id} event={event} />)
+          upcoming.map((event) => (
+            <EventCard key={event.id} event={event} eventType={eventType} canManage={canManage} />
+          ))
         ) : (
           <p className="text-sm text-gray-500">Nothing scheduled yet.</p>
         )}
@@ -179,7 +118,7 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
           </summary>
           <div className="mt-3 flex flex-col gap-3">
             {past.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <EventCard key={event.id} event={event} eventType={eventType} canManage={canManage} />
             ))}
           </div>
         </details>

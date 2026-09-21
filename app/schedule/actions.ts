@@ -64,6 +64,43 @@ export async function createScheduleEvent(formData: FormData) {
   revalidatePath("/schedule");
 }
 
+export async function updateScheduleEvent(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const eventId = String(formData.get("event_id") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const startsAtRaw = String(formData.get("starts_at") ?? "").trim();
+  const endsAtRaw = String(formData.get("ends_at") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const eventType = String(formData.get("event_type") ?? "").trim();
+  const recurrenceRaw = String(formData.get("recurrence") ?? "none");
+  const recurrence: ScheduleRecurrence = RECURRENCES.includes(recurrenceRaw as ScheduleRecurrence)
+    ? (recurrenceRaw as ScheduleRecurrence)
+    : "none";
+
+  if (!eventId) throw new Error("Missing event.");
+  if (!title || !startsAtRaw) throw new Error("Title and start date/time are required.");
+
+  const { error } = await supabase
+    .from("schedule_events")
+    .update({
+      title,
+      description,
+      location,
+      starts_at: new Date(startsAtRaw).toISOString(),
+      ends_at: endsAtRaw ? new Date(endsAtRaw).toISOString() : null,
+      recurrence,
+    })
+    .eq("id", eventId);
+
+  if (error) throw new Error(error.message);
+
+  if (eventType) revalidatePath(`/schedule/${eventType}`);
+  revalidatePath("/schedule");
+}
+
 export async function deleteScheduleEvent(formData: FormData) {
   const supabase = await createClient();
   await requireManager(supabase);
