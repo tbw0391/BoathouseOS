@@ -163,3 +163,10 @@
       roster size (matches how similar tools like TeamSnap/Spond price, and
       is easy for a volunteer club treasurer to approve) over per-athlete or
       freemium pricing.
+
+## Maintenance requests
+- [x] Boat Maintenance: anyone can report an issue with a specific fleet boat
+      (picks from the boat list); coaches/admins see all requests, can mark
+      resolved/reopen or delete
+- [x] Site Maintenance: same flow for boathouse/facility issues, no boat
+      picker needed
