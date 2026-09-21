@@ -125,7 +125,13 @@ export function PendingRaceRow({
               </select>
 
               {templateId && (
-                <select name="boat_id" required defaultValue="" className="border rounded px-2 py-1 text-sm">
+                <select
+                  key={templateId}
+                  name="boat_id"
+                  required
+                  defaultValue={selectedTemplate?.boat_id ?? ""}
+                  className="border rounded px-2 py-1 text-sm"
+                >
                   <option value="" disabled>
                     Choose a boat
                   </option>

@@ -246,7 +246,12 @@ export default async function LineupsPage() {
 
       {canManage && <BoatsSection boats={boats} />}
       {canManage && (
-        <LineupTemplatesSection templates={templates} templateSeats={templateSeats} roster={roster} />
+        <LineupTemplatesSection
+          templates={templates}
+          templateSeats={templateSeats}
+          roster={roster}
+          boats={boats}
+        />
       )}
 
       {upcoming.length === 0 && past.length === 0 && (
