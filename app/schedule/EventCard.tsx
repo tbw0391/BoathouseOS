@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { deleteScheduleEvent, updateScheduleEvent } from "./actions";
 import type { EventType, ScheduleEvent } from "@/lib/database.types";
+import { EventIcon } from "@/components/EventIcon";
 
 const RECURRENCE_LABEL: Record<ScheduleEvent["recurrence"], string> = {
   none: "",
@@ -156,7 +157,10 @@ export function EventCard({
   return (
     <div className="border rounded-lg p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="font-medium">{event.title}</h3>
+        <h3 className="flex items-center gap-1.5 font-medium">
+          <EventIcon title={event.title} />
+          {event.title}
+        </h3>
         <span className="whitespace-nowrap text-xs text-gray-500">
           {formatWhen(event.starts_at, event.ends_at)}
         </span>
