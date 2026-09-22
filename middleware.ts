@@ -1,8 +1,47 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+const supabaseHost = supabaseUrl ? new URL(supabaseUrl).host : '';
+const supabaseWs = supabaseHost ? `wss://${supabaseHost}` : '';
+
+// CSP is only enforced in production so the dev server's HMR (which relies
+// on eval) isn't affected — mirrors the dev/prod split next-pwa already uses
+// in next.config.ts. The nonce lets Next's own inline hydration scripts run
+// while still blocking any other injected inline script.
+function buildCsp(nonce: string) {
+  return [
+    `default-src 'self'`,
+    `base-uri 'self'`,
+    `frame-ancestors 'none'`,
+    `object-src 'none'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `style-src 'self' 'unsafe-inline'`,
+    `img-src 'self' data: blob: ${supabaseUrl} https://*.tile.openstreetmap.org`,
+    `font-src 'self' data:`,
+    `connect-src 'self' ${supabaseUrl} ${supabaseWs}`,
+  ].join('; ');
+}
+
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request: { headers: request.headers } });
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const csp = buildCsp(nonce);
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  if (process.env.NODE_ENV === 'production') {
+    requestHeaders.set('Content-Security-Policy', csp);
+  }
+
+  function freshResponse() {
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    if (process.env.NODE_ENV === 'production') {
+      res.headers.set('Content-Security-Policy', csp);
+    }
+    return res;
+  }
+
+  let response = freshResponse();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,11 +52,11 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          response = NextResponse.next({ request: { headers: request.headers } });
+          response = freshResponse();
           response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          response = NextResponse.next({ request: { headers: request.headers } });
+          response = freshResponse();
           response.cookies.set({ name, value: '', ...options });
         },
       },

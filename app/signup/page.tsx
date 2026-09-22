@@ -56,6 +56,16 @@ export default function SignupPage() {
         />
         <h1 className="text-xl font-bold text-center">Join Westerville Crew</h1>
 
+        {/* Honeypot: hidden from sighted users, bots often fill every field. */}
+        <input
+          type="text"
+          name="middle_name"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="absolute -left-[9999px] w-px h-px opacity-0"
+        />
+
         <div className="flex gap-2">
           <input
             name="first_name"

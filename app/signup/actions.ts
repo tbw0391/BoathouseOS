@@ -1,12 +1,34 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Team } from "@/lib/database.types";
 
 const SELF_SIGNUP_ROLES = ["rower", "coxswain", "parent"] as const;
 type SelfSignupRole = (typeof SELF_SIGNUP_ROLES)[number];
 
+// This form is public and calls the admin.auth.admin.createUser API directly
+// (see below), which bypasses whatever rate limiting Supabase applies to its
+// own public signup endpoint. These two limits are our own substitute:
+// a per-IP cap, and a honeypot field real users never fill in.
+const MAX_SIGNUPS_PER_IP_PER_HOUR = 5;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+
+async function getClientIp() {
+  const headerList = await headers();
+  const forwardedFor = headerList.get("x-forwarded-for");
+  if (forwardedFor) return forwardedFor.split(",")[0].trim();
+  return headerList.get("x-real-ip") ?? "unknown";
+}
+
 export async function signUp(formData: FormData) {
+  // Honeypot: a field named to look real but hidden from sighted users via
+  // CSS (see app/signup/page.tsx). Bots that fill in every input trip it;
+  // real users never see or fill it. Fail quietly rather than revealing why.
+  if (String(formData.get("middle_name") ?? "").trim() !== "") {
+    throw new Error("Something went wrong. Please try again.");
+  }
+
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const firstName = String(formData.get("first_name") ?? "").trim();
@@ -26,6 +48,20 @@ export async function signUp(formData: FormData) {
   const role = roleRaw as SelfSignupRole;
 
   const admin = createAdminClient();
+
+  const ip = await getClientIp();
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+  const { count } = await admin
+    .from("signup_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+
+  if ((count ?? 0) >= MAX_SIGNUPS_PER_IP_PER_HOUR) {
+    throw new Error("Too many signup attempts from this network. Please try again later.");
+  }
+
+  await admin.from("signup_attempts").insert({ ip });
 
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email,
