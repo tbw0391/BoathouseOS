@@ -111,6 +111,14 @@
       currently offers the full roster regardless of category — fine for
       now, but worth tightening later if it causes mistakes.
 
+## Coach Tasks
+- [ ] Coaches can assign practice/regatta-day tasks to rowers (e.g. launch
+      and recovery of boats), not just seat assignments — under the coach's
+      button/section, separate from Lineups.
+- [ ] Coaches can add their own custom task types as needed, not just a
+      fixed built-in list (launch/recovery to start, but shouldn't be
+      hardcoded to only those).
+
 ## Volunteer needs
 - [ ] Post volunteer needs (e.g. regatta day tent/food requests), tied to an event
 - [ ] Sign up for a volunteer slot
