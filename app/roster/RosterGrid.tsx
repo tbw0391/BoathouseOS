@@ -94,12 +94,12 @@ export function RosterGrid({
       {filtered.length === 0 ? (
         <p className="text-sm text-gray-500 mt-4">No matching members.</p>
       ) : (
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           {filtered.map((p) => (
             <Link
               key={p.id}
               href={`/roster/${p.id}`}
-              className={`flex flex-col items-center gap-1 rounded-lg border p-1.5 text-center hover:border-[var(--color-primary)] transition-colors ${
+              className={`flex items-center gap-2 rounded-full border-2 border-[var(--color-primary)] pl-1 pr-3 py-1 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors ${
                 p.disabled_at ? "opacity-50" : ""
               }`}
             >
@@ -108,17 +108,15 @@ export function RosterGrid({
                 <img
                   src={p.photo_url}
                   alt=""
-                  className="w-full aspect-[4/5] rounded-md object-cover border"
+                  className="w-6 h-6 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-full aspect-[4/5] rounded-md border flex items-center justify-center text-xs text-gray-400">
-                  No photo
+                <div className="w-6 h-6 rounded-full border flex items-center justify-center text-[8px] text-gray-400">
+                  —
                 </div>
               )}
-              <span className="text-xs font-medium leading-tight truncate w-full">
-                {p.display_name}
-              </span>
-              {p.disabled_at && <span className="text-[10px] text-red-600">Removed</span>}
+              {p.display_name}
+              {p.disabled_at && <span className="text-[10px] text-red-600">(Removed)</span>}
             </Link>
           ))}
         </div>
