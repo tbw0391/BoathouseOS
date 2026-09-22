@@ -117,7 +117,7 @@ export function RosterGrid({
             <Link
               key={p.id}
               href={`/roster/${p.id}`}
-              className={`flex items-center gap-2 rounded-lg border-2 border-[var(--color-primary)] px-3 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors min-w-0 ${
+              className={`flex items-center justify-center gap-2 rounded-lg border-2 border-[var(--color-primary)] px-3 py-3 text-sm text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors min-w-0 ${
                 p.disabled_at ? "opacity-50" : ""
               }`}
             >
