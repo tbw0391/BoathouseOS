@@ -154,6 +154,13 @@
       than previous" rather than just "changed")
 - [ ] Regatta-week popup banners, starting the week before a regatta:
       food tent request reminder, lineups reminder, coaches' messages reminder
+- [ ] Race-time notification for the existing rower/parent lineup banner
+      (app/page.tsx lineupBanners): actually alert the family 20 min before
+      the race's scheduled start, not just show a static banner whenever
+      there's an upcoming assignment — depends on real push notifications
+      (PWA) being built first, plus a scheduled job to fire at T-20min per
+      race. Also: the banner should stop showing once the race has passed,
+      not just once it's not "upcoming" by date.
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
