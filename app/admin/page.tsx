@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { NAV_SECTIONS, NAV_VISIBILITY_OPTIONS, resolveNavVisibility } from "@/lib/navSections";
 import { THEME_COLOR_LABELS, parseThemeColors, type ThemeColorKey } from "@/lib/theme";
-import { updateNavToggles, updateThemeColors } from "./actions";
+import { updateNavToggles, updateThemeColors, resetThemeColors } from "./actions";
 
 const VISIBILITY_LABEL: Record<string, string> = {
   everyone: "Everyone",
@@ -57,12 +57,21 @@ export default async function AdminPage() {
             </div>
           </div>
         ))}
-        <button
-          type="submit"
-          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
-        >
-          Save colors
-        </button>
+        <div className="flex gap-2 mt-2">
+          <button
+            type="submit"
+            className="flex-1 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+          >
+            Save colors
+          </button>
+          <button
+            type="submit"
+            formAction={resetThemeColors}
+            className="text-sm text-gray-500 hover:underline px-2"
+          >
+            Reset to defaults
+          </button>
+        </div>
       </form>
 
       <h2 className="text-lg font-semibold mb-2">Home screen buttons</h2>

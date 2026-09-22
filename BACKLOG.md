@@ -211,6 +211,8 @@
       changes someone's groups
 - [ ] Board Member chat group (not yet wired up — board membership isn't a
       profile_teams row, it's the separate is_board_member flag)
+- [ ] Delete a message (2026-09-22 request): let someone delete a message
+      they sent, at least, in a group/DM chat thread.
 - [x] Coach announcements (2026-09-22): a one-way broadcast (not a group
       chat) a coach/admin sends from `/announcements`, targeted to all
       Rowers, all Parents, or Both — cuts across team boundaries, unlike the
@@ -243,6 +245,14 @@
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
+- [x] Site colors (2026-09-22): admin picks Primary/Secondary/Accent/
+      Background from /admin, stored in club_settings.theme_colors and
+      applied site-wide via CSS variables (--color-primary/-secondary/-accent
+      plus --background) set inline on `<html>` in the root layout, replacing
+      the previously hardcoded #022e5d/#404040/#01213f throughout the app.
+      "Reset to defaults" restores the original site colors. Needed
+      migration 0052_theme_colors.sql (also opens club_settings reads to
+      anon so colors apply on /login and /signup before a session exists).
 - [x] Persistent bottom bar (2026-09-22): Home, Lineups, Announcements —
       fixed nav visible on every signed-in screen, sitting alongside the
       existing home-page button grid (not a replacement). Also enables

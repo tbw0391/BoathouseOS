@@ -39,6 +39,34 @@ export async function updateNavToggles(formData: FormData) {
   revalidatePath("/admin");
 }
 
+export async function resetThemeColors() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if ((callerProfile as { role: string } | null)?.role !== "admin") {
+    throw new Error("Only admins can change the site colors.");
+  }
+
+  const { error } = await supabase
+    .from("club_settings")
+    .upsert(
+      { key: "theme_colors", value: JSON.stringify(DEFAULT_THEME_COLORS) },
+      { onConflict: "key" }
+    );
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/", "layout");
+}
+
 export async function updateThemeColors(formData: FormData) {
   const supabase = await createClient();
   const {

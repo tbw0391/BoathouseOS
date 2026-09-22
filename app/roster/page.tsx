@@ -3,10 +3,10 @@ import type { ProfileTeam, Team } from "@/lib/database.types";
 import { AddMemberForm } from "./AddMemberForm";
 import { ImportForm } from "./ImportForm";
 import { SignupQrButton } from "./SignupQrButton";
-import { RosterTable, type RosterProfile } from "./RosterTable";
+import { RosterGrid, type RosterProfile } from "./RosterGrid";
 
 const ROSTER_COLUMNS =
-  "id, email, display_name, role, phone, boat_side, disabled_at, first_name, last_name, photo_url";
+  "id, email, display_name, role, phone, boat_side, disabled_at, first_name, last_name, photo_url, is_board_member";
 
 export default async function RosterPage() {
   const supabase = await createClient();
@@ -64,7 +64,7 @@ export default async function RosterPage() {
         <p className="text-sm text-gray-500 mt-4">No members yet.</p>
       )}
 
-      {profiles.length > 0 && <RosterTable profiles={profiles} teamsByProfile={teamsByProfile} />}
+      {profiles.length > 0 && <RosterGrid profiles={profiles} teamsByProfile={teamsByProfile} />}
     </div>
   );
 }
