@@ -311,6 +311,7 @@ export async function createLineup(formData: FormData) {
   if (seatsError) throw new Error(seatsError.message);
 
   revalidatePath("/lineups");
+  revalidatePath("/");
 }
 
 export interface RaceImportRow {
@@ -615,4 +616,5 @@ export async function assignSeat(seatId: string, rowerId: string | null) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/lineups");
+  revalidatePath("/");
 }

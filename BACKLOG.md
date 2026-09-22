@@ -248,6 +248,10 @@
       to 100+ other rowing clubs, each with fully isolated data. Today there
       is zero tenant isolation (almost every RLS policy is "readable by any
       authenticated user") since there's only ever been one club.
+- [ ] Demo landing page: a standalone marketing/demo web page (separate from
+      the app itself) to show other rowing clubs what the app does when
+      pitching — feature overview, screenshots, maybe a guided tour or a
+      read-only sandbox login. Purpose/content/hosting still TBD.
 - [ ] Phase 1 (schema + RLS isolation only — no branding/onboarding/billing
       yet) is fully designed and reviewed: a `clubs` table, `club_id` on
       every table with composite FKs to enforce parent/child consistency, a
