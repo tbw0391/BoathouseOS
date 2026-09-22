@@ -40,6 +40,40 @@ export default async function MessagesPage() {
 
   const lastReadByGroup = new Map(memberships.map((m) => [m.group_id, m.last_read_at]));
 
+  const otherMemberByGroup = new Map<string, string>();
+  const displayNameByOtherId = new Map<string, string>();
+  if (groupIds.length > 0) {
+    const { data: allMembersData } = await supabase
+      .from("chat_group_members")
+      .select("group_id, user_id")
+      .in("group_id", groupIds)
+      .neq("user_id", user.id);
+    const allMembers =
+      (allMembersData as Pick<ChatGroupMember, "group_id" | "user_id">[] | null) ?? [];
+    for (const m of allMembers) {
+      if (!otherMemberByGroup.has(m.group_id)) otherMemberByGroup.set(m.group_id, m.user_id);
+    }
+
+    const otherIds = [...new Set(allMembers.map((m) => m.user_id))];
+    if (otherIds.length > 0) {
+      const { data: otherProfilesData } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", otherIds);
+      for (const p of (otherProfilesData as Pick<Profile, "id" | "display_name">[] | null) ??
+        []) {
+        displayNameByOtherId.set(p.id, p.display_name);
+      }
+    }
+  }
+
+  function groupDisplayName(g: ChatGroup): string {
+    if (!g.is_direct) return g.name;
+    const otherId = otherMemberByGroup.get(g.id);
+    if (!otherId) return g.name;
+    return displayNameByOtherId.get(otherId) ?? g.name;
+  }
+
   groups.sort((a, b) => {
     const aTime = latestByGroup.get(a.id)?.created_at ?? a.created_at;
     const bTime = latestByGroup.get(b.id)?.created_at ?? b.created_at;
@@ -79,7 +113,7 @@ export default async function MessagesPage() {
                 className="flex items-center justify-between gap-3 rounded-lg border-2 border-[#022e5d] px-4 py-3 hover:bg-[#404040] hover:text-white transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="font-medium truncate">{g.name}</p>
+                  <p className="font-medium truncate">{groupDisplayName(g)}</p>
                   {latest && (
                     <p className="text-xs opacity-70 truncate">{latest.body}</p>
                   )}

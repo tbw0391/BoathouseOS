@@ -56,12 +56,18 @@ export default async function ChatGroupPage({
     ])
   );
 
+  const otherMemberId = memberIds.find((id) => id !== user.id);
+  const displayName =
+    group.is_direct && otherMemberId
+      ? sendersById.get(otherMemberId) ?? group.name
+      : group.name;
+
   return (
     <div className="min-h-screen p-8 flex flex-col h-screen">
       <Link href="/messages" className="text-sm text-gray-500 hover:underline">
         ← Messages
       </Link>
-      <h1 className="text-2xl font-bold mt-2 mb-4">{group.name}</h1>
+      <h1 className="text-2xl font-bold mt-2 mb-4">{displayName}</h1>
 
       <ChatThread
         groupId={groupId}
