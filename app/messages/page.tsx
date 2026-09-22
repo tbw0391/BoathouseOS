@@ -40,7 +40,7 @@ export default async function MessagesPage() {
 
   const lastReadByGroup = new Map(memberships.map((m) => [m.group_id, m.last_read_at]));
 
-  const otherMemberByGroup = new Map<string, string>();
+  const otherMembersByGroup = new Map<string, string[]>();
   const displayNameByOtherId = new Map<string, string>();
   if (groupIds.length > 0) {
     const { data: allMembersData } = await supabase
@@ -51,7 +51,9 @@ export default async function MessagesPage() {
     const allMembers =
       (allMembersData as Pick<ChatGroupMember, "group_id" | "user_id">[] | null) ?? [];
     for (const m of allMembers) {
-      if (!otherMemberByGroup.has(m.group_id)) otherMemberByGroup.set(m.group_id, m.user_id);
+      const list = otherMembersByGroup.get(m.group_id) ?? [];
+      list.push(m.user_id);
+      otherMembersByGroup.set(m.group_id, list);
     }
 
     const otherIds = [...new Set(allMembers.map((m) => m.user_id))];
@@ -68,10 +70,14 @@ export default async function MessagesPage() {
   }
 
   function groupDisplayName(g: ChatGroup): string {
-    if (!g.is_direct) return g.name;
-    const otherId = otherMemberByGroup.get(g.id);
-    if (!otherId) return g.name;
-    return displayNameByOtherId.get(otherId) ?? g.name;
+    const otherIds = otherMembersByGroup.get(g.id) ?? [];
+    const otherNames = otherIds.map((id) => displayNameByOtherId.get(id) ?? "Unknown");
+
+    if (g.is_direct) return otherNames[0] ?? g.name;
+    if (otherNames.length === 0) return g.name;
+
+    const isDefaultName = !g.name || g.name === "New chat";
+    return isDefaultName ? otherNames.join(", ") : `${g.name} (${otherNames.join(", ")})`;
   }
 
   groups.sort((a, b) => {

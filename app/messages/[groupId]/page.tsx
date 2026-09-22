@@ -56,11 +56,16 @@ export default async function ChatGroupPage({
     ])
   );
 
-  const otherMemberId = memberIds.find((id) => id !== user.id);
-  const displayName =
-    group.is_direct && otherMemberId
-      ? sendersById.get(otherMemberId) ?? group.name
-      : group.name;
+  const otherMemberIds = memberIds.filter((id) => id !== user.id);
+  const otherNames = otherMemberIds.map((id) => sendersById.get(id) ?? "Unknown");
+
+  let displayName = group.name;
+  if (group.is_direct) {
+    displayName = otherNames[0] ?? group.name;
+  } else if (otherNames.length > 0) {
+    const isDefaultName = !group.name || group.name === "New chat";
+    displayName = isDefaultName ? otherNames.join(", ") : `${group.name} (${otherNames.join(", ")})`;
+  }
 
   return (
     <div className="min-h-screen p-8 flex flex-col h-screen">
