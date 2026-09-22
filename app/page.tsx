@@ -327,7 +327,7 @@ export default async function Home() {
       </div>
 
       {pendingRaceBanners.length > 0 && (
-        <div className="w-full max-w-md flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-2">
           {pendingRaceBanners.map((b, i) => (
             <Link
               key={i}
@@ -347,7 +347,7 @@ export default async function Home() {
       )}
 
       {upcomingRegatta && (
-        <div className="w-full max-w-md flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-2">
           <p className="text-sm font-medium text-gray-600">
             {upcomingRegatta.title} is coming up on{" "}
             {new Date(upcomingRegatta.starts_at).toLocaleDateString()} — get ready:
@@ -377,7 +377,7 @@ export default async function Home() {
       )}
 
       {lineupBanners.length > 0 && (
-        <div className="w-full max-w-md flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-2">
           {lineupBanners.map((b, i) => (
             <div key={i} className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
               🚣{" "}
@@ -402,7 +402,7 @@ export default async function Home() {
       )}
 
       {(banners.length > 0 || (isParent && upcomingRegatta)) && (
-        <div className="w-full max-w-md flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-2">
           {banners.map((b, i) => (
             <div
               key={i}
@@ -428,7 +428,7 @@ export default async function Home() {
         </div>
       )}
 
-      <div className="w-full max-w-md grid grid-cols-3 gap-4">
+      <div className="w-full grid grid-cols-3 gap-4">
         {NAV_SECTIONS.filter((s) => s.href !== "/coach/tracking" || isCoachOrAdmin)
           .filter((s) => {
             const visibility = navVisibilityByHref[s.href] ?? "everyone";
