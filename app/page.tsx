@@ -420,7 +420,7 @@ export default async function Home() {
               to {b.eventTitle} ({b.eventDate})
             </div>
           ))}
-          {isParent && upcomingRegatta && (
+          {isParent && (banners.length > 0 || upcomingRegatta) && (
             <div className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
               💧 Please also bring <strong>2 gallons of water</strong> (2 gal per family).
             </div>
