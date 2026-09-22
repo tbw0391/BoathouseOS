@@ -56,16 +56,187 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/admin": Settings,
 };
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+type FoodTentBanner = {
+  eventTitle: string;
+  eventDate: string;
+  items: { title: string; quantity: number }[];
+};
+
+type LineupBanner = {
+  rowerName: string | null;
+  boatName: string;
+  raceName: string | null;
+  raceTimeLabel: string | null;
+  eventTitle: string;
+  eventDate: string;
+};
+
+type PendingRaceBanner = { eventTitle: string; eventDate: string; count: number };
+
+async function loadFoodTentBanners(
+  supabase: SupabaseServerClient,
+  householdUserIds: string[]
+): Promise<FoodTentBanner[]> {
+  const { data: signupsData } = await supabase
+    .from("food_tent_signups")
+    .select("*")
+    .in("user_id", householdUserIds);
+  const signups = (signupsData as FoodTentSignup[] | null) ?? [];
+  if (signups.length === 0) return [];
+
+  const itemIds = signups.map((s) => s.item_id);
+  const { data: itemsData } = await supabase.from("food_tent_items").select("*").in("id", itemIds);
+  const items = (itemsData as FoodTentItem[] | null) ?? [];
+
+  const eventIds = [...new Set(items.map((i) => i.event_id))];
+  const { data: eventsData } = await supabase
+    .from("schedule_events")
+    .select("*")
+    .in("id", eventIds)
+    .gte("starts_at", new Date().toISOString());
+  const events = (eventsData as ScheduleEvent[] | null) ?? [];
+  const eventById = new Map(events.map((e) => [e.id, e]));
+
+  const bannersByEvent = new Map<string, FoodTentBanner>();
+  for (const s of signups) {
+    const item = items.find((i) => i.id === s.item_id);
+    const event = item ? eventById.get(item.event_id) : undefined;
+    if (!item || !event) continue;
+
+    const existing = bannersByEvent.get(event.id);
+    if (existing) {
+      existing.items.push({ title: item.title, quantity: s.quantity });
+    } else {
+      bannersByEvent.set(event.id, {
+        eventTitle: event.title,
+        eventDate: new Date(event.starts_at).toLocaleDateString(),
+        items: [{ title: item.title, quantity: s.quantity }],
+      });
+    }
+  }
+
+  return [...bannersByEvent.values()];
+}
+
+async function loadLineupBanners(
+  supabase: SupabaseServerClient,
+  opts: {
+    userId: string;
+    isRowerOrCoxswain: boolean;
+    isParent: boolean;
+    isCoachOrAdmin: boolean;
+    householdUserIds: string[];
+  }
+): Promise<LineupBanner[]> {
+  const { userId, isRowerOrCoxswain, isParent, isCoachOrAdmin, householdUserIds } = opts;
+
+  // Whose lineup assignments this viewer should hear about: their own if
+  // they're a rower/coxswain, or their linked rower/coxswain kid(s)' if
+  // they're a parent (covering the whole household, not just whoever set
+  // the family link).
+  let lineupRowerIds: string[] = [];
+  if (isRowerOrCoxswain) {
+    lineupRowerIds = [userId];
+  } else if (isParent || isCoachOrAdmin) {
+    const { data: familyLinkRows } = await supabase
+      .from("family_links")
+      .select("rower_id")
+      .in("guardian_id", householdUserIds);
+    lineupRowerIds = [
+      ...new Set(((familyLinkRows as Pick<FamilyLink, "rower_id">[] | null) ?? []).map((l) => l.rower_id)),
+    ];
+  }
+  if (lineupRowerIds.length === 0) return [];
+
+  const { data: seatRows } = await supabase.from("lineup_seats").select("*").in("rower_id", lineupRowerIds);
+  const seats = (seatRows as LineupSeat[] | null) ?? [];
+  if (seats.length === 0) return [];
+
+  const lineupIds = [...new Set(seats.map((s) => s.lineup_id))];
+  const { data: lineupRows } = await supabase.from("lineups").select("*").in("id", lineupIds);
+  const lineupsData = (lineupRows as Lineup[] | null) ?? [];
+  const lineupById = new Map(lineupsData.map((l) => [l.id, l]));
+
+  const eventIds = [...new Set(lineupsData.map((l) => l.event_id).filter((id): id is string => !!id))];
+
+  const [{ data: eventRows }, rowerNameRows] = await Promise.all([
+    supabase
+      .from("schedule_events")
+      .select("*")
+      .in("id", eventIds)
+      .gte("starts_at", new Date().toISOString()),
+    isParent || isCoachOrAdmin
+      ? supabase.from("profiles").select("id, display_name").in("id", lineupRowerIds)
+      : Promise.resolve({ data: null }),
+  ]);
+  const eventsData = (eventRows as ScheduleEvent[] | null) ?? [];
+  const eventById = new Map(eventsData.map((e) => [e.id, e]));
+
+  const rowerNameById = new Map<string, string>();
+  for (const p of (rowerNameRows.data as Pick<Profile, "id" | "display_name">[] | null) ?? []) {
+    rowerNameById.set(p.id, p.display_name);
+  }
+
+  return seats
+    .map((seat) => {
+      if (!seat.rower_id) return null;
+      const lineup = lineupById.get(seat.lineup_id);
+      const event = lineup?.event_id ? eventById.get(lineup.event_id) : undefined;
+      if (!lineup || !event) return null;
+      return {
+        rowerName: isParent || isCoachOrAdmin ? rowerNameById.get(seat.rower_id) ?? "Someone" : null,
+        boatName: lineup.boat_name,
+        raceName: lineup.race_name,
+        raceTimeLabel: lineup.race_time
+          ? new Date(lineup.race_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+          : null,
+        eventTitle: event.title,
+        eventDate: new Date(event.starts_at).toLocaleDateString(),
+      };
+    })
+    .filter((b): b is NonNullable<typeof b> => b !== null);
+}
+
+// Coach/admin notification: races that have been collected (e.g. via a heat
+// sheet import) but don't have a boat/crew assigned yet.
+async function loadPendingRaceBanners(supabase: SupabaseServerClient): Promise<PendingRaceBanner[]> {
+  const { data: pendingRaceRows } = await supabase.from("races").select("*").is("lineup_id", null);
+  const pendingRacesData = (pendingRaceRows as Race[] | null) ?? [];
+  if (pendingRacesData.length === 0) return [];
+
+  const eventIds = [...new Set(pendingRacesData.map((r) => r.event_id))];
+  const { data: eventRows } = await supabase
+    .from("schedule_events")
+    .select("*")
+    .in("id", eventIds)
+    .gte("starts_at", new Date().toISOString());
+  const eventsData = (eventRows as ScheduleEvent[] | null) ?? [];
+
+  return eventsData
+    .map((event) => ({
+      eventTitle: event.title,
+      eventDate: new Date(event.starts_at).toLocaleDateString(),
+      count: pendingRacesData.filter((r) => r.event_id === event.id).length,
+    }))
+    .filter((b) => b.count > 0);
+}
+
 export default async function Home() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: settingsData } = await supabase
-    .from("club_settings")
-    .select("key, value")
-    .in("key", ["team_store_url", "team_store_featured_items", "nav_visibility", "nav_disabled_hrefs"]);
+  const [
+    {
+      data: { user },
+    },
+    { data: settingsData },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("club_settings")
+      .select("key, value")
+      .in("key", ["team_store_url", "team_store_featured_items", "nav_visibility", "nav_disabled_hrefs"]),
+  ]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
   );
@@ -73,11 +244,9 @@ export default async function Home() {
   const featuredItems = parseStoreItems(settingsByKey.get("team_store_featured_items") ?? null);
   const navVisibilityByHref = resolveNavVisibility(settingsByKey);
 
-  let banners: {
-    eventTitle: string;
-    eventDate: string;
-    items: { title: string; quantity: number }[];
-  }[] = [];
+  let banners: FoodTentBanner[] = [];
+  let lineupBanners: LineupBanner[] = [];
+  let pendingRaceBanners: PendingRaceBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
   let unreadCount = 0;
   let unreadScheduleCount = 0;
@@ -90,20 +259,47 @@ export default async function Home() {
   let householdUserIds: string[] = [];
 
   if (user) {
-    unreadCount = await getUnreadChatCount(user.id);
-    unreadScheduleCount = await getUnreadScheduleCount(user.id);
+    const now = new Date();
+    const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const { data: callerData } = await supabase
-      .from("profiles")
-      .select("role, spouse_id")
-      .eq("id", user.id)
-      .single();
-    const caller = callerData as Pick<Profile, "role" | "spouse_id"> | null;
+    // These five only need the user's id, not each other's results, so run
+    // them concurrently instead of one round trip at a time.
+    const [
+      unreadCountResult,
+      unreadScheduleCountResult,
+      callerResult,
+      coachGroupResult,
+      regattaResult,
+    ] = await Promise.all([
+      getUnreadChatCount(user.id),
+      getUnreadScheduleCount(user.id),
+      supabase.from("profiles").select("role, spouse_id").eq("id", user.id).single(),
+      supabase.from("chat_groups").select("id").eq("team", "coach").maybeSingle(),
+      supabase
+        .from("schedule_events")
+        .select("*")
+        .eq("event_type", "regatta")
+        .gte("starts_at", now.toISOString())
+        .lte("starts_at", weekOut.toISOString())
+        .order("starts_at", { ascending: true })
+        .limit(1),
+    ]);
+
+    unreadCount = unreadCountResult;
+    unreadScheduleCount = unreadScheduleCountResult;
+
+    const caller = callerResult.data as Pick<Profile, "role" | "spouse_id"> | null;
     const callerRole = caller?.role;
     isAdmin = callerRole === "admin";
     isCoachOrAdmin = callerRole === "admin" || callerRole === "coach";
     isParent = callerRole === "parent";
     isRowerOrCoxswain = callerRole === "rower" || callerRole === "coxswain";
+
+    if ((coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id) {
+      coachChatHref = `/messages/${(coachGroupResult.data as Pick<ChatGroup, "id">).id}`;
+    }
+
+    upcomingRegatta = ((regattaResult.data as ScheduleEvent[] | null) ?? [])[0] ?? null;
 
     householdUserIds = [user.id];
     if (isParent) {
@@ -119,198 +315,21 @@ export default async function Home() {
       if (caller?.spouse_id) spouseIds.add(caller.spouse_id);
       householdUserIds.push(...spouseIds);
     }
-
-    const { data: coachGroup } = await supabase
-      .from("chat_groups")
-      .select("id")
-      .eq("team", "coach")
-      .maybeSingle();
-    if ((coachGroup as Pick<ChatGroup, "id"> | null)?.id) {
-      coachChatHref = `/messages/${(coachGroup as Pick<ChatGroup, "id">).id}`;
-    }
   }
 
   if (user) {
-    const now = new Date();
-    const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const { data: regattaData } = await supabase
-      .from("schedule_events")
-      .select("*")
-      .eq("event_type", "regatta")
-      .gte("starts_at", now.toISOString())
-      .lte("starts_at", weekOut.toISOString())
-      .order("starts_at", { ascending: true })
-      .limit(1);
-    upcomingRegatta = ((regattaData as ScheduleEvent[] | null) ?? [])[0] ?? null;
-  }
-
-  if (user) {
-    const { data: signupsData } = await supabase
-      .from("food_tent_signups")
-      .select("*")
-      .in("user_id", householdUserIds);
-    const signups = (signupsData as FoodTentSignup[] | null) ?? [];
-
-    if (signups.length > 0) {
-      const itemIds = signups.map((s) => s.item_id);
-      const { data: itemsData } = await supabase
-        .from("food_tent_items")
-        .select("*")
-        .in("id", itemIds);
-      const items = (itemsData as FoodTentItem[] | null) ?? [];
-
-      const eventIds = [...new Set(items.map((i) => i.event_id))];
-      const { data: eventsData } = await supabase
-        .from("schedule_events")
-        .select("*")
-        .in("id", eventIds)
-        .gte("starts_at", new Date().toISOString());
-      const events = (eventsData as ScheduleEvent[] | null) ?? [];
-      const eventById = new Map(events.map((e) => [e.id, e]));
-
-      const bannersByEvent = new Map<
-        string,
-        { eventTitle: string; eventDate: string; items: { title: string; quantity: number }[] }
-      >();
-
-      for (const s of signups) {
-        const item = items.find((i) => i.id === s.item_id);
-        const event = item ? eventById.get(item.event_id) : undefined;
-        if (!item || !event) continue;
-
-        const existing = bannersByEvent.get(event.id);
-        if (existing) {
-          existing.items.push({ title: item.title, quantity: s.quantity });
-        } else {
-          bannersByEvent.set(event.id, {
-            eventTitle: event.title,
-            eventDate: new Date(event.starts_at).toLocaleDateString(),
-            items: [{ title: item.title, quantity: s.quantity }],
-          });
-        }
-      }
-
-      banners = [...bannersByEvent.values()];
-    }
-  }
-
-  let lineupBanners: {
-    rowerName: string | null;
-    boatName: string;
-    raceName: string | null;
-    raceTimeLabel: string | null;
-    eventTitle: string;
-    eventDate: string;
-  }[] = [];
-
-  if (user) {
-    // Whose lineup assignments this viewer should hear about: their own if
-    // they're a rower/coxswain, or their linked rower/coxswain kid(s)' if
-    // they're a parent (covering the whole household, not just whoever set
-    // the family link).
-    let lineupRowerIds: string[] = [];
-    if (isRowerOrCoxswain) {
-      lineupRowerIds = [user.id];
-    } else if (isParent || isCoachOrAdmin) {
-      const { data: familyLinkRows } = await supabase
-        .from("family_links")
-        .select("rower_id")
-        .in("guardian_id", householdUserIds);
-      lineupRowerIds = [
-        ...new Set(
-          ((familyLinkRows as Pick<FamilyLink, "rower_id">[] | null) ?? []).map((l) => l.rower_id)
-        ),
-      ];
-    }
-
-    if (lineupRowerIds.length > 0) {
-      const { data: seatRows } = await supabase
-        .from("lineup_seats")
-        .select("*")
-        .in("rower_id", lineupRowerIds);
-      const seats = (seatRows as LineupSeat[] | null) ?? [];
-
-      if (seats.length > 0) {
-        const lineupIds = [...new Set(seats.map((s) => s.lineup_id))];
-        const { data: lineupRows } = await supabase.from("lineups").select("*").in("id", lineupIds);
-        const lineupsData = (lineupRows as Lineup[] | null) ?? [];
-        const lineupById = new Map(lineupsData.map((l) => [l.id, l]));
-
-        const eventIds = [
-          ...new Set(lineupsData.map((l) => l.event_id).filter((id): id is string => !!id)),
-        ];
-        const { data: eventRows } = await supabase
-          .from("schedule_events")
-          .select("*")
-          .in("id", eventIds)
-          .gte("starts_at", new Date().toISOString());
-        const eventsData = (eventRows as ScheduleEvent[] | null) ?? [];
-        const eventById = new Map(eventsData.map((e) => [e.id, e]));
-
-        const rowerNameById = new Map<string, string>();
-        if (isParent || isCoachOrAdmin) {
-          const { data: rowerNameRows } = await supabase
-            .from("profiles")
-            .select("id, display_name")
-            .in("id", lineupRowerIds);
-          for (const p of (rowerNameRows as Pick<Profile, "id" | "display_name">[] | null) ?? []) {
-            rowerNameById.set(p.id, p.display_name);
-          }
-        }
-
-        lineupBanners = seats
-          .map((seat) => {
-            if (!seat.rower_id) return null;
-            const lineup = lineupById.get(seat.lineup_id);
-            const event = lineup?.event_id ? eventById.get(lineup.event_id) : undefined;
-            if (!lineup || !event) return null;
-            return {
-              rowerName: isParent || isCoachOrAdmin ? rowerNameById.get(seat.rower_id) ?? "Someone" : null,
-              boatName: lineup.boat_name,
-              raceName: lineup.race_name,
-              raceTimeLabel: lineup.race_time
-                ? new Date(lineup.race_time).toLocaleTimeString([], {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })
-                : null,
-              eventTitle: event.title,
-              eventDate: new Date(event.starts_at).toLocaleDateString(),
-            };
-          })
-          .filter((b): b is NonNullable<typeof b> => b !== null);
-      }
-    }
-  }
-
-  // Coach/admin notification: races that have been collected (e.g. via a
-  // heat sheet import) but don't have a boat/crew assigned yet.
-  let pendingRaceBanners: { eventTitle: string; eventDate: string; count: number }[] = [];
-
-  if (user && isCoachOrAdmin) {
-    const { data: pendingRaceRows } = await supabase
-      .from("races")
-      .select("*")
-      .is("lineup_id", null);
-    const pendingRacesData = (pendingRaceRows as Race[] | null) ?? [];
-
-    if (pendingRacesData.length > 0) {
-      const eventIds = [...new Set(pendingRacesData.map((r) => r.event_id))];
-      const { data: eventRows } = await supabase
-        .from("schedule_events")
-        .select("*")
-        .in("id", eventIds)
-        .gte("starts_at", new Date().toISOString());
-      const eventsData = (eventRows as ScheduleEvent[] | null) ?? [];
-
-      pendingRaceBanners = eventsData
-        .map((event) => ({
-          eventTitle: event.title,
-          eventDate: new Date(event.starts_at).toLocaleDateString(),
-          count: pendingRacesData.filter((r) => r.event_id === event.id).length,
-        }))
-        .filter((b) => b.count > 0);
-    }
+    // These three are independent of each other, so load them concurrently.
+    [banners, lineupBanners, pendingRaceBanners] = await Promise.all([
+      loadFoodTentBanners(supabase, householdUserIds),
+      loadLineupBanners(supabase, {
+        userId: user.id,
+        isRowerOrCoxswain,
+        isParent,
+        isCoachOrAdmin,
+        householdUserIds,
+      }),
+      isCoachOrAdmin ? loadPendingRaceBanners(supabase) : Promise.resolve([]),
+    ]);
   }
 
   return (

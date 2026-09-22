@@ -1,27 +1,35 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Profile, ProfileTeam, Team } from "@/lib/database.types";
+import type { ProfileTeam, Team } from "@/lib/database.types";
 import { AddMemberForm } from "./AddMemberForm";
 import { ImportForm } from "./ImportForm";
 import { SignupQrButton } from "./SignupQrButton";
-import { RosterTable } from "./RosterTable";
+import { RosterTable, type RosterProfile } from "./RosterTable";
+
+const ROSTER_COLUMNS =
+  "id, email, display_name, role, phone, boat_side, disabled_at, first_name, last_name, photo_url";
 
 export default async function RosterPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .order("display_name", { ascending: true });
+  // Only the columns the roster table and its manage-permission check
+  // actually use — not the full profile (bio, address, erg times, etc.).
+  const [
+    {
+      data: { user },
+    },
+    { data, error },
+    { data: teamRows },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("profiles").select(ROSTER_COLUMNS).order("display_name", { ascending: true }),
+    supabase.from("profile_teams").select("*"),
+  ]);
 
-  const allProfiles = (data as Profile[] | null) ?? [];
+  const allProfiles = (data as RosterProfile[] | null) ?? [];
   const currentProfile = allProfiles.find((p) => p.id === user?.id);
   const canManage = currentProfile?.role === "admin" || currentProfile?.role === "coach";
   const profiles = canManage ? allProfiles : allProfiles.filter((p) => !p.disabled_at);
 
-  const { data: teamRows } = await supabase.from("profile_teams").select("*");
   const teamsByProfile: Record<string, Team[]> = {};
   for (const row of (teamRows as ProfileTeam[] | null) ?? []) {
     const existing = teamsByProfile[row.profile_id] ?? [];

@@ -1,7 +1,61 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatGroup, ChatGroupMember, Message, Profile } from "@/lib/database.types";
-import { NewChatForm } from "./NewChatForm";
+import { NewChatForm, type NewChatOther } from "./NewChatForm";
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+async function loadGroupsAndMessages(
+  supabase: SupabaseServerClient,
+  groupIds: string[],
+  userId: string
+) {
+  const empty = {
+    groups: [] as ChatGroup[],
+    latestByGroup: new Map<string, Message>(),
+    otherMembersByGroup: new Map<string, string[]>(),
+    displayNameByOtherId: new Map<string, string>(),
+  };
+  if (groupIds.length === 0) return empty;
+
+  const [{ data: groupsData }, { data: messagesData }, { data: allMembersData }] = await Promise.all([
+    supabase.from("chat_groups").select("*").in("id", groupIds),
+    supabase.rpc("latest_messages_for_groups", { gids: groupIds }),
+    supabase
+      .from("chat_group_members")
+      .select("group_id, user_id")
+      .in("group_id", groupIds)
+      .neq("user_id", userId),
+  ]);
+
+  const groups = (groupsData as ChatGroup[] | null) ?? [];
+  const latestByGroup = new Map<string, Message>();
+  for (const m of (messagesData as Message[] | null) ?? []) {
+    latestByGroup.set(m.group_id, m);
+  }
+
+  const allMembers = (allMembersData as Pick<ChatGroupMember, "group_id" | "user_id">[] | null) ?? [];
+  const otherMembersByGroup = new Map<string, string[]>();
+  for (const m of allMembers) {
+    const list = otherMembersByGroup.get(m.group_id) ?? [];
+    list.push(m.user_id);
+    otherMembersByGroup.set(m.group_id, list);
+  }
+
+  const displayNameByOtherId = new Map<string, string>();
+  const otherIds = [...new Set(allMembers.map((m) => m.user_id))];
+  if (otherIds.length > 0) {
+    const { data: otherProfilesData } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .in("id", otherIds);
+    for (const p of (otherProfilesData as Pick<Profile, "id" | "display_name">[] | null) ?? []) {
+      displayNameByOtherId.set(p.id, p.display_name);
+    }
+  }
+
+  return { groups, latestByGroup, otherMembersByGroup, displayNameByOtherId };
+}
 
 export default async function MessagesPage() {
   const supabase = await createClient();
@@ -18,56 +72,21 @@ export default async function MessagesPage() {
     (membershipData as Pick<ChatGroupMember, "group_id" | "last_read_at">[] | null) ?? [];
 
   const groupIds = memberships.map((m) => m.group_id);
-
-  let groups: ChatGroup[] = [];
-  const latestByGroup = new Map<string, Message>();
-  if (groupIds.length > 0) {
-    const { data: groupsData } = await supabase
-      .from("chat_groups")
-      .select("*")
-      .in("id", groupIds);
-    groups = (groupsData as ChatGroup[] | null) ?? [];
-
-    const { data: messagesData } = await supabase
-      .from("messages")
-      .select("*")
-      .in("group_id", groupIds)
-      .order("created_at", { ascending: false });
-    for (const m of (messagesData as Message[] | null) ?? []) {
-      if (!latestByGroup.has(m.group_id)) latestByGroup.set(m.group_id, m);
-    }
-  }
-
   const lastReadByGroup = new Map(memberships.map((m) => [m.group_id, m.last_read_at]));
 
-  const otherMembersByGroup = new Map<string, string[]>();
-  const displayNameByOtherId = new Map<string, string>();
-  if (groupIds.length > 0) {
-    const { data: allMembersData } = await supabase
-      .from("chat_group_members")
-      .select("group_id, user_id")
-      .in("group_id", groupIds)
-      .neq("user_id", user.id);
-    const allMembers =
-      (allMembersData as Pick<ChatGroupMember, "group_id" | "user_id">[] | null) ?? [];
-    for (const m of allMembers) {
-      const list = otherMembersByGroup.get(m.group_id) ?? [];
-      list.push(m.user_id);
-      otherMembersByGroup.set(m.group_id, list);
-    }
-
-    const otherIds = [...new Set(allMembers.map((m) => m.user_id))];
-    if (otherIds.length > 0) {
-      const { data: otherProfilesData } = await supabase
+  // "New message" candidates don't depend on any of the group/message data
+  // below, so load them concurrently instead of after.
+  const [{ groups, latestByGroup, otherMembersByGroup, displayNameByOtherId }, othersResult] =
+    await Promise.all([
+      loadGroupsAndMessages(supabase, groupIds, user.id),
+      supabase
         .from("profiles")
         .select("id, display_name")
-        .in("id", otherIds);
-      for (const p of (otherProfilesData as Pick<Profile, "id" | "display_name">[] | null) ??
-        []) {
-        displayNameByOtherId.set(p.id, p.display_name);
-      }
-    }
-  }
+        .is("disabled_at", null)
+        .neq("id", user.id)
+        .order("display_name", { ascending: true }),
+    ]);
+  const others = (othersResult.data as NewChatOther[] | null) ?? [];
 
   function groupDisplayName(g: ChatGroup): string {
     const otherIds = otherMembersByGroup.get(g.id) ?? [];
@@ -85,14 +104,6 @@ export default async function MessagesPage() {
     const bTime = latestByGroup.get(b.id)?.created_at ?? b.created_at;
     return new Date(bTime).getTime() - new Date(aTime).getTime();
   });
-
-  const { data: othersData } = await supabase
-    .from("profiles")
-    .select("*")
-    .is("disabled_at", null)
-    .neq("id", user.id)
-    .order("display_name", { ascending: true });
-  const others = (othersData as Profile[] | null) ?? [];
 
   return (
     <div className="min-h-screen p-8">

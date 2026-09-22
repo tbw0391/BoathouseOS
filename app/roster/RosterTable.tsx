@@ -15,11 +15,25 @@ const ROLE_LABELS: Record<Profile["role"], string> = {
 
 type SortKey = "first" | "last";
 
+export type RosterProfile = Pick<
+  Profile,
+  | "id"
+  | "email"
+  | "display_name"
+  | "role"
+  | "phone"
+  | "boat_side"
+  | "disabled_at"
+  | "first_name"
+  | "last_name"
+  | "photo_url"
+>;
+
 export function RosterTable({
   profiles,
   teamsByProfile,
 }: {
-  profiles: Profile[];
+  profiles: RosterProfile[];
   teamsByProfile: Record<string, Team[]>;
 }) {
   const [search, setSearch] = useState("");

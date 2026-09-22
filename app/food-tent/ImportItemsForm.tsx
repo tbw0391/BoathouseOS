@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { read, utils } from "xlsx";
 import { importFoodTentItems, type FoodTentItemImportRow } from "./actions";
 
 function normalizeKey(key: string) {
@@ -23,6 +22,7 @@ export function ImportItemsForm({ eventId }: { eventId: string }) {
     setResult(null);
 
     try {
+      const { read, utils } = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const workbook = read(buffer);
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];

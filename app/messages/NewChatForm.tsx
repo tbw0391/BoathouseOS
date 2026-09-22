@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { createChat } from "./actions";
 import type { Profile } from "@/lib/database.types";
 
-export function NewChatForm({ others }: { others: Profile[] }) {
+export type NewChatOther = Pick<Profile, "id" | "display_name">;
+
+export function NewChatForm({ others }: { others: NewChatOther[] }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(false);

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { read, utils } from "xlsx";
 import { importBoats, type BoatImportRow } from "../lineups/actions";
 import { BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 
@@ -24,6 +23,7 @@ export function ImportBoatsForm() {
     setResult(null);
 
     try {
+      const { read, utils } = await import("xlsx");
       const buffer = await file.arrayBuffer();
       const workbook = read(buffer);
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
