@@ -67,3 +67,37 @@ create policy "admins, coaches, and tent leaders manage any food tent wishlist s
     where p.id = auth.uid()
       and (p.role in ('admin', 'coach') or p.is_tent_leader)
   ));
+
+-- Seed the initial wish list from https://www.amazon.com/hz/wishlist/ls/1UFA8O9AWEW3N
+insert into food_tent_wishlist_items (title, quantity_needed, notes, created_by)
+values
+  (
+    'Portable Misting Fan for Outside, 30000mAh Rechargeable Outdoor Cooling Fan',
+    1,
+    'https://www.amazon.com/dp/B0GHTPP6D6',
+    (select id from profiles where email = 'tbw0391@gmail.com')
+  ),
+  (
+    'XbotGo Chameleon AI Auto Sports Action Camera - 4K 60FPS',
+    1,
+    '$299.99 · https://www.amazon.com/dp/B0D7HQFKPB',
+    (select id from profiles where email = 'tbw0391@gmail.com')
+  ),
+  (
+    'RTIC 72 QT Ultra-Light Wheeled Hard Cooler',
+    1,
+    'https://www.amazon.com/dp/B0CJTDNXYF',
+    (select id from profiles where email = 'tbw0391@gmail.com')
+  ),
+  (
+    'Fotouzy Plastic Cutting Boards for Kitchen, Set of 7',
+    1,
+    '$13.99 · https://www.amazon.com/dp/B0872N3D7X',
+    (select id from profiles where email = 'tbw0391@gmail.com')
+  ),
+  (
+    '4-PACK Chafer Wind Guard, Chafing Dish Wind Guard',
+    1,
+    '$27.54 · https://www.amazon.com/dp/B0FSR3SPM7',
+    (select id from profiles where email = 'tbw0391@gmail.com')
+  );
