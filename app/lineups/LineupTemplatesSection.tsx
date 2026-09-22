@@ -270,7 +270,7 @@ export function LineupTemplatesSection({
         <button
           type="submit"
           disabled={isPending}
-          className="self-start bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 text-sm disabled:opacity-50"
+          className="self-start bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 text-sm disabled:opacity-50"
         >
           {isPending ? "Creating..." : "Create template"}
         </button>

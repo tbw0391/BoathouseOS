@@ -58,7 +58,7 @@ export function SignupControl({
       <button
         onClick={handleSignUp}
         disabled={isPending || full}
-        className="text-sm bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-1 disabled:opacity-50"
+        className="text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-1 disabled:opacity-50"
       >
         {isPending ? "Signing up..." : full ? "Full" : "Sign me up"}
       </button>

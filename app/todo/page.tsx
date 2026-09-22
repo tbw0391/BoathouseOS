@@ -72,7 +72,7 @@ export default async function TodoPage() {
       <div className="flex flex-col gap-6 max-w-2xl">
         {sections.map((section) => (
           <div key={section.title}>
-            <h2 className="font-medium text-[#022e5d] mb-2">{section.title}</h2>
+            <h2 className="font-medium text-[var(--color-primary)] mb-2">{section.title}</h2>
             <ul className="flex flex-col gap-1.5">
               {section.items.map((item, i) => (
                 <li

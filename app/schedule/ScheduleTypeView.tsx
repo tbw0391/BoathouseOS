@@ -49,7 +49,7 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
             name="title"
             required
             placeholder="Event title"
-            className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+            className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
           />
           <label className="flex flex-col gap-1 text-sm text-gray-600">
             Starts
@@ -57,7 +57,7 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
               type="datetime-local"
               name="starts_at"
               required
-              className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+              className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm text-gray-600">
@@ -65,26 +65,26 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
             <input
               type="datetime-local"
               name="ends_at"
-              className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+              className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
             />
           </label>
           <input
             name="location"
             placeholder="Location (optional)"
-            className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+            className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
           />
           <textarea
             name="description"
             rows={3}
             placeholder="Details (optional)"
-            className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+            className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
           />
           <label className="flex flex-col gap-1 text-sm text-gray-600">
             Repeats
             <select
               name="recurrence"
               defaultValue="none"
-              className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+              className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
             >
               <option value="none">Doesn&apos;t repeat</option>
               <option value="weekly">Weekly</option>
@@ -94,7 +94,7 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
           </label>
           <button
             type="submit"
-            className="self-start rounded-md bg-[#022e5d] px-4 py-2 text-sm font-medium text-white"
+            className="self-start rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white"
           >
             Add event
           </button>

@@ -84,7 +84,7 @@ export function EventCard({
           defaultValue={event.title}
           required
           placeholder="Event title"
-          className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+          className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
         />
         <label className="flex flex-col gap-1 text-sm text-gray-600">
           Starts
@@ -93,7 +93,7 @@ export function EventCard({
             name="starts_at"
             defaultValue={toLocalInputValue(event.starts_at)}
             required
-            className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+            className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm text-gray-600">
@@ -102,28 +102,28 @@ export function EventCard({
             type="datetime-local"
             name="ends_at"
             defaultValue={event.ends_at ? toLocalInputValue(event.ends_at) : ""}
-            className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+            className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
           />
         </label>
         <input
           name="location"
           defaultValue={event.location ?? ""}
           placeholder="Location (optional)"
-          className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+          className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
         />
         <textarea
           name="description"
           rows={3}
           defaultValue={event.description ?? ""}
           placeholder="Details (optional)"
-          className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+          className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
         />
         <label className="flex flex-col gap-1 text-sm text-gray-600">
           Repeats
           <select
             name="recurrence"
             defaultValue={event.recurrence}
-            className="rounded-md border px-3 py-2 outline-none focus:border-[#022e5d]"
+            className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
           >
             <option value="none">Doesn&apos;t repeat</option>
             <option value="weekly">Weekly</option>
@@ -136,7 +136,7 @@ export function EventCard({
           <button
             type="submit"
             disabled={isPending}
-            className="self-start rounded-md bg-[#022e5d] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="self-start rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             {isPending ? "Saving..." : "Save"}
           </button>

@@ -81,7 +81,7 @@ export function FeaturedItemsForm({ currentItems }: { currentItems: StoreItem[] 
       <button
         type="button"
         onClick={addItem}
-        className="self-start text-sm text-[#022e5d] hover:underline"
+        className="self-start text-sm text-[var(--color-primary)] hover:underline"
       >
         + Add item
       </button>
@@ -92,7 +92,7 @@ export function FeaturedItemsForm({ currentItems }: { currentItems: StoreItem[] 
         type="button"
         onClick={handleSubmit}
         disabled={isPending}
-        className="self-start bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 text-sm disabled:opacity-50"
+        className="self-start bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 text-sm disabled:opacity-50"
       >
         {isPending ? "Saving..." : "Save featured items"}
       </button>

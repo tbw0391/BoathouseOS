@@ -23,7 +23,7 @@ export function SignupQrButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="rounded bg-[#404040] text-white border-2 border-[#022e5d] text-sm px-3 py-2"
+        className="rounded bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] text-sm px-3 py-2"
       >
         Invite via QR code
       </button>
@@ -43,13 +43,13 @@ export function SignupQrButton() {
             <div className="flex gap-2 w-full">
               <button
                 onClick={copyLink}
-                className="flex-1 text-sm border-2 border-[#022e5d] rounded px-3 py-2"
+                className="flex-1 text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2"
               >
                 {copied ? "Copied!" : "Copy link"}
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="flex-1 text-sm bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2"
+                className="flex-1 text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2"
               >
                 Close
               </button>

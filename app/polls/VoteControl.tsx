@@ -74,7 +74,7 @@ export function VoteControl({
         <button
           type="submit"
           disabled={isPending}
-          className="text-sm bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-1.5 disabled:opacity-50"
+          className="text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-1.5 disabled:opacity-50"
         >
           {isPending ? "Saving..." : hasVoted ? "Update vote" : "Vote"}
         </button>

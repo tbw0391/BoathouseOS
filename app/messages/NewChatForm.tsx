@@ -30,7 +30,7 @@ export function NewChatForm({ others }: { others: NewChatOther[] }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="rounded bg-[#404040] text-white border-2 border-[#022e5d] text-sm px-3 py-2"
+        className="rounded bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] text-sm px-3 py-2"
       >
         New message
       </button>
@@ -74,7 +74,7 @@ export function NewChatForm({ others }: { others: NewChatOther[] }) {
       <button
         type="submit"
         disabled={isPending}
-        className="bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 text-sm disabled:opacity-50"
+        className="bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 text-sm disabled:opacity-50"
       >
         {isPending ? "Starting..." : "Start chat"}
       </button>

@@ -65,7 +65,7 @@ export function PendingRaceRow({
       {canManage && !open && (
         <button
           onClick={() => setOpen(true)}
-          className="mt-2 text-xs border-2 border-[#022e5d] rounded px-2 py-1"
+          className="mt-2 text-xs border-2 border-[var(--color-primary)] rounded px-2 py-1"
         >
           Assign a boat
         </button>
@@ -90,7 +90,7 @@ export function PendingRaceRow({
           <button
             type="submit"
             disabled={isPending}
-            className="self-start text-xs font-medium text-white bg-[#404040] border-2 border-[#022e5d] rounded px-2 py-1 disabled:opacity-50"
+            className="self-start text-xs font-medium text-white bg-[var(--color-secondary)] border-2 border-[var(--color-primary)] rounded px-2 py-1 disabled:opacity-50"
           >
             Create lineup
           </button>

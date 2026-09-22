@@ -73,7 +73,7 @@ export function EditRaceInfo({
           <button
             type="submit"
             disabled={isPending}
-            className="text-xs font-medium text-white bg-[#404040] border-2 border-[#022e5d] rounded px-2 py-1 disabled:opacity-50"
+            className="text-xs font-medium text-white bg-[var(--color-secondary)] border-2 border-[var(--color-primary)] rounded px-2 py-1 disabled:opacity-50"
           >
             Save
           </button>

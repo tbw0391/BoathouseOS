@@ -606,7 +606,7 @@ export default async function Home() {
             <Link
               key={b.id}
               href="/announcements"
-              className="flex items-start gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+              className="flex items-start gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
             >
               <Megaphone className="w-5 h-5 shrink-0 mt-0.5" />
               <span>
@@ -623,7 +623,7 @@ export default async function Home() {
             <Link
               key={i}
               href="/lineups"
-              className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+              className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
             >
               <Waves className="w-5 h-5 shrink-0" />
               <span>
@@ -643,7 +643,7 @@ export default async function Home() {
             <Link
               key={i}
               href="/food-tent"
-              className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+              className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
             >
               <Tent className="w-5 h-5 shrink-0" />
               <span>
@@ -658,7 +658,7 @@ export default async function Home() {
       {signupCallBanners.length > 0 && (
         <div className="w-full flex flex-col gap-2">
           {signupCallBanners.map((b, i) => (
-            <div key={i} className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm flex flex-col gap-2">
+            <div key={i} className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm flex flex-col gap-2">
               <p>
                 📋 Signups are open for <strong>{b.eventTitle}</strong> ({b.eventDate}) — pick a food
                 tent item{b.hasVolunteerNeeds ? " and a volunteer slot" : ""}.
@@ -666,14 +666,14 @@ export default async function Home() {
               <div className="flex gap-2">
                 <Link
                   href="/food-tent"
-                  className="text-xs bg-white text-[#022e5d] rounded px-2 py-1 font-medium"
+                  className="text-xs bg-white text-[var(--color-primary)] rounded px-2 py-1 font-medium"
                 >
                   Food Tent
                 </Link>
                 {b.hasVolunteerNeeds && (
                   <Link
                     href="/volunteer"
-                    className="text-xs bg-white text-[#022e5d] rounded px-2 py-1 font-medium"
+                    className="text-xs bg-white text-[var(--color-primary)] rounded px-2 py-1 font-medium"
                   >
                     Volunteer Needs
                   </Link>
@@ -685,7 +685,7 @@ export default async function Home() {
       )}
 
       {upcomingRegatta && upcomingRegattaForecast?.short_forecast && (
-        <div className="w-full flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
+        <div className="w-full flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm">
           {upcomingRegattaForecast.icon_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={upcomingRegattaForecast.icon_url} alt="" className="w-10 h-10 shrink-0" />
@@ -713,28 +713,28 @@ export default async function Home() {
           </p>
           <Link
             href="/food-tent"
-            className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+            className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
           >
             <Tent className="w-5 h-5 shrink-0" />
             Sign up for the food tent
           </Link>
           <Link
             href="/volunteer"
-            className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+            className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
           >
             <HelpingHand className="w-5 h-5 shrink-0" />
             Sign up for a volunteer slot
           </Link>
           <Link
             href="/lineups"
-            className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+            className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
           >
             <Waves className="w-5 h-5 shrink-0" />
             Check the lineups
           </Link>
           <Link
             href={coachChatHref}
-            className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+            className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
           >
             <MessageCircle className="w-5 h-5 shrink-0" />
             Read coaches&apos; messages
@@ -745,7 +745,7 @@ export default async function Home() {
       {lineupBanners.length > 0 && (
         <div className="w-full flex flex-col gap-2">
           {lineupBanners.map((b, i) => (
-            <div key={i} className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
+            <div key={i} className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm">
               🚣{" "}
               {b.rowerName ? (
                 <>
@@ -772,7 +772,7 @@ export default async function Home() {
           {banners.map((b, i) => (
             <div
               key={i}
-              className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm"
+              className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm"
             >
               <p>
                 You&apos;re bringing to <strong>{b.eventTitle}</strong> ({b.eventDate}):
@@ -821,7 +821,7 @@ export default async function Home() {
                 key={s.href}
                 href={s.href}
                 title={visibility === "admins" ? "Visible to admins only" : undefined}
-                className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
+                className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[var(--color-primary)] px-4 py-6 font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
               >
                 <Icon className="w-6 h-6" />
                 {s.label}
@@ -836,12 +836,12 @@ export default async function Home() {
       </div>
 
       {storeUrl && (
-        <div className="w-full max-w-md rounded-xl border-2 border-[#022e5d] overflow-hidden">
+        <div className="w-full max-w-md rounded-xl border-2 border-[var(--color-primary)] overflow-hidden">
           <a
             href={storeUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-[#022e5d] text-white px-5 py-4 hover:bg-[#01213f] transition-colors"
+            className="flex items-center gap-3 bg-[var(--color-primary)] text-white px-5 py-4 hover:bg-[var(--color-accent)] transition-colors"
           >
             <ShoppingBag className="w-7 h-7 shrink-0" />
             <div>
@@ -850,7 +850,7 @@ export default async function Home() {
             </div>
           </a>
           {featuredItems.length > 0 && (
-            <div className="grid grid-cols-2 gap-px bg-[#022e5d]/20">
+            <div className="grid grid-cols-2 gap-px bg-[var(--color-primary)]/20">
               {featuredItems.slice(0, 4).map((item) => (
                 <a
                   key={item.url}

@@ -87,7 +87,7 @@ export function ChatThread({
               )}
               <div
                 className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                  mine ? "bg-[#022e5d] text-white" : "bg-gray-100 text-gray-900"
+                  mine ? "bg-[var(--color-primary)] text-white" : "bg-gray-100 text-gray-900"
                 }`}
               >
                 {m.body}
@@ -109,7 +109,7 @@ export function ChatThread({
         <button
           type="submit"
           disabled={isPending}
-          className="bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 text-sm disabled:opacity-50"
+          className="bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 text-sm disabled:opacity-50"
         >
           Send
         </button>

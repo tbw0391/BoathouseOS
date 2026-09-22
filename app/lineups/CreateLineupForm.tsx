@@ -29,7 +29,7 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-sm border-2 border-[#022e5d] rounded px-3 py-2"
+        className="text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2"
       >
         Add boat
       </button>
@@ -104,7 +104,7 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
         <button
           type="submit"
           disabled={isPending}
-          className="bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 text-sm disabled:opacity-50"
+          className="bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 text-sm disabled:opacity-50"
         >
           {isPending ? "Adding..." : "Add boat"}
         </button>

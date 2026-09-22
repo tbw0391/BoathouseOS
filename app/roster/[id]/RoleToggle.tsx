@@ -35,7 +35,7 @@ export function RoleToggle({
       <button
         onClick={handleToggle}
         disabled={isPending}
-        className="text-sm border-2 border-[#022e5d] rounded px-3 py-2 disabled:opacity-50"
+        className="text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2 disabled:opacity-50"
       >
         {value ? offLabel : onLabel}
       </button>

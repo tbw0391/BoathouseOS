@@ -22,7 +22,7 @@ function LocationSwitch({ permission, onEnable }: { permission: PermissionState;
           onClick={onEnable}
           disabled={isOn || isDenied}
           className={`relative w-11 h-6 rounded-full transition-colors disabled:cursor-default ${
-            isOn ? "bg-[#022e5d]" : "bg-gray-300"
+            isOn ? "bg-[var(--color-primary)]" : "bg-gray-300"
           }`}
         >
           <span
@@ -242,7 +242,7 @@ export function OnWaterTracker({
         <button
           onClick={handleStart}
           disabled={permission === "denied"}
-          className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[#01213f] transition-colors disabled:opacity-50"
+          className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors disabled:opacity-50"
         >
           Start Outing
         </button>
@@ -257,7 +257,7 @@ export function OnWaterTracker({
 
   return (
     <div className="flex flex-col gap-3 max-w-sm">
-      <div className="border-2 border-[#022e5d] rounded-lg p-4">
+      <div className="border-2 border-[var(--color-primary)] rounded-lg p-4">
         <p className="text-sm text-gray-500">Tracking</p>
         <p className="text-2xl font-bold tabular-nums">
           {elapsedMin}:{String(elapsedSec).padStart(2, "0")}
@@ -275,7 +275,7 @@ export function OnWaterTracker({
       </div>
       <button
         onClick={handleEnd}
-        className="bg-[#404040] text-white border-2 border-[#022e5d] rounded-lg px-4 py-3 text-sm font-medium hover:opacity-90 transition-opacity"
+        className="bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm font-medium hover:opacity-90 transition-opacity"
       >
         End Outing
       </button>

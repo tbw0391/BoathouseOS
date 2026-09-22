@@ -34,7 +34,7 @@ export function AddMemberForm() {
       <div className="flex flex-col items-start gap-2">
         <button
           onClick={() => setOpen(true)}
-          className="rounded bg-[#404040] text-white border-2 border-[#022e5d] text-sm px-3 py-2"
+          className="rounded bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] text-sm px-3 py-2"
         >
           Add member
         </button>
@@ -129,7 +129,7 @@ export function AddMemberForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 text-sm disabled:opacity-50"
+        className="bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 text-sm disabled:opacity-50"
       >
         {isPending ? "Adding..." : "Add member"}
       </button>

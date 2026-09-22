@@ -60,7 +60,7 @@ export function ImportBoatsForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-sm border-2 border-[#022e5d] rounded px-3 py-2"
+        className="text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2"
       >
         Import fleet from Excel
       </button>

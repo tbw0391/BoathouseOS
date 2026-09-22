@@ -127,7 +127,7 @@ export default async function MessagesPage() {
               <Link
                 key={g.id}
                 href={`/messages/${g.id}`}
-                className="flex items-center justify-between gap-3 rounded-lg border-2 border-[#022e5d] px-4 py-3 hover:bg-[#404040] hover:text-white transition-colors"
+                className="flex items-center justify-between gap-3 rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
               >
                 <div className="min-w-0">
                   <p className="font-medium truncate">{groupDisplayName(g)}</p>

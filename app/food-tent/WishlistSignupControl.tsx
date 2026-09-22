@@ -71,7 +71,7 @@ export function WishlistSignupControl({
         <button
           onClick={handleSaveChange}
           disabled={isPending}
-          className="text-sm bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-1 disabled:opacity-50"
+          className="text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-1 disabled:opacity-50"
         >
           {isPending ? "Saving..." : "Save"}
         </button>
@@ -100,7 +100,7 @@ export function WishlistSignupControl({
             setEditing(true);
           }}
           disabled={isPending}
-          className="text-sm text-[#022e5d] hover:underline disabled:opacity-50"
+          className="text-sm text-[var(--color-primary)] hover:underline disabled:opacity-50"
         >
           Change
         </button>
@@ -128,7 +128,7 @@ export function WishlistSignupControl({
       <button
         onClick={handleSignUp}
         disabled={isPending}
-        className="text-sm bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-1 disabled:opacity-50"
+        className="text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-1 disabled:opacity-50"
       >
         {isPending ? "Signing up..." : "I'll get this"}
       </button>

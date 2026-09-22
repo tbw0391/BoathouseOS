@@ -79,7 +79,7 @@ function BoatRow({ boat }: { boat: Boat }) {
             <button
               type="submit"
               disabled={isPending}
-              className="text-xs font-medium text-white bg-[#404040] border-2 border-[#022e5d] rounded px-2 py-1 disabled:opacity-50"
+              className="text-xs font-medium text-white bg-[var(--color-secondary)] border-2 border-[var(--color-primary)] rounded px-2 py-1 disabled:opacity-50"
             >
               Save
             </button>
@@ -164,7 +164,7 @@ export function BoatsSection({ boats }: { boats: Boat[] }) {
         <button
           type="submit"
           disabled={isPending}
-          className="self-start bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 text-sm disabled:opacity-50"
+          className="self-start bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 text-sm disabled:opacity-50"
         >
           {isPending ? "Adding..." : "Add to fleet"}
         </button>

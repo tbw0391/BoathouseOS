@@ -45,7 +45,7 @@ export default async function WalkUpSongsPage() {
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 text-xs bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 hover:bg-[#022e5d] transition-colors"
+                className="shrink-0 text-xs bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 hover:bg-[var(--color-primary)] transition-colors"
               >
                 Search
               </a>

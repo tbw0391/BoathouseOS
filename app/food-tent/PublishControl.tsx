@@ -30,7 +30,7 @@ export function PublishControl({ eventId }: { eventId: string }) {
       <button
         onClick={publish}
         disabled={isPending}
-        className="self-start text-sm bg-[#404040] text-white border-2 border-[#022e5d] rounded px-3 py-2 disabled:opacity-50"
+        className="self-start text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 disabled:opacity-50"
       >
         {isPending ? "Publishing..." : "Confirm & publish to parents"}
       </button>

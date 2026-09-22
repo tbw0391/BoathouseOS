@@ -200,7 +200,7 @@ export default async function LineupsPage() {
         <div className="mt-3 flex flex-col gap-5 max-w-lg">
           {(eventPendingRaces.length > 0 || canManage) && (
             <div>
-              <h3 className="text-sm font-medium text-[#022e5d] mb-2">
+              <h3 className="text-sm font-medium text-[var(--color-primary)] mb-2">
                 Races needing a lineup {eventPendingRaces.length > 0 && `(${eventPendingRaces.length})`}
               </h3>
               {eventPendingRaces.length > 0 && (
@@ -224,7 +224,7 @@ export default async function LineupsPage() {
             if (categoryLineups.length === 0) return null;
             return (
               <div key={cat}>
-                <h3 className="text-sm font-medium text-[#022e5d] mb-2">{LINEUP_CATEGORIES[cat]}</h3>
+                <h3 className="text-sm font-medium text-[var(--color-primary)] mb-2">{LINEUP_CATEGORIES[cat]}</h3>
                 <div className="flex flex-col gap-3">
                   {categoryLineups.map((lineup) => (
                     <LineupCard key={lineup.id} lineup={lineup} />
