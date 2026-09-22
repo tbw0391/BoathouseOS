@@ -92,6 +92,7 @@ export interface Lineup {
   race_name: string | null;
   created_by: string | null;
   created_at: string;
+  chat_group_id: string | null;
 }
 
 export interface Boat {
