@@ -96,7 +96,8 @@ export default async function BioPage({
   let familyOptions: Pick<Profile, "id" | "display_name">[] = [];
   let familyValue: string[] = [];
   let familyNames: string[] = [];
-  if (profile.role === "parent") {
+  const isGuardianRole = profile.role === "parent" || profile.role === "admin" || profile.role === "coach";
+  if (isGuardianRole) {
     const { data: rowerRows } = await supabase
       .from("profiles")
       .select("id, display_name")
@@ -118,7 +119,7 @@ export default async function BioPage({
     const { data: parentRows } = await supabase
       .from("profiles")
       .select("id, display_name")
-      .eq("role", "parent")
+      .in("role", ["parent", "admin", "coach"])
       .is("disabled_at", null)
       .order("display_name", { ascending: true });
     familyOptions = (parentRows as Pick<Profile, "id" | "display_name">[] | null) ?? [];
@@ -276,9 +277,9 @@ export default async function BioPage({
           </>
         )}
 
-        {(profile.role === "parent" || profile.role === "rower" || profile.role === "coxswain") && (
+        {(isGuardianRole || profile.role === "rower" || profile.role === "coxswain") && (
           <>
-            <dt className="text-gray-500">{profile.role === "parent" ? "Children" : "Parent/Guardian"}</dt>
+            <dt className="text-gray-500">{isGuardianRole ? "Children" : "Parent/Guardian"}</dt>
             <dd>{familyNames.length > 0 ? familyNames.join(", ") : "—"}</dd>
           </>
         )}
