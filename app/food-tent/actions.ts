@@ -201,3 +201,105 @@ export async function cancelSignup(formData: FormData) {
   revalidatePath("/food-tent");
   revalidatePath("/");
 }
+
+export async function addWishlistItem(formData: FormData) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+
+  const title = String(formData.get("title") ?? "").trim();
+  const quantityRaw = String(formData.get("quantity_needed") ?? "1").trim();
+  const quantityNeeded = Math.max(1, Number(quantityRaw) || 1);
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  if (!title) {
+    throw new Error("Item name is required.");
+  }
+
+  const { error } = await supabase.from("food_tent_wishlist_items").insert({
+    title,
+    quantity_needed: quantityNeeded,
+    notes,
+    created_by: user.id,
+  });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/food-tent");
+}
+
+export async function updateWishlistItem(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const itemId = String(formData.get("item_id") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const quantityRaw = String(formData.get("quantity_needed") ?? "1").trim();
+  const quantityNeeded = Math.max(1, Number(quantityRaw) || 1);
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  if (!itemId || !title) {
+    throw new Error("Item name is required.");
+  }
+
+  const { error } = await supabase
+    .from("food_tent_wishlist_items")
+    .update({ title, quantity_needed: quantityNeeded, notes })
+    .eq("id", itemId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/food-tent");
+}
+
+export async function deleteWishlistItem(itemId: string) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const { error } = await supabase.from("food_tent_wishlist_items").delete().eq("id", itemId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/food-tent");
+}
+
+export async function signUpForWishlistItem(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const itemId = String(formData.get("item_id") ?? "").trim();
+  const quantityRaw = String(formData.get("quantity") ?? "1").trim();
+  const quantity = Math.max(1, Number(quantityRaw) || 1);
+
+  if (!itemId) throw new Error("Missing item.");
+
+  const { error } = await supabase
+    .from("food_tent_wishlist_signups")
+    .upsert({ item_id: itemId, user_id: user.id, quantity }, { onConflict: "item_id,user_id" });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/food-tent");
+}
+
+export async function cancelWishlistSignup(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const itemId = String(formData.get("item_id") ?? "").trim();
+  if (!itemId) throw new Error("Missing item.");
+
+  const { error } = await supabase
+    .from("food_tent_wishlist_signups")
+    .delete()
+    .eq("item_id", itemId)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/food-tent");
+}

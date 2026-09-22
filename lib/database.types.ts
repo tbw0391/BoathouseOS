@@ -206,6 +206,22 @@ export interface FoodTentSignup {
   signed_up_at: string;
 }
 
+export interface FoodTentWishlistItem {
+  id: string;
+  title: string;
+  quantity_needed: number;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface FoodTentWishlistSignup {
+  item_id: string;
+  user_id: string;
+  quantity: number;
+  signed_up_at: string;
+}
+
 export interface Poll {
   id: string;
   question: string;
