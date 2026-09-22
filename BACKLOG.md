@@ -207,6 +207,16 @@
 - [ ] Real push notifications (phone alert even when the app is closed) for
       new messages / schedule changes (PWA) — step 2, once ready
 - [ ] Deploy (Vercel) + point a real domain
+- [ ] Check the PWA precache config (next.config.ts / @ducanh2912/next-pwa)
+      once actually deployed — no explicit runtimeCaching set today, so it's
+      relying on Workbox's default precache list; worth confirming it isn't
+      precaching large/dynamic routes unnecessarily.
+- [ ] Swap raw `<img>` tags for `next/image` on photos and avatars (photos
+      page, roster bio page, roster table) for automatic resizing/
+      optimization — needs the Supabase storage domain added to
+      next.config.ts's images.remotePatterns, and a decision on Vercel image
+      optimization cost/config once deployed. Low priority at current photo
+      volume.
 - [x] Admin-only "To-do List" tile (/todo) that reads and renders this
       BACKLOG.md file right in the app, so Todd doesn't have to open the repo
 
