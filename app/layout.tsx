@@ -1,4 +1,4 @@
-import type { Metadata, ResolvingViewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
 };
 
-export async function generateViewport(): Promise<ResolvingViewport> {
+export async function generateViewport(): Promise<Viewport> {
   const theme = await getThemeColors();
   return {
     themeColor: theme.primary,
