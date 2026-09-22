@@ -113,10 +113,12 @@ export async function updateBio(profileId: string, formData: FormData) {
     if (teamsError) throw new Error(teamsError.message);
   }
 
-  // The family picker is only rendered for parent/rower/coxswain profiles,
-  // and its direction depends on which one is being edited: a parent picks
-  // their rower children (they become the guardian side), a rower/coxswain
-  // picks their parent(s) (they become the rower side).
+  // The family picker is rendered for parent/admin/coach and rower/coxswain
+  // profiles (admin/coach included since staff can also be a real parent),
+  // and its direction depends on which one is being edited: a
+  // parent/admin/coach picks their rower children (they become the
+  // guardian side), a rower/coxswain picks their parent(s) (they become
+  // the rower side).
   if (formData.has("family_field_present")) {
     const familyMemberIds = [...new Set(formData.getAll("family_member_id").map(String))];
 
@@ -127,7 +129,7 @@ export async function updateBio(profileId: string, formData: FormData) {
       .single();
     const targetRole = (targetProfileData as { role: string } | null)?.role;
 
-    if (targetRole === "parent") {
+    if (targetRole === "parent" || targetRole === "admin" || targetRole === "coach") {
       const { error: deleteFamilyError } = await supabase
         .from("family_links")
         .delete()

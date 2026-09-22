@@ -175,7 +175,8 @@
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
-- [ ] Nav bar / bottom tab bar instead of home-page button grid once there are more screens
+- [ ] Persistent bottom bar (all screens): a Home button plus 2-3 more slots,
+      content TBD — likely replaces/supplements the home-page button grid
 - [ ] Role-based UI (hide admin-only actions from rowers/parents)
 - [x] In-app unread indicators: home page badges for unread messages and for
       new schedule events since you last checked (step 1 toward real push
