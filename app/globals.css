@@ -3,6 +3,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Site-wide theme colors, admin-editable at /admin. These defaults match
+     the colors the app shipped with; RootLayout overrides them (and
+     --background) inline once colors are picked, via the `style` attribute
+     on <html> so they win regardless of the dark-mode media query below. */
+  --color-primary: #022e5d;
+  --color-secondary: #404040;
+  --color-accent: #01213f;
   /* Tells the browser this page supports both schemes, so native form
      controls (inputs, buttons) pick matching colors instead of staying
      light-styled while their (inherited) text color flips to white. */

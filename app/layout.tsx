@@ -1,9 +1,10 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata, ResolvingViewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadChatCount } from "@/lib/chat";
+import { parseThemeColors } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
