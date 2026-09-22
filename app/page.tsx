@@ -18,11 +18,14 @@ import {
   MapPin,
   Settings,
   Vote,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type {
+  AnnouncementAudience,
   ChatGroup,
+  CoachAnnouncement,
   EventForecast,
   FamilyLink,
   FoodTentItem,
@@ -79,6 +82,8 @@ type LineupBanner = {
 };
 
 type PendingRaceBanner = { eventTitle: string; eventDate: string; count: number };
+
+type AnnouncementBanner = { id: string; message: string; senderName: string; createdAt: string };
 
 type FoodPrepBanner = { eventId: string; eventTitle: string; eventDate: string };
 
@@ -385,6 +390,40 @@ async function loadSignupCallBanners(
     }));
 }
 
+// Coach/admin-sent broadcasts, shown as a home banner only to their intended
+// audience (rowers/coxswains or parents) — coaches see these on the
+// /announcements page instead, not as a banner on their own home page.
+async function loadAnnouncementBanners(
+  supabase: SupabaseServerClient,
+  audience: AnnouncementAudience[]
+): Promise<AnnouncementBanner[]> {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabase
+    .from("coach_announcements")
+    .select("*")
+    .in("audience", audience)
+    .gte("created_at", weekAgo)
+    .order("created_at", { ascending: false });
+  const announcements = (data as CoachAnnouncement[] | null) ?? [];
+  if (announcements.length === 0) return [];
+
+  const senderIds = [...new Set(announcements.map((a) => a.sender_id).filter((id): id is string => !!id))];
+  const { data: sendersData } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", senderIds.length > 0 ? senderIds : [""]);
+  const nameById = new Map(
+    ((sendersData as Pick<Profile, "id" | "display_name">[] | null) ?? []).map((p) => [p.id, p.display_name])
+  );
+
+  return announcements.map((a) => ({
+    id: a.id,
+    message: a.message,
+    senderName: a.sender_id ? nameById.get(a.sender_id) ?? "Coach" : "Coach",
+    createdAt: new Date(a.created_at).toLocaleDateString(),
+  }));
+}
+
 export default async function Home() {
   const supabase = await createClient();
   const [
@@ -411,6 +450,7 @@ export default async function Home() {
   let pendingRaceBanners: PendingRaceBanner[] = [];
   let foodPrepBanners: FoodPrepBanner[] = [];
   let signupCallBanners: SignupCallBanner[] = [];
+  let announcementBanners: AnnouncementBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
   let upcomingRegattaForecast: EventForecast | null = null;
   let unreadCount = 0;
@@ -497,6 +537,7 @@ export default async function Home() {
       foodPrepBannerResults,
       signupCallBannerResults,
       forecastResult,
+      announcementBannerResults,
     ] = await Promise.all([
       loadFoodTentBanners(supabase, householdUserIds),
       loadLineupBanners(supabase, {
@@ -511,12 +552,18 @@ export default async function Home() {
       isFoodTentManager ? loadFoodPrepBanners(supabase) : Promise.resolve([]),
       loadSignupCallBanners(supabase, householdUserIds),
       upcomingRegatta ? getOrRefreshEventForecast(supabase, upcomingRegatta) : Promise.resolve(null),
+      isRowerOrCoxswain
+        ? loadAnnouncementBanners(supabase, ["rowers", "both"])
+        : isParent
+        ? loadAnnouncementBanners(supabase, ["parents", "both"])
+        : Promise.resolve([]),
     ]);
     banners = foodBanners;
     upcomingRegattaForecast = forecastResult;
     lineupBanners = lineupBannerResults;
     pendingRaceBanners = pendingRaceBannerResults;
     foodPrepBanners = foodPrepBannerResults;
+    announcementBanners = announcementBannerResults;
     const isGuardian = (familyLinkRows.data ?? []).length > 0;
     signupCallBanners = isParent || isGuardian ? signupCallBannerResults : [];
 
@@ -552,6 +599,23 @@ export default async function Home() {
           className="w-40 h-auto mx-auto"
         />
       </div>
+
+      {announcementBanners.length > 0 && (
+        <div className="w-full flex flex-col gap-2">
+          {announcementBanners.map((b) => (
+            <Link
+              key={b.id}
+              href="/announcements"
+              className="flex items-start gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+            >
+              <Megaphone className="w-5 h-5 shrink-0 mt-0.5" />
+              <span>
+                <strong>{b.senderName}</strong> ({b.createdAt}): {b.message}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {pendingRaceBanners.length > 0 && (
         <div className="w-full flex flex-col gap-2">

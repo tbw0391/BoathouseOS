@@ -309,6 +309,16 @@ export interface Suggestion {
   created_at: string;
 }
 
+export type AnnouncementAudience = 'rowers' | 'parents' | 'both';
+
+export interface CoachAnnouncement {
+  id: string;
+  sender_id: string | null;
+  audience: AnnouncementAudience;
+  message: string;
+  created_at: string;
+}
+
 export interface OnWaterSession {
   id: string;
   lineup_id: string | null;

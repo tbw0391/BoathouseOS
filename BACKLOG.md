@@ -211,6 +211,14 @@
       changes someone's groups
 - [ ] Board Member chat group (not yet wired up — board membership isn't a
       profile_teams row, it's the separate is_board_member flag)
+- [x] Coach announcements (2026-09-22): a one-way broadcast (not a group
+      chat) a coach/admin sends from `/announcements`, targeted to all
+      Rowers, all Parents, or Both — cuts across team boundaries, unlike the
+      existing per-team chat groups. Shows as a home-page banner (Megaphone
+      icon) to the matching audience for 7 days; coaches/admins see full
+      history + delete on the `/announcements` page instead of a banner on
+      their own home page. New `coach_announcements` table
+      (0051_coach_announcements.sql), audience-scoped via RLS.
 
 ## Banners
 - [ ] Birthday banner (show on a member's birthday)
@@ -235,8 +243,11 @@
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
-- [ ] Persistent bottom bar (all screens): a Home button plus 2-3 more slots,
-      content TBD — likely replaces/supplements the home-page button grid
+- [x] Persistent bottom bar (2026-09-22): Home, Lineups, Announcements —
+      fixed nav visible on every signed-in screen, sitting alongside the
+      existing home-page button grid (not a replacement). Also enables
+      `viewport-fit: cover` so its safe-area padding actually applies on
+      notched phones.
 - [ ] Role-based UI (hide admin-only actions from rowers/parents)
 - [x] In-app unread indicators: home page badges for unread messages and for
       new schedule events since you last checked (step 1 toward real push

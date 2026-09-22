@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/Header";
+import { BottomNav } from "@/components/BottomNav";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadChatCount } from "@/lib/chat";
 import "./globals.css";
@@ -28,6 +29,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#022e5d",
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -57,7 +59,8 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Header unreadCount={unreadCount} userId={user?.id ?? null} photoUrl={photoUrl} />
-        {children}
+        <div className="pb-16">{children}</div>
+        <BottomNav userId={user?.id ?? null} />
       </body>
     </html>
   );
