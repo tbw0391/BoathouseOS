@@ -5,10 +5,9 @@ import Link from "next/link";
 import type { Profile, Team } from "@/lib/database.types";
 import { TEAM_LABELS } from "@/lib/teams";
 
-type GroupFilter = Team | "board" | "all";
+type GroupFilter = Team | "board";
 
 const FILTER_BUTTONS: { value: GroupFilter; label: string }[] = [
-  { value: "all", label: "All" },
   { value: "mens", label: TEAM_LABELS.mens },
   { value: "womens", label: TEAM_LABELS.womens },
   { value: "development", label: TEAM_LABELS.development },
@@ -41,16 +40,23 @@ export function RosterGrid({
   teamsByProfile: Record<string, Team[]>;
 }) {
   const [search, setSearch] = useState("");
-  const [groupFilter, setGroupFilter] = useState<GroupFilter>("all");
+  const [selectedGroups, setSelectedGroups] = useState<GroupFilter[]>([]);
+
+  function toggleGroup(group: GroupFilter) {
+    setSelectedGroups((prev) =>
+      prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group]
+    );
+  }
+
+  const matchesGroup = (p: RosterProfile) =>
+    selectedGroups.length === 0 ||
+    selectedGroups.some((g) => (g === "board" ? p.is_board_member : (teamsByProfile[p.id] ?? []).includes(g)));
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
     const matching = profiles.filter((p) => {
-      if (groupFilter === "board" && !p.is_board_member) return false;
-      if (groupFilter !== "all" && groupFilter !== "board" && !(teamsByProfile[p.id] ?? []).includes(groupFilter)) {
-        return false;
-      }
+      if (!matchesGroup(p)) return false;
       if (!q) return true;
       return (
         p.display_name.toLowerCase().includes(q) ||
@@ -62,7 +68,8 @@ export function RosterGrid({
     return matching.sort((a, b) =>
       (a.first_name || a.display_name).localeCompare(b.first_name || b.display_name)
     );
-  }, [profiles, teamsByProfile, search, groupFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profiles, teamsByProfile, search, selectedGroups]);
 
   return (
     <>
