@@ -40,8 +40,13 @@
 - [ ] RSVP (attending / not attending) per event
 - [ ] Calendar view
 - [ ] Calendar on the Schedule page showing standing practice times: Mon-Fri 4:15-6:30pm, Saturday 8-10am
-- [ ] Weather forecast button on a regatta event, using its location field to
-      show the forecast for race day (needs a geocoding/weather API — TBD which)
+- [ ] Weather forecast banner for a regatta: show the forecast for race day
+      (using the event's location field), pulled from Weather Underground,
+      starting 5 days before the event date and disappearing after — needs
+      to confirm access to a Weather Underground API/feed (their public API
+      was discontinued; current access is via IBM/The Weather Company's PWS
+      Dashboard API, which needs an account/key) plus a geocoding step to
+      turn the location field into coordinates
 
 ## Race Results
 - [ ] Mark a race final as finished with a placement (1st/2nd/3rd) once results are posted
