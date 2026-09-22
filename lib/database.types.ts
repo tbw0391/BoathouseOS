@@ -60,6 +60,22 @@ export interface ScheduleEvent {
   created_at: string;
 }
 
+export interface EventForecast {
+  event_id: string;
+  geocoded_location: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  forecast_date: string | null;
+  high_f: number | null;
+  low_f: number | null;
+  short_forecast: string | null;
+  precipitation_chance: number | null;
+  wind: string | null;
+  icon_url: string | null;
+  fetched_at: string;
+  created_at: string;
+}
+
 export interface ScheduleView {
   user_id: string;
   last_viewed_at: string;

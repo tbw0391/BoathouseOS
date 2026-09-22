@@ -23,6 +23,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import type {
   ChatGroup,
+  EventForecast,
   FamilyLink,
   FoodTentItem,
   FoodTentSignup,
@@ -37,6 +38,7 @@ import type {
 import { parseStoreItems } from "@/lib/storeItems";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getUnreadScheduleCount } from "@/lib/schedule";
+import { getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
 
 const ICONS_BY_HREF: Record<string, LucideIcon> = {
@@ -315,7 +317,10 @@ async function loadFoodPrepBanners(supabase: SupabaseServerClient): Promise<Food
 
 // Parent/guardian notification: the food list has been published, so it's
 // time to sign up for food items and (if any are posted) volunteer slots.
-async function loadSignupCallBanners(supabase: SupabaseServerClient): Promise<SignupCallBanner[]> {
+async function loadSignupCallBanners(
+  supabase: SupabaseServerClient,
+  householdUserIds: string[]
+): Promise<SignupCallBanner[]> {
   const { data: statusRows } = await supabase
     .from("food_tent_status")
     .select("*")
@@ -324,23 +329,60 @@ async function loadSignupCallBanners(supabase: SupabaseServerClient): Promise<Si
   if (published.length === 0) return [];
 
   const eventIds = published.map((s) => s.event_id);
-  const [{ data: eventRows }, { data: needRows }] = await Promise.all([
+  const [{ data: eventRows }, { data: needRows }, { data: itemRows }] = await Promise.all([
     supabase.from("schedule_events").select("*").in("id", eventIds).gte("starts_at", startOfToday()),
-    supabase.from("volunteer_needs").select("event_id").in("event_id", eventIds),
+    supabase.from("volunteer_needs").select("id, event_id").in("event_id", eventIds),
+    supabase.from("food_tent_items").select("id, event_id").in("event_id", eventIds),
   ]);
   const events = (eventRows as ScheduleEvent[] | null) ?? [];
-  const eventIdsWithNeeds = new Set(
-    ((needRows as Pick<VolunteerNeed, "event_id">[] | null) ?? [])
-      .map((n) => n.event_id)
-      .filter((id): id is string => !!id)
-  );
+  const needs = (needRows as Pick<VolunteerNeed, "id" | "event_id">[] | null) ?? [];
+  const items = (itemRows as Pick<FoodTentItem, "id" | "event_id">[] | null) ?? [];
+  const eventIdsWithNeeds = new Set(needs.map((n) => n.event_id).filter((id): id is string => !!id));
 
-  return events.map((event) => ({
-    eventId: event.id,
-    eventTitle: event.title,
-    eventDate: new Date(event.starts_at).toLocaleDateString(),
-    hasVolunteerNeeds: eventIdsWithNeeds.has(event.id),
-  }));
+  // A household that's already signed up for a food item OR claimed a
+  // volunteer slot for an event has done what this banner is asking —
+  // stop nagging them about it, even if their crewmates haven't.
+  const [{ data: foodSignupRows }, { data: volunteerSignupRows }] = await Promise.all([
+    items.length > 0
+      ? supabase
+          .from("food_tent_signups")
+          .select("item_id")
+          .in("user_id", householdUserIds)
+          .in(
+            "item_id",
+            items.map((i) => i.id)
+          )
+      : Promise.resolve({ data: [] }),
+    needs.length > 0
+      ? supabase
+          .from("volunteer_signups")
+          .select("need_id")
+          .in("user_id", householdUserIds)
+          .in(
+            "need_id",
+            needs.map((n) => n.id)
+          )
+      : Promise.resolve({ data: [] }),
+  ]);
+  const itemEventById = new Map(items.map((i) => [i.id, i.event_id]));
+  const needEventById = new Map(needs.map((n) => [n.id, n.event_id]));
+  const alreadyActedEventIds = new Set([
+    ...(((foodSignupRows as { item_id: string }[] | null) ?? [])
+      .map((s) => itemEventById.get(s.item_id))
+      .filter((id): id is string => !!id)),
+    ...(((volunteerSignupRows as { need_id: string }[] | null) ?? [])
+      .map((s) => needEventById.get(s.need_id))
+      .filter((id): id is string => !!id)),
+  ]);
+
+  return events
+    .filter((event) => !alreadyActedEventIds.has(event.id))
+    .map((event) => ({
+      eventId: event.id,
+      eventTitle: event.title,
+      eventDate: new Date(event.starts_at).toLocaleDateString(),
+      hasVolunteerNeeds: eventIdsWithNeeds.has(event.id),
+    }));
 }
 
 export default async function Home() {
@@ -370,6 +412,7 @@ export default async function Home() {
   let foodPrepBanners: FoodPrepBanner[] = [];
   let signupCallBanners: SignupCallBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
+  let upcomingRegattaForecast: EventForecast | null = null;
   let unreadCount = 0;
   let unreadScheduleCount = 0;
   let coachChatHref = "/messages";
@@ -453,6 +496,7 @@ export default async function Home() {
       familyLinkRows,
       foodPrepBannerResults,
       signupCallBannerResults,
+      forecastResult,
     ] = await Promise.all([
       loadFoodTentBanners(supabase, householdUserIds),
       loadLineupBanners(supabase, {
@@ -465,9 +509,11 @@ export default async function Home() {
       isCoachOrAdmin ? loadPendingRaceBanners(supabase) : Promise.resolve([]),
       supabase.from("family_links").select("rower_id").in("guardian_id", householdUserIds),
       isFoodTentManager ? loadFoodPrepBanners(supabase) : Promise.resolve([]),
-      loadSignupCallBanners(supabase),
+      loadSignupCallBanners(supabase, householdUserIds),
+      upcomingRegatta ? getOrRefreshEventForecast(supabase, upcomingRegatta) : Promise.resolve(null),
     ]);
     banners = foodBanners;
+    upcomingRegattaForecast = forecastResult;
     lineupBanners = lineupBannerResults;
     pendingRaceBanners = pendingRaceBannerResults;
     foodPrepBanners = foodPrepBannerResults;
@@ -571,6 +617,27 @@ export default async function Home() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {upcomingRegatta && upcomingRegattaForecast?.short_forecast && (
+        <div className="w-full flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
+          {upcomingRegattaForecast.icon_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={upcomingRegattaForecast.icon_url} alt="" className="w-10 h-10 shrink-0" />
+          )}
+          <span>
+            Forecast for <strong>{upcomingRegatta.title}</strong> (
+            {new Date(upcomingRegatta.starts_at).toLocaleDateString()}):{" "}
+            <strong>{upcomingRegattaForecast.short_forecast}</strong>
+            {upcomingRegattaForecast.high_f !== null && <>, high {upcomingRegattaForecast.high_f}°F</>}
+            {upcomingRegattaForecast.low_f !== null && <>, low {upcomingRegattaForecast.low_f}°F</>}
+            {upcomingRegattaForecast.precipitation_chance !== null &&
+              upcomingRegattaForecast.precipitation_chance > 0 && (
+                <>, {upcomingRegattaForecast.precipitation_chance}% chance of rain</>
+              )}
+            {upcomingRegattaForecast.wind && <>, wind {upcomingRegattaForecast.wind}</>}
+          </span>
         </div>
       )}
 
