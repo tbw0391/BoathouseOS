@@ -117,7 +117,7 @@ export function RosterGrid({
             <Link
               key={p.id}
               href={`/roster/${p.id}`}
-              className={`flex items-center gap-2 rounded-full border-2 border-[var(--color-primary)] pl-1 pr-3 py-1 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors ${
+              className={`flex items-center gap-2 rounded-full border-2 border-[var(--color-primary)] pl-1 pr-3 py-1.5 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors ${
                 p.disabled_at ? "opacity-50" : ""
               }`}
             >
@@ -126,10 +126,10 @@ export function RosterGrid({
                 <img
                   src={p.photo_url}
                   alt=""
-                  className="w-6 h-6 rounded-full object-cover"
+                  className="w-6 h-6 shrink-0 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full border flex items-center justify-center text-[8px] text-gray-400">
+                <div className="w-6 h-6 shrink-0 rounded-full border flex items-center justify-center text-[8px] text-gray-400">
                   —
                 </div>
               )}
