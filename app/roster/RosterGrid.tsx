@@ -112,12 +112,12 @@ export function RosterGrid({
       {filtered.length === 0 ? (
         <p className="text-sm text-gray-500 mt-4">No matching members.</p>
       ) : (
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="mt-4 grid grid-cols-3 gap-2">
           {filtered.map((p) => (
             <Link
               key={p.id}
               href={`/roster/${p.id}`}
-              className={`flex items-center gap-3 rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors ${
+              className={`flex items-center gap-2 rounded-lg border-2 border-[var(--color-primary)] px-3 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors min-w-0 ${
                 p.disabled_at ? "opacity-50" : ""
               }`}
             >
@@ -133,8 +133,8 @@ export function RosterGrid({
                   —
                 </div>
               )}
-              {p.display_name}
-              {p.disabled_at && <span className="text-[10px] text-red-600">(Removed)</span>}
+              <span className="truncate">{p.display_name}</span>
+              {p.disabled_at && <span className="text-[10px] text-red-600 shrink-0">(Removed)</span>}
             </Link>
           ))}
         </div>
