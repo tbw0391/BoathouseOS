@@ -161,6 +161,9 @@
       (PWA) being built first, plus a scheduled job to fire at T-20min per
       race. Also: the banner should stop showing once the race has passed,
       not just once it's not "upcoming" by date.
+- [ ] Role-changed banner: when an admin changes someone's role (e.g. rower
+      -> admin), that person sees a one-time banner on their own home page
+      telling them their role changed.
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
