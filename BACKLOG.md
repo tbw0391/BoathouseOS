@@ -20,6 +20,14 @@
       something people pick for themselves)
 - [ ] Role-specific profile view: parents, coaches, board members, and rowers
       each see different buttons/actions on their profile (buttons TBD per role)
+- [x] Permanently delete a member (admin-only, only offered once already
+      soft-removed): actually deletes the profile row, their own messages,
+      photos they uploaded, and their login (if any) from the database.
+      Things they created that other people's data depends on (schedule
+      events, lineups, boats, polls, race templates, food tent/volunteer
+      items) are kept for everyone else, just with the author detached —
+      only their own singular content is truly deleted. Needs migration
+      0040_profile_hard_delete_fks.sql applied before use.
 
 ## Schedule
 - [x] List upcoming/past events, split into Regattas and Practice
