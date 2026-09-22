@@ -51,6 +51,12 @@
       (PWA) being built first; also need to decide the trigger: someone at
       the course manually marks "racing now" vs. pulling from a live regatta
       timing feed, if the regatta provides one
+- [ ] Scrape a regatta's published race schedule (heat sheet) directly from
+      its results/registration site instead of the coach manually
+      building/importing the CSV that `importRaces` uses today, then let a
+      coach pick which of our own groups (category) races each entry —
+      source site(s) to scrape TBD (e.g. RegattaCentral), and scraping is
+      inherently fragile to that site's format changing.
 
 ## Lineups
 - [x] Create a lineup/boat for an event (boat name, boat class from a

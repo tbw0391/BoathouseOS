@@ -73,7 +73,11 @@ export default async function Home() {
   const featuredItems = parseStoreItems(settingsByKey.get("team_store_featured_items") ?? null);
   const navVisibilityByHref = resolveNavVisibility(settingsByKey);
 
-  let banners: { title: string; quantity: number; eventTitle: string; eventDate: string }[] = [];
+  let banners: {
+    eventTitle: string;
+    eventDate: string;
+    items: { title: string; quantity: number }[];
+  }[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
   let unreadCount = 0;
   let unreadScheduleCount = 0;
@@ -164,19 +168,29 @@ export default async function Home() {
       const events = (eventsData as ScheduleEvent[] | null) ?? [];
       const eventById = new Map(events.map((e) => [e.id, e]));
 
-      banners = signups
-        .map((s) => {
-          const item = items.find((i) => i.id === s.item_id);
-          const event = item ? eventById.get(item.event_id) : undefined;
-          if (!item || !event) return null;
-          return {
-            title: item.title,
-            quantity: s.quantity,
+      const bannersByEvent = new Map<
+        string,
+        { eventTitle: string; eventDate: string; items: { title: string; quantity: number }[] }
+      >();
+
+      for (const s of signups) {
+        const item = items.find((i) => i.id === s.item_id);
+        const event = item ? eventById.get(item.event_id) : undefined;
+        if (!item || !event) continue;
+
+        const existing = bannersByEvent.get(event.id);
+        if (existing) {
+          existing.items.push({ title: item.title, quantity: s.quantity });
+        } else {
+          bannersByEvent.set(event.id, {
             eventTitle: event.title,
             eventDate: new Date(event.starts_at).toLocaleDateString(),
-          };
-        })
-        .filter((b): b is NonNullable<typeof b> => b !== null);
+            items: [{ title: item.title, quantity: s.quantity }],
+          });
+        }
+      }
+
+      banners = [...bannersByEvent.values()];
     }
   }
 
@@ -394,13 +408,21 @@ export default async function Home() {
               key={i}
               className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm"
             >
-              🍪 You&apos;re bringing <strong>{b.quantity}x {b.title}</strong> to{" "}
-              {b.eventTitle} ({b.eventDate})
+              🍪 You&apos;re bringing{" "}
+              <strong>
+                {b.items.map((item, j) => (
+                  <span key={j}>
+                    {j > 0 && ", "}
+                    {item.quantity}x {item.title}
+                  </span>
+                ))}
+              </strong>{" "}
+              to {b.eventTitle} ({b.eventDate})
             </div>
           ))}
           {isParent && (
             <div className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
-              💧 Please also bring <strong>1 gallon of water</strong> (just one per family).
+              💧 Please also bring <strong>2 gallons of water</strong> (2 gal per family).
             </div>
           )}
         </div>
