@@ -59,9 +59,10 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 type FoodTentBanner = {
+  eventId: string;
   eventTitle: string;
   eventDate: string;
-  items: { title: string; quantity: number }[];
+  items: { emoji: string; label: string }[];
 };
 
 type LineupBanner = {
@@ -107,12 +108,13 @@ async function loadFoodTentBanners(
 
     const existing = bannersByEvent.get(event.id);
     if (existing) {
-      existing.items.push({ title: item.title, quantity: s.quantity });
+      existing.items.push({ emoji: "🍪", label: `${s.quantity}x ${item.title}` });
     } else {
       bannersByEvent.set(event.id, {
+        eventId: event.id,
         eventTitle: event.title,
         eventDate: new Date(event.starts_at).toLocaleDateString(),
-        items: [{ title: item.title, quantity: s.quantity }],
+        items: [{ emoji: "🍪", label: `${s.quantity}x ${item.title}` }],
       });
     }
   }
@@ -330,6 +332,25 @@ export default async function Home() {
       }),
       isCoachOrAdmin ? loadPendingRaceBanners(supabase) : Promise.resolve([]),
     ]);
+
+    // Every family is asked to bring 2 gal of water per regatta, regardless
+    // of what else they signed up for — fold it in as its own line on each
+    // food tent banner, and give parents a water-only banner for an
+    // upcoming regatta even if they haven't signed up for any items yet.
+    if (isParent) {
+      banners = banners.map((b) => ({
+        ...b,
+        items: [...b.items, { emoji: "💧", label: "2 gal of water" }],
+      }));
+      if (upcomingRegatta && !banners.some((b) => b.eventId === upcomingRegatta!.id)) {
+        banners.push({
+          eventId: upcomingRegatta.id,
+          eventTitle: upcomingRegatta.title,
+          eventDate: new Date(upcomingRegatta.starts_at).toLocaleDateString(),
+          items: [{ emoji: "💧", label: "2 gal of water" }],
+        });
+      }
+    }
   }
 
   return (
@@ -420,30 +441,25 @@ export default async function Home() {
         </div>
       )}
 
-      {(banners.length > 0 || (isParent && upcomingRegatta)) && (
+      {banners.length > 0 && (
         <div className="w-full flex flex-col gap-2">
           {banners.map((b, i) => (
             <div
               key={i}
               className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm"
             >
-              🍪 You&apos;re bringing{" "}
-              <strong>
+              <p>
+                You&apos;re bringing to <strong>{b.eventTitle}</strong> ({b.eventDate}):
+              </p>
+              <ul className="mt-1 flex flex-col gap-0.5">
                 {b.items.map((item, j) => (
-                  <span key={j}>
-                    {j > 0 && ", "}
-                    {item.quantity}x {item.title}
-                  </span>
+                  <li key={j}>
+                    {item.emoji} {item.label}
+                  </li>
                 ))}
-              </strong>{" "}
-              to {b.eventTitle} ({b.eventDate})
+              </ul>
             </div>
           ))}
-          {isParent && (banners.length > 0 || upcomingRegatta) && (
-            <div className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
-              💧 Please also bring <strong>2 gallons of water</strong> (2 gal per family).
-            </div>
-          )}
         </div>
       )}
 
