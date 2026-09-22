@@ -124,6 +124,12 @@
 - [x] Admin-editable link (club_settings.team_store_url)
 - [x] Store page that just links out
 
+## Apparel
+- [ ] Apparel Chair account: a role/flag (like the existing Tent Leader flag)
+      that admin assigns to a specific person
+- [ ] Apparel button on the home page, visible only to admins and whoever's
+      assigned Apparel Chair (content/purpose of the page TBD)
+
 ## Messaging
 - [x] Group chat list, with a "New message" flow to start a chat/DM with any
       combination of people on the roster

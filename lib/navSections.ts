@@ -3,6 +3,37 @@ export interface NavSectionDef {
   label: string;
 }
 
+// Per-href home-screen visibility, set from /admin: everyone (default),
+// admins only, or off for everyone.
+export type NavVisibility = "everyone" | "admins" | "off";
+export const NAV_VISIBILITY_OPTIONS: NavVisibility[] = ["everyone", "admins", "off"];
+
+// Reads the club_settings "nav_visibility" JSON blob, falling back to the
+// older binary "nav_disabled_hrefs" list (pre-3-way-toggle) so existing
+// off-for-everyone settings survive until re-saved from the new /admin form.
+export function resolveNavVisibility(
+  settingsByKey: Map<string, string | null>
+): Record<string, NavVisibility> {
+  let visibilityByHref: Record<string, NavVisibility> = {};
+  try {
+    visibilityByHref = JSON.parse(settingsByKey.get("nav_visibility") ?? "{}");
+  } catch {
+    visibilityByHref = {};
+  }
+
+  if (Object.keys(visibilityByHref).length === 0) {
+    let disabledHrefs: string[] = [];
+    try {
+      disabledHrefs = JSON.parse(settingsByKey.get("nav_disabled_hrefs") ?? "[]");
+    } catch {
+      disabledHrefs = [];
+    }
+    for (const href of disabledHrefs) visibilityByHref[href] = "off";
+  }
+
+  return visibilityByHref;
+}
+
 // Every home-page tile an admin can hide via /admin. "/todo" (the internal
 // backlog view) is intentionally excluded — it's a dev tool, not a
 // team-facing feature.

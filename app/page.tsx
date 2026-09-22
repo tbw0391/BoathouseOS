@@ -35,7 +35,7 @@ import type {
 import { parseStoreItems } from "@/lib/storeItems";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getUnreadScheduleCount } from "@/lib/schedule";
-import { NAV_SECTIONS } from "@/lib/navSections";
+import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
 
 const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/roster": Users,
@@ -65,19 +65,13 @@ export default async function Home() {
   const { data: settingsData } = await supabase
     .from("club_settings")
     .select("key, value")
-    .in("key", ["team_store_url", "team_store_featured_items", "nav_disabled_hrefs"]);
+    .in("key", ["team_store_url", "team_store_featured_items", "nav_visibility", "nav_disabled_hrefs"]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
   );
   const storeUrl = settingsByKey.get("team_store_url") ?? null;
   const featuredItems = parseStoreItems(settingsByKey.get("team_store_featured_items") ?? null);
-  let disabledHrefs: string[] = [];
-  try {
-    disabledHrefs = JSON.parse(settingsByKey.get("nav_disabled_hrefs") ?? "[]");
-  } catch {
-    disabledHrefs = [];
-  }
-  const disabledHrefSet = new Set(disabledHrefs);
+  const navVisibilityByHref = resolveNavVisibility(settingsByKey);
 
   let banners: { title: string; quantity: number; eventTitle: string; eventDate: string }[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
@@ -414,15 +408,19 @@ export default async function Home() {
 
       <div className="w-full max-w-md grid grid-cols-3 gap-4">
         {NAV_SECTIONS.filter((s) => s.href !== "/coach/tracking" || isCoachOrAdmin)
-          .filter((s) => isAdmin || !disabledHrefSet.has(s.href))
+          .filter((s) => {
+            const visibility = navVisibilityByHref[s.href] ?? "everyone";
+            if (isAdmin) return true; // admins always see every tile, off/admins-only ones greyed or noted below
+            return visibility === "everyone";
+          })
           .concat(isAdmin ? [{ href: "/todo", label: "To-do List" }, { href: "/admin", label: "Admin Settings" }] : [])
           .map((s) => {
             const Icon = ICONS_BY_HREF[s.href];
             const badgeCount =
               s.href === "/messages" ? unreadCount : s.href === "/schedule" ? unreadScheduleCount : 0;
-            const isDisabled = disabledHrefSet.has(s.href);
+            const visibility = navVisibilityByHref[s.href] ?? "everyone";
 
-            if (isDisabled) {
+            if (visibility === "off") {
               return (
                 <div
                   key={s.href}
@@ -439,6 +437,7 @@ export default async function Home() {
               <Link
                 key={s.href}
                 href={s.href}
+                title={visibility === "admins" ? "Visible to admins only" : undefined}
                 className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[#022e5d] px-4 py-6 font-medium hover:bg-[#404040] hover:text-white transition-colors"
               >
                 <Icon className="w-6 h-6" />
