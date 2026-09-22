@@ -401,7 +401,7 @@ export default async function Home() {
         </div>
       )}
 
-      {banners.length > 0 && (
+      {(banners.length > 0 || (isParent && upcomingRegatta)) && (
         <div className="w-full max-w-md flex flex-col gap-2">
           {banners.map((b, i) => (
             <div
@@ -420,7 +420,7 @@ export default async function Home() {
               to {b.eventTitle} ({b.eventDate})
             </div>
           ))}
-          {isParent && (
+          {isParent && upcomingRegatta && (
             <div className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm">
               💧 Please also bring <strong>2 gallons of water</strong> (2 gal per family).
             </div>
