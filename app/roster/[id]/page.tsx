@@ -249,23 +249,27 @@ export default async function BioPage({
         <dt className="text-gray-500">Birthday</dt>
         <dd>{profile.birthday ?? "—"}</dd>
 
-        <dt className="text-gray-500">High school</dt>
-        <dd>{profile.high_school ?? "—"}</dd>
+        {profile.role !== "parent" && (
+          <>
+            <dt className="text-gray-500">High school</dt>
+            <dd>{profile.high_school ?? "—"}</dd>
 
-        <dt className="text-gray-500">Grad year</dt>
-        <dd>{profile.grad_year ?? "—"}</dd>
+            <dt className="text-gray-500">Grad year</dt>
+            <dd>{profile.grad_year ?? "—"}</dd>
 
-        <dt className="text-gray-500">Boat side</dt>
-        <dd className="capitalize">{profile.boat_side ?? "—"}</dd>
+            <dt className="text-gray-500">Boat side</dt>
+            <dd className="capitalize">{profile.boat_side ?? "—"}</dd>
 
-        <dt className="text-gray-500">2K time</dt>
-        <dd>{profile.erg_2k_time ?? "—"}</dd>
+            <dt className="text-gray-500">2K time</dt>
+            <dd>{profile.erg_2k_time ?? "—"}</dd>
 
-        <dt className="text-gray-500">5K time</dt>
-        <dd>{profile.erg_5k_time ?? "—"}</dd>
+            <dt className="text-gray-500">5K time</dt>
+            <dd>{profile.erg_5k_time ?? "—"}</dd>
 
-        <dt className="text-gray-500">US Rowing #</dt>
-        <dd>{profile.us_rowing_number ?? "—"}</dd>
+            <dt className="text-gray-500">US Rowing #</dt>
+            <dd>{profile.us_rowing_number ?? "—"}</dd>
+          </>
+        )}
 
         <dt className="text-gray-500">Walk up song</dt>
         <dd>{profile.walk_up_song ?? "—"}</dd>

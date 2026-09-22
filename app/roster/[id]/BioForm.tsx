@@ -159,20 +159,24 @@ export function BioForm({
         className="border rounded px-3 py-2 text-sm"
       />
 
-      <label className="text-sm font-medium">High school</label>
-      <input
-        name="high_school"
-        defaultValue={profile.high_school ?? ""}
-        className="border rounded px-3 py-2 text-sm"
-      />
+      {profile.role !== "parent" && (
+        <>
+          <label className="text-sm font-medium">High school</label>
+          <input
+            name="high_school"
+            defaultValue={profile.high_school ?? ""}
+            className="border rounded px-3 py-2 text-sm"
+          />
 
-      <label className="text-sm font-medium">Graduation year</label>
-      <input
-        name="grad_year"
-        type="number"
-        defaultValue={profile.grad_year ?? ""}
-        className="border rounded px-3 py-2 text-sm"
-      />
+          <label className="text-sm font-medium">Graduation year</label>
+          <input
+            name="grad_year"
+            type="number"
+            defaultValue={profile.grad_year ?? ""}
+            className="border rounded px-3 py-2 text-sm"
+          />
+        </>
+      )}
 
       <label className="text-sm font-medium">Walk up song</label>
       <input
@@ -190,17 +194,21 @@ export function BioForm({
         className="border rounded px-3 py-2 text-sm"
       />
 
-      <label className="text-sm font-medium">Boat side preference</label>
-      <select
-        name="boat_side"
-        defaultValue={profile.boat_side ?? ""}
-        className="border rounded px-3 py-2 text-sm"
-      >
-        <option value="">No preference</option>
-        <option value="port">Port</option>
-        <option value="starboard">Starboard</option>
-        <option value="either">Either</option>
-      </select>
+      {profile.role !== "parent" && (
+        <>
+          <label className="text-sm font-medium">Boat side preference</label>
+          <select
+            name="boat_side"
+            defaultValue={profile.boat_side ?? ""}
+            className="border rounded px-3 py-2 text-sm"
+          >
+            <option value="">No preference</option>
+            <option value="port">Port</option>
+            <option value="starboard">Starboard</option>
+            <option value="either">Either</option>
+          </select>
+        </>
+      )}
 
       {profile.role === "parent" && (
         <>
@@ -273,28 +281,32 @@ export function BioForm({
         ))}
       </div>
 
-      <label className="text-sm font-medium">2K erg time</label>
-      <input
-        name="erg_2k_time"
-        placeholder="e.g. 6:45.2"
-        defaultValue={profile.erg_2k_time ?? ""}
-        className="border rounded px-3 py-2 text-sm"
-      />
+      {profile.role !== "parent" && (
+        <>
+          <label className="text-sm font-medium">2K erg time</label>
+          <input
+            name="erg_2k_time"
+            placeholder="e.g. 6:45.2"
+            defaultValue={profile.erg_2k_time ?? ""}
+            className="border rounded px-3 py-2 text-sm"
+          />
 
-      <label className="text-sm font-medium">5K erg time</label>
-      <input
-        name="erg_5k_time"
-        placeholder="e.g. 18:20.5"
-        defaultValue={profile.erg_5k_time ?? ""}
-        className="border rounded px-3 py-2 text-sm"
-      />
+          <label className="text-sm font-medium">5K erg time</label>
+          <input
+            name="erg_5k_time"
+            placeholder="e.g. 18:20.5"
+            defaultValue={profile.erg_5k_time ?? ""}
+            className="border rounded px-3 py-2 text-sm"
+          />
 
-      <label className="text-sm font-medium">US Rowing number</label>
-      <input
-        name="us_rowing_number"
-        defaultValue={profile.us_rowing_number ?? ""}
-        className="border rounded px-3 py-2 text-sm"
-      />
+          <label className="text-sm font-medium">US Rowing number</label>
+          <input
+            name="us_rowing_number"
+            defaultValue={profile.us_rowing_number ?? ""}
+            className="border rounded px-3 py-2 text-sm"
+          />
+        </>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
