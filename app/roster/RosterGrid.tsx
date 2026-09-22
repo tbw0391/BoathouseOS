@@ -112,12 +112,12 @@ export function RosterGrid({
       {filtered.length === 0 ? (
         <p className="text-sm text-gray-500 mt-4">No matching members.</p>
       ) : (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-col gap-2">
           {filtered.map((p) => (
             <Link
               key={p.id}
               href={`/roster/${p.id}`}
-              className={`flex items-center gap-2 rounded-full border-2 border-[var(--color-primary)] pl-1 pr-3 py-1.5 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors ${
+              className={`flex items-center gap-3 rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors ${
                 p.disabled_at ? "opacity-50" : ""
               }`}
             >
@@ -126,10 +126,10 @@ export function RosterGrid({
                 <img
                   src={p.photo_url}
                   alt=""
-                  className="w-6 h-6 shrink-0 rounded-full object-cover"
+                  className="w-8 h-8 shrink-0 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-6 h-6 shrink-0 rounded-full border flex items-center justify-center text-[8px] text-gray-400">
+                <div className="w-8 h-8 shrink-0 rounded-full border flex items-center justify-center text-[10px] text-gray-400">
                   —
                 </div>
               )}
