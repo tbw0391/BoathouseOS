@@ -1,10 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
-import type { FoodTentItem, FoodTentSignup, Profile, ScheduleEvent } from "@/lib/database.types";
+import type {
+  FoodTentItem,
+  FoodTentSignup,
+  FoodTentWishlistItem,
+  FoodTentWishlistSignup,
+  Profile,
+  ScheduleEvent,
+} from "@/lib/database.types";
 import { EventForm } from "./EventForm";
 import { ItemForm } from "./ItemForm";
 import { ItemRow } from "./ItemRow";
 import { SignupControl } from "./SignupControl";
 import { ImportItemsForm } from "./ImportItemsForm";
+import { WishlistItemForm } from "./WishlistItemForm";
+import { WishlistItemRow } from "./WishlistItemRow";
+import { WishlistSignupControl } from "./WishlistSignupControl";
 
 export default async function FoodTentPage() {
   const supabase = await createClient();
@@ -38,6 +48,17 @@ export default async function FoodTentPage() {
 
   const { data: signupsData } = await supabase.from("food_tent_signups").select("*");
   const signups = (signupsData as FoodTentSignup[] | null) ?? [];
+
+  const { data: wishlistItemsData } = await supabase
+    .from("food_tent_wishlist_items")
+    .select("*")
+    .order("created_at", { ascending: true });
+  const wishlistItems = (wishlistItemsData as FoodTentWishlistItem[] | null) ?? [];
+
+  const { data: wishlistSignupsData } = await supabase
+    .from("food_tent_wishlist_signups")
+    .select("*");
+  const wishlistSignups = (wishlistSignupsData as FoodTentWishlistSignup[] | null) ?? [];
 
   const { data: profilesData } = await supabase.from("profiles").select("id, display_name");
   const profileNames = new Map(
@@ -119,6 +140,56 @@ export default async function FoodTentPage() {
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-lg font-semibold">Wish List</h2>
+        <p className="text-sm text-gray-500">
+          Equipment and supplies the food tent could use, not tied to a specific regatta.
+        </p>
+
+        <div className="mt-3 flex flex-col gap-3 max-w-lg">
+          {wishlistItems.length === 0 && (
+            <p className="text-sm text-gray-500">
+              Nothing on the wish list yet{isManager ? " — add one below." : "."}
+            </p>
+          )}
+
+          {wishlistItems.map((item) => {
+            const itemSignups = wishlistSignups.filter((s) => s.item_id === item.id);
+            const totalSignedUp = itemSignups.reduce((sum, s) => sum + s.quantity, 0);
+            const mySignup = itemSignups.find((s) => s.user_id === user?.id);
+            const fullyClaimed = totalSignedUp >= item.quantity_needed;
+
+            return (
+              <div key={item.id} className="border rounded-lg p-3">
+                <WishlistItemRow
+                  item={item}
+                  totalSignedUp={totalSignedUp}
+                  signupCount={itemSignups.length}
+                  showFullyClaimed={fullyClaimed && !mySignup}
+                  isManager={isManager}
+                />
+
+                {itemSignups.length > 0 && (
+                  <ul className="text-sm text-gray-500 mt-2 list-disc list-inside">
+                    {itemSignups.map((s) => (
+                      <li key={s.user_id}>
+                        {profileNames.get(s.user_id) ?? "Someone"} — {s.quantity}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="mt-2">
+                  <WishlistSignupControl itemId={item.id} myQuantity={mySignup?.quantity ?? null} />
+                </div>
+              </div>
+            );
+          })}
+
+          {isManager && <WishlistItemForm />}
+        </div>
       </div>
     </div>
   );
