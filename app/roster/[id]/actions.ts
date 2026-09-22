@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { BoatSide, Role, Team } from "@/lib/database.types";
 
 const VALID_ROLES: Role[] = ["rower", "coxswain", "coach", "parent", "admin"];
@@ -220,6 +221,58 @@ export async function setRemoved(profileId: string, removed: boolean) {
   if (error) throw new Error(error.message);
 
   revalidatePath(`/roster/${profileId}`);
+  revalidatePath("/roster");
+}
+
+// Irreversible: only ever offered once a profile is already soft-removed
+// (see setRemoved above). Deletes the profile row itself — the FK rules
+// added in 0040_profile_hard_delete_fks.sql ripple that into deleting their
+// own messages/photos/tags and detaching (not deleting) shared records like
+// events/lineups/boats/polls they created — plus their login, if they have
+// one.
+export async function permanentlyDeleteProfile(profileId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  if (user.id === profileId) {
+    throw new Error("You can't delete yourself.");
+  }
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const callerRole = (callerProfile as { role: string } | null)?.role;
+  if (callerRole !== "admin") {
+    throw new Error("Only admins can permanently delete a member.");
+  }
+
+  const { data: targetProfile } = await supabase
+    .from("profiles")
+    .select("disabled_at")
+    .eq("id", profileId)
+    .single();
+
+  if (!(targetProfile as { disabled_at: string | null } | null)?.disabled_at) {
+    throw new Error("Remove this person from the roster before permanently deleting them.");
+  }
+
+  const admin = createAdminClient();
+
+  const { error } = await admin.from("profiles").delete().eq("id", profileId);
+  if (error) throw new Error(error.message);
+
+  // Roster-only members (added without an invite) have no matching
+  // auth.users row, so "not found" here just means there was no login to
+  // remove, not a failure.
+  const { error: authError } = await admin.auth.admin.deleteUser(profileId);
+  if (authError && authError.status !== 404) throw new Error(authError.message);
+
   revalidatePath("/roster");
 }
 

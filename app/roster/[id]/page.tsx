@@ -5,7 +5,8 @@ import type { FamilyLink, Photo, PhotoTag, Profile, ProfileTeam } from "@/lib/da
 import { BioForm } from "./BioForm";
 import { RoleToggle } from "./RoleToggle";
 import { RemoveMemberButton } from "./RemoveMemberButton";
-import { setBoardMember, setTentLeader, setRemoved } from "./actions";
+import { PermanentlyDeleteButton } from "./PermanentlyDeleteButton";
+import { setBoardMember, setTentLeader, setRemoved, permanentlyDeleteProfile } from "./actions";
 import { TEAM_LABELS } from "@/lib/teams";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -220,6 +221,15 @@ export default async function BioPage({
           This person was removed from the roster on{" "}
           {new Date(profile.disabled_at).toLocaleDateString()}.
         </p>
+      )}
+
+      {isCallerAdmin && profile.disabled_at && (
+        <div className="mt-2">
+          <PermanentlyDeleteButton
+            name={profile.display_name}
+            onDelete={permanentlyDeleteProfile.bind(null, profile.id)}
+          />
+        </div>
       )}
 
       <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm max-w-md">
