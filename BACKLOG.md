@@ -222,6 +222,9 @@
       roster size (matches how similar tools like TeamSnap/Spond price, and
       is easy for a volunteer club treasurer to approve) over per-athlete or
       freemium pricing.
+- [ ] Todd wants to review the Global admin vs. Club admin ("team admin")
+      role split in more depth before Phase 1 lands — today there's only a
+      single `admin` role with no club scoping at all.
 
 ## Maintenance requests
 - [x] Boat Maintenance: anyone can report an issue with a specific fleet boat
