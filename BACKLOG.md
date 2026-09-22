@@ -28,6 +28,10 @@
       items) are kept for everyone else, just with the author detached —
       only their own singular content is truly deleted. Needs migration
       0040_profile_hard_delete_fks.sql applied before use.
+- [x] Roster search/sort/filter: search by name (matches first, last, or
+      display name), sort by first or last name, and filter down to one
+      group (Men's/Women's/Development/Masters/Alumni/Coaches/Parent) —
+      all client-side on the roster table.
 
 ## Schedule
 - [x] List upcoming/past events, split into Regattas and Practice
