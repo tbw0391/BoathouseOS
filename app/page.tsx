@@ -76,6 +76,61 @@ type LineupBanner = {
 
 type PendingRaceBanner = { eventTitle: string; eventDate: string; count: number };
 
+// Food tent items are free-text titles a coach/tent-leader types in, not a
+// fixed category, so the emoji is guessed from keywords in the title —
+// first match wins, falls back to a generic plate for anything unrecognized.
+const FOOD_EMOJI_RULES: { keywords: string[]; emoji: string }[] = [
+  { keywords: ["water"], emoji: "💧" },
+  { keywords: ["gatorade", "sports drink", "powerade"], emoji: "🧃" },
+  { keywords: ["juice"], emoji: "🧃" },
+  { keywords: ["soda", "pop", "coke", "sprite"], emoji: "🥤" },
+  { keywords: ["coffee"], emoji: "☕" },
+  { keywords: ["donut", "doughnut"], emoji: "🍩" },
+  { keywords: ["bagel"], emoji: "🥯" },
+  { keywords: ["muffin", "cupcake"], emoji: "🧁" },
+  { keywords: ["cookie"], emoji: "🍪" },
+  { keywords: ["candy"], emoji: "🍬" },
+  { keywords: ["popcorn"], emoji: "🍿" },
+  { keywords: ["chip", "pretzel"], emoji: "🥨" },
+  { keywords: ["ice cream", "popsicle"], emoji: "🍦" },
+  { keywords: ["watermelon"], emoji: "🍉" },
+  { keywords: ["orange", "clementine"], emoji: "🍊" },
+  { keywords: ["banana"], emoji: "🍌" },
+  { keywords: ["grape"], emoji: "🍇" },
+  { keywords: ["apple"], emoji: "🍎" },
+  { keywords: ["fruit"], emoji: "🍓" },
+  { keywords: ["carrot", "veggie", "vegetable", "celery"], emoji: "🥕" },
+  { keywords: ["cheese"], emoji: "🧀" },
+  { keywords: ["pizza"], emoji: "🍕" },
+  { keywords: ["hot dog"], emoji: "🌭" },
+  { keywords: ["burger"], emoji: "🍔" },
+  { keywords: ["taco"], emoji: "🌮" },
+  { keywords: ["pasta", "noodle"], emoji: "🍝" },
+  { keywords: ["sandwich", "sub", "wrap"], emoji: "🥪" },
+  { keywords: ["bread", "bun", "roll"], emoji: "🍞" },
+  { keywords: ["egg"], emoji: "🥚" },
+  { keywords: ["napkin", "plate", "cup", "utensil", "fork", "spoon", "supplies"], emoji: "🧻" },
+  { keywords: ["ice"], emoji: "🧊" },
+];
+
+function foodItemEmoji(title: string): string {
+  const lower = title.toLowerCase();
+  for (const rule of FOOD_EMOJI_RULES) {
+    if (rule.keywords.some((k) => lower.includes(k))) return rule.emoji;
+  }
+  return "🍽️";
+}
+
+// Midnight of today, not the exact current instant — a "today's not over"
+// event whose start time has already passed (e.g. a regatta in progress
+// right now) should still count as relevant, not drop off these banners
+// the moment its listed start time ticks by.
+function startOfToday(): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
 async function loadFoodTentBanners(
   supabase: SupabaseServerClient,
   householdUserIds: string[]
@@ -96,7 +151,7 @@ async function loadFoodTentBanners(
     .from("schedule_events")
     .select("*")
     .in("id", eventIds)
-    .gte("starts_at", new Date().toISOString());
+    .gte("starts_at", startOfToday());
   const events = (eventsData as ScheduleEvent[] | null) ?? [];
   const eventById = new Map(events.map((e) => [e.id, e]));
 
@@ -108,13 +163,13 @@ async function loadFoodTentBanners(
 
     const existing = bannersByEvent.get(event.id);
     if (existing) {
-      existing.items.push({ emoji: "🍪", label: `${s.quantity}x ${item.title}` });
+      existing.items.push({ emoji: foodItemEmoji(item.title), label: `${s.quantity}x ${item.title}` });
     } else {
       bannersByEvent.set(event.id, {
         eventId: event.id,
         eventTitle: event.title,
         eventDate: new Date(event.starts_at).toLocaleDateString(),
-        items: [{ emoji: "🍪", label: `${s.quantity}x ${item.title}` }],
+        items: [{ emoji: foodItemEmoji(item.title), label: `${s.quantity}x ${item.title}` }],
       });
     }
   }
@@ -168,7 +223,7 @@ async function loadLineupBanners(
       .from("schedule_events")
       .select("*")
       .in("id", eventIds)
-      .gte("starts_at", new Date().toISOString()),
+      .gte("starts_at", startOfToday()),
     isParent || isCoachOrAdmin
       ? supabase.from("profiles").select("id, display_name").in("id", lineupRowerIds)
       : Promise.resolve({ data: null }),
@@ -213,7 +268,7 @@ async function loadPendingRaceBanners(supabase: SupabaseServerClient): Promise<P
     .from("schedule_events")
     .select("*")
     .in("id", eventIds)
-    .gte("starts_at", new Date().toISOString());
+    .gte("starts_at", startOfToday());
   const eventsData = (eventRows as ScheduleEvent[] | null) ?? [];
 
   return eventsData
@@ -281,7 +336,7 @@ export default async function Home() {
         .from("schedule_events")
         .select("*")
         .eq("event_type", "regatta")
-        .gte("starts_at", now.toISOString())
+        .gte("starts_at", startOfToday())
         .lte("starts_at", weekOut.toISOString())
         .order("starts_at", { ascending: true })
         .limit(1),
@@ -320,8 +375,11 @@ export default async function Home() {
   }
 
   if (user) {
-    // These three are independent of each other, so load them concurrently.
-    [banners, lineupBanners, pendingRaceBanners] = await Promise.all([
+    // These four are independent of each other, so load them concurrently.
+    // "Family" for the water reminder below means guardian-of-a-rower, not
+    // the literal profile.role value — a coach/admin who's also linked to a
+    // rower as a guardian counts too, same as the lineup banner already does.
+    const [foodBanners, lineupBannerResults, pendingRaceBannerResults, familyLinkRows] = await Promise.all([
       loadFoodTentBanners(supabase, householdUserIds),
       loadLineupBanners(supabase, {
         userId: user.id,
@@ -331,13 +389,18 @@ export default async function Home() {
         householdUserIds,
       }),
       isCoachOrAdmin ? loadPendingRaceBanners(supabase) : Promise.resolve([]),
+      supabase.from("family_links").select("rower_id").in("guardian_id", householdUserIds),
     ]);
+    banners = foodBanners;
+    lineupBanners = lineupBannerResults;
+    pendingRaceBanners = pendingRaceBannerResults;
+    const isGuardian = (familyLinkRows.data ?? []).length > 0;
 
     // Every family is asked to bring 2 gal of water per regatta, regardless
     // of what else they signed up for — fold it in as its own line on each
     // food tent banner, and give parents a water-only banner for an
     // upcoming regatta even if they haven't signed up for any items yet.
-    if (isParent) {
+    if (isParent || isGuardian) {
       banners = banners.map((b) => ({
         ...b,
         items: [...b.items, { emoji: "💧", label: "2 gal of water" }],
