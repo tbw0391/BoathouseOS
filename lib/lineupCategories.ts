@@ -43,6 +43,26 @@ for (const gender of GENDERS) {
   FLEET_CATEGORY_GROUPS.push({ label: gender.label, options: [...groupOptions] });
 }
 
+// Masters gets a shallower depth chart than Men's/Women's: just 1st-3rd, and
+// only for 8+ and 4+ (the two boat classes masters actually fields). The
+// flat "masters" category is kept below alongside "development" for
+// backward compatibility with existing data written before this split.
+const MASTERS_DEPTHS = [1, 2, 3];
+const MASTERS_BOAT_CLASSES = DEPTH_BOAT_CLASSES.filter((bc) => bc.slug === "8plus" || bc.slug === "4plus");
+
+const mastersGroupOptions: string[] = [];
+for (const boatClass of MASTERS_BOAT_CLASSES) {
+  for (const depth of MASTERS_DEPTHS) {
+    const key = `masters_${depth}_${boatClass.slug}`;
+    LINEUP_CATEGORIES[key] = `Masters ${depth}V${boatClass.label}`;
+    LINEUP_CATEGORY_TEAM[key] = "masters";
+    CATEGORY_BOAT_CLASS[key] = boatClass.boatClass;
+    mastersGroupOptions.push(key);
+  }
+}
+LINEUP_CATEGORY_GROUPS.push({ label: "Masters", options: mastersGroupOptions });
+FLEET_CATEGORY_GROUPS.push({ label: "Masters", options: [...mastersGroupOptions] });
+
 LINEUP_CATEGORIES.masters = "Masters";
 LINEUP_CATEGORIES.development = "Development";
 LINEUP_CATEGORY_TEAM.masters = "masters";
