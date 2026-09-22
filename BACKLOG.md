@@ -120,9 +120,14 @@
       hardcoded to only those).
 
 ## Volunteer needs
-- [ ] Post volunteer needs (e.g. regatta day tent/food requests), tied to an event
-- [ ] Sign up for a volunteer slot
-- [ ] Track slots filled vs. needed
+- [x] Post volunteer needs (title, slots needed, notes), tied to a regatta —
+      admin/coach only for now (no separate "volunteer leader" flag like
+      tent leader has)
+- [x] Sign up for a volunteer slot, cancel your own signup
+- [x] Track slots filled vs. needed (shows "Filled" once claimed out; the
+      sign-up button disables itself)
+- [ ] Edit/delete needs its own polish pass (currently basic — same
+      edit/delete pattern as food tent items)
 
 ## Workouts
 - [ ] Content TBD (button/route scaffolded, waiting on requirements)
@@ -137,12 +142,33 @@
 - [x] Signup-genius-style item requests tied to a regatta day
 - [x] Sign up to bring a quantity of an item, cancel your own signup
 - [x] Home page banner listing what you've signed up to bring for
-      upcoming events
+      upcoming events, one line per item with a keyword-matched emoji
+      (water, cookies, chips, fruit, etc. — falls back to 🍽️)
+- [x] 2 gal of water folded into every family's banner automatically
+      (isParent OR guardian-of-a-rower via family_links, not just role)
 - [x] Edit/delete an item request (title, quantity, notes)
+- [x] Wish List moved to the top of the Food Tent page, above the
+      per-regatta item lists
+- [x] Auto-prep workflow (2026-09-22): a daily pg_cron job
+      (0048_regatta_prep_cron.sql) finds regattas exactly 7 days out and,
+      if nothing's been added yet, copies the most recent past regatta's
+      food list in as an unpublished draft — "same everything," no
+      retyping. Tent leader gets a home banner to review/edit (full edit
+      rights already covered by the existing isManager check) and hit
+      "Confirm & publish," which flips food_tent_items.published and
+      alerts parents with a "signups are open" banner
+      (food_tent_status table + food_tent_items.published column,
+      0047_food_tent_publish_workflow.sql)
 - [ ] Delete a regatta day
-- [ ] Master food tent item list: kitchen/tent leader enters the full list of
-      typical items once, then for a new regatta just picks/checks which ones
-      to request instead of retyping items from scratch every time
+- [ ] Real device push notifications for the tent-leader/parent alerts
+      above — today they're in-app home banners only, which need someone
+      to open the app to see. Blocked on the existing "Real push
+      notifications... (PWA)" backlog item under Infra, which needs the
+      app actually deployed first (see "Deploy (Vercel)" below) plus new
+      push-subscription infra (VAPID keys, service worker push handler,
+      a subscribe flow, and a way to actually send a push on a schedule —
+      e.g. Vercel Cron hitting an API route, since pg_cron can't call
+      external push endpoints on its own).
 
 ## Photos
 - [x] Anyone can post a photo (top-left camera icon on every page, plus a

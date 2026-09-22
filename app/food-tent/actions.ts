@@ -49,6 +49,38 @@ export async function createRegattaEvent(formData: FormData) {
   revalidatePath("/food-tent");
 }
 
+// Tent leader's "review, then publish" step: makes the (possibly
+// auto-generated and since-edited) draft list visible to parents and
+// flips the event's status, whether or not the automation ever touched it.
+export async function publishFoodList(eventId: string) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+
+  if (!eventId) throw new Error("Missing event.");
+
+  const { error: itemsError } = await supabase
+    .from("food_tent_items")
+    .update({ published: true })
+    .eq("event_id", eventId);
+  if (itemsError) throw new Error(itemsError.message);
+
+  const now = new Date().toISOString();
+  const { error: statusError } = await supabase.from("food_tent_status").upsert(
+    {
+      event_id: eventId,
+      status: "published",
+      confirmed_by: user.id,
+      confirmed_at: now,
+      published_at: now,
+    },
+    { onConflict: "event_id" }
+  );
+  if (statusError) throw new Error(statusError.message);
+
+  revalidatePath("/food-tent");
+  revalidatePath("/");
+}
+
 export async function addFoodTentItem(formData: FormData) {
   const supabase = await createClient();
   const { user } = await requireManager(supabase);

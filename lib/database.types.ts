@@ -195,6 +195,7 @@ export interface FoodTentItem {
   title: string;
   quantity_needed: number;
   notes: string | null;
+  published: boolean;
   created_by: string | null;
   created_at: string;
 }
@@ -204,6 +205,18 @@ export interface FoodTentSignup {
   user_id: string;
   quantity: number;
   signed_up_at: string;
+}
+
+export type FoodTentPublishStatus = 'draft' | 'pending_confirmation' | 'published';
+
+export interface FoodTentStatus {
+  event_id: string;
+  status: FoodTentPublishStatus;
+  draft_generated_at: string | null;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  published_at: string | null;
+  created_at: string;
 }
 
 export interface FoodTentWishlistItem {

@@ -26,11 +26,13 @@ import type {
   FamilyLink,
   FoodTentItem,
   FoodTentSignup,
+  FoodTentStatus,
   Lineup,
   LineupSeat,
   Profile,
   Race,
   ScheduleEvent,
+  VolunteerNeed,
 } from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
 import { getUnreadChatCount } from "@/lib/chat";
@@ -75,6 +77,15 @@ type LineupBanner = {
 };
 
 type PendingRaceBanner = { eventTitle: string; eventDate: string; count: number };
+
+type FoodPrepBanner = { eventId: string; eventTitle: string; eventDate: string };
+
+type SignupCallBanner = {
+  eventId: string;
+  eventTitle: string;
+  eventDate: string;
+  hasVolunteerNeeds: boolean;
+};
 
 // Food tent items are free-text titles a coach/tent-leader types in, not a
 // fixed category, so the emoji is guessed from keywords in the title —
@@ -280,6 +291,58 @@ async function loadPendingRaceBanners(supabase: SupabaseServerClient): Promise<P
     .filter((b) => b.count > 0);
 }
 
+// Tent-leader/manager notification: the 7-days-out cron (see
+// 0048_regatta_prep_cron.sql) auto-filled a draft food list from the last
+// regatta and is waiting on someone to review/edit it, then publish.
+async function loadFoodPrepBanners(supabase: SupabaseServerClient): Promise<FoodPrepBanner[]> {
+  const { data: statusRows } = await supabase
+    .from("food_tent_status")
+    .select("*")
+    .eq("status", "pending_confirmation");
+  const pending = (statusRows as FoodTentStatus[] | null) ?? [];
+  if (pending.length === 0) return [];
+
+  const eventIds = pending.map((s) => s.event_id);
+  const { data: eventRows } = await supabase.from("schedule_events").select("*").in("id", eventIds);
+  const events = (eventRows as ScheduleEvent[] | null) ?? [];
+
+  return events.map((event) => ({
+    eventId: event.id,
+    eventTitle: event.title,
+    eventDate: new Date(event.starts_at).toLocaleDateString(),
+  }));
+}
+
+// Parent/guardian notification: the food list has been published, so it's
+// time to sign up for food items and (if any are posted) volunteer slots.
+async function loadSignupCallBanners(supabase: SupabaseServerClient): Promise<SignupCallBanner[]> {
+  const { data: statusRows } = await supabase
+    .from("food_tent_status")
+    .select("*")
+    .eq("status", "published");
+  const published = (statusRows as FoodTentStatus[] | null) ?? [];
+  if (published.length === 0) return [];
+
+  const eventIds = published.map((s) => s.event_id);
+  const [{ data: eventRows }, { data: needRows }] = await Promise.all([
+    supabase.from("schedule_events").select("*").in("id", eventIds).gte("starts_at", startOfToday()),
+    supabase.from("volunteer_needs").select("event_id").in("event_id", eventIds),
+  ]);
+  const events = (eventRows as ScheduleEvent[] | null) ?? [];
+  const eventIdsWithNeeds = new Set(
+    ((needRows as Pick<VolunteerNeed, "event_id">[] | null) ?? [])
+      .map((n) => n.event_id)
+      .filter((id): id is string => !!id)
+  );
+
+  return events.map((event) => ({
+    eventId: event.id,
+    eventTitle: event.title,
+    eventDate: new Date(event.starts_at).toLocaleDateString(),
+    hasVolunteerNeeds: eventIdsWithNeeds.has(event.id),
+  }));
+}
+
 export default async function Home() {
   const supabase = await createClient();
   const [
@@ -304,6 +367,8 @@ export default async function Home() {
   let banners: FoodTentBanner[] = [];
   let lineupBanners: LineupBanner[] = [];
   let pendingRaceBanners: PendingRaceBanner[] = [];
+  let foodPrepBanners: FoodPrepBanner[] = [];
+  let signupCallBanners: SignupCallBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
   let unreadCount = 0;
   let unreadScheduleCount = 0;
@@ -312,6 +377,7 @@ export default async function Home() {
   let isCoachOrAdmin = false;
   let isParent = false;
   let isRowerOrCoxswain = false;
+  let isFoodTentManager = false;
 
   let householdUserIds: string[] = [];
 
@@ -330,7 +396,7 @@ export default async function Home() {
     ] = await Promise.all([
       getUnreadChatCount(user.id),
       getUnreadScheduleCount(user.id),
-      supabase.from("profiles").select("role, spouse_id").eq("id", user.id).single(),
+      supabase.from("profiles").select("role, spouse_id, is_tent_leader").eq("id", user.id).single(),
       supabase.from("chat_groups").select("id").eq("team", "coach").maybeSingle(),
       supabase
         .from("schedule_events")
@@ -345,12 +411,13 @@ export default async function Home() {
     unreadCount = unreadCountResult;
     unreadScheduleCount = unreadScheduleCountResult;
 
-    const caller = callerResult.data as Pick<Profile, "role" | "spouse_id"> | null;
+    const caller = callerResult.data as Pick<Profile, "role" | "spouse_id" | "is_tent_leader"> | null;
     const callerRole = caller?.role;
     isAdmin = callerRole === "admin";
     isCoachOrAdmin = callerRole === "admin" || callerRole === "coach";
     isParent = callerRole === "parent";
     isRowerOrCoxswain = callerRole === "rower" || callerRole === "coxswain";
+    isFoodTentManager = isCoachOrAdmin || Boolean(caller?.is_tent_leader);
 
     if ((coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id) {
       coachChatHref = `/messages/${(coachGroupResult.data as Pick<ChatGroup, "id">).id}`;
@@ -375,11 +442,18 @@ export default async function Home() {
   }
 
   if (user) {
-    // These four are independent of each other, so load them concurrently.
+    // These are independent of each other, so load them concurrently.
     // "Family" for the water reminder below means guardian-of-a-rower, not
     // the literal profile.role value — a coach/admin who's also linked to a
     // rower as a guardian counts too, same as the lineup banner already does.
-    const [foodBanners, lineupBannerResults, pendingRaceBannerResults, familyLinkRows] = await Promise.all([
+    const [
+      foodBanners,
+      lineupBannerResults,
+      pendingRaceBannerResults,
+      familyLinkRows,
+      foodPrepBannerResults,
+      signupCallBannerResults,
+    ] = await Promise.all([
       loadFoodTentBanners(supabase, householdUserIds),
       loadLineupBanners(supabase, {
         userId: user.id,
@@ -390,11 +464,15 @@ export default async function Home() {
       }),
       isCoachOrAdmin ? loadPendingRaceBanners(supabase) : Promise.resolve([]),
       supabase.from("family_links").select("rower_id").in("guardian_id", householdUserIds),
+      isFoodTentManager ? loadFoodPrepBanners(supabase) : Promise.resolve([]),
+      loadSignupCallBanners(supabase),
     ]);
     banners = foodBanners;
     lineupBanners = lineupBannerResults;
     pendingRaceBanners = pendingRaceBannerResults;
+    foodPrepBanners = foodPrepBannerResults;
     const isGuardian = (familyLinkRows.data ?? []).length > 0;
+    signupCallBanners = isParent || isGuardian ? signupCallBannerResults : [];
 
     // Every family is asked to bring 2 gal of water per regatta, regardless
     // of what else they signed up for — fold it in as its own line on each
@@ -449,6 +527,53 @@ export default async function Home() {
         </div>
       )}
 
+      {foodPrepBanners.length > 0 && (
+        <div className="w-full flex flex-col gap-2">
+          {foodPrepBanners.map((b, i) => (
+            <Link
+              key={i}
+              href="/food-tent"
+              className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+            >
+              <Tent className="w-5 h-5 shrink-0" />
+              <span>
+                The food list for <strong>{b.eventTitle}</strong> ({b.eventDate}) was auto-filled
+                from the last regatta — review, edit if needed, and publish it.
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {signupCallBanners.length > 0 && (
+        <div className="w-full flex flex-col gap-2">
+          {signupCallBanners.map((b, i) => (
+            <div key={i} className="bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm flex flex-col gap-2">
+              <p>
+                📋 Signups are open for <strong>{b.eventTitle}</strong> ({b.eventDate}) — pick a food
+                tent item{b.hasVolunteerNeeds ? " and a volunteer slot" : ""}.
+              </p>
+              <div className="flex gap-2">
+                <Link
+                  href="/food-tent"
+                  className="text-xs bg-white text-[#022e5d] rounded px-2 py-1 font-medium"
+                >
+                  Food Tent
+                </Link>
+                {b.hasVolunteerNeeds && (
+                  <Link
+                    href="/volunteer"
+                    className="text-xs bg-white text-[#022e5d] rounded px-2 py-1 font-medium"
+                  >
+                    Volunteer Needs
+                  </Link>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {upcomingRegatta && (
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm font-medium text-gray-600">
@@ -461,6 +586,13 @@ export default async function Home() {
           >
             <Tent className="w-5 h-5 shrink-0" />
             Sign up for the food tent
+          </Link>
+          <Link
+            href="/volunteer"
+            className="flex items-center gap-3 bg-[#022e5d] text-white rounded-lg px-4 py-3 text-sm hover:bg-[#01213f] transition-colors"
+          >
+            <HelpingHand className="w-5 h-5 shrink-0" />
+            Sign up for a volunteer slot
           </Link>
           <Link
             href="/lineups"
