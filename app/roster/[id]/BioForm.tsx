@@ -36,6 +36,7 @@ export function BioForm({
   const [photoUrl, setPhotoUrl] = useState(profile.photo_url ?? "");
   const [uploading, setUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const isGuardianRole = profile.role === "parent" || profile.role === "admin" || profile.role === "coach";
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -222,15 +223,15 @@ export function BioForm({
         </>
       )}
 
-      {(profile.role === "parent" || profile.role === "rower" || profile.role === "coxswain") && (
+      {(isGuardianRole || profile.role === "rower" || profile.role === "coxswain") && (
         <>
           <label className="text-sm font-medium">
-            {profile.role === "parent" ? "Children" : "Parent/Guardian(s)"}
+            {isGuardianRole ? "Children" : "Parent/Guardian(s)"}
           </label>
           <input type="hidden" name="family_field_present" value="1" />
           {familyOptions.length === 0 ? (
             <p className="text-xs text-gray-500">
-              {profile.role === "parent"
+              {isGuardianRole
                 ? "No rowers/coxswains on the roster yet."
                 : "No parents on the roster yet."}
             </p>
@@ -250,7 +251,7 @@ export function BioForm({
             </div>
           )}
           <p className="text-xs text-gray-500 -mt-2">
-            {profile.role === "parent"
+            {isGuardianRole
               ? "Linking a rower/coxswain shows you a banner when they're added to a race lineup."
               : "Linking a parent shows them a banner when you're added to a race lineup."}
           </p>

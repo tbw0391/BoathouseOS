@@ -197,7 +197,7 @@ export default async function Home() {
     let lineupRowerIds: string[] = [];
     if (isRowerOrCoxswain) {
       lineupRowerIds = [user.id];
-    } else if (isParent) {
+    } else if (isParent || isCoachOrAdmin) {
       const { data: familyLinkRows } = await supabase
         .from("family_links")
         .select("rower_id")
@@ -234,7 +234,7 @@ export default async function Home() {
         const eventById = new Map(eventsData.map((e) => [e.id, e]));
 
         const rowerNameById = new Map<string, string>();
-        if (isParent) {
+        if (isParent || isCoachOrAdmin) {
           const { data: rowerNameRows } = await supabase
             .from("profiles")
             .select("id, display_name")
@@ -251,7 +251,7 @@ export default async function Home() {
             const event = lineup?.event_id ? eventById.get(lineup.event_id) : undefined;
             if (!lineup || !event) return null;
             return {
-              rowerName: isParent ? rowerNameById.get(seat.rower_id) ?? "Someone" : null,
+              rowerName: isParent || isCoachOrAdmin ? rowerNameById.get(seat.rower_id) ?? "Someone" : null,
               boatName: lineup.boat_name,
               raceName: lineup.race_name,
               raceTimeLabel: lineup.race_time
