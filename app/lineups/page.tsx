@@ -18,6 +18,7 @@ import { SeatAssign } from "./SeatAssign";
 import { DeleteLineupButton } from "./DeleteLineupButton";
 import { EditRaceInfo } from "./EditRaceInfo";
 import { LineupTemplatesSection } from "./LineupTemplatesSection";
+import { EventIcon } from "@/components/EventIcon";
 import { ImportRacesForm } from "./ImportRacesForm";
 import { PendingRaceRow } from "./PendingRaceRow";
 
@@ -190,7 +191,8 @@ export default async function LineupsPage() {
 
     return (
       <div>
-        <h2 className="text-lg font-semibold">
+        <h2 className="flex items-center gap-1.5 text-lg font-semibold">
+          <EventIcon title={event.title} className="w-6 h-6" />
           {event.title}{" "}
           <span className="text-sm font-normal text-gray-500">
             {new Date(event.starts_at).toLocaleDateString()}
