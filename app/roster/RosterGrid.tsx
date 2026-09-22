@@ -48,15 +48,16 @@ export function RosterGrid({
     );
   }
 
-  const matchesGroup = (p: RosterProfile) =>
-    selectedGroups.length === 0 ||
-    selectedGroups.some((g) => (g === "board" ? p.is_board_member : (teamsByProfile[p.id] ?? []).includes(g)));
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
     const matching = profiles.filter((p) => {
-      if (!matchesGroup(p)) return false;
+      const inSelectedGroup =
+        selectedGroups.length === 0 ||
+        selectedGroups.some((g) =>
+          g === "board" ? p.is_board_member : (teamsByProfile[p.id] ?? []).includes(g)
+        );
+      if (!inSelectedGroup) return false;
       if (!q) return true;
       return (
         p.display_name.toLowerCase().includes(q) ||
@@ -68,19 +69,29 @@ export function RosterGrid({
     return matching.sort((a, b) =>
       (a.first_name || a.display_name).localeCompare(b.first_name || b.display_name)
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profiles, teamsByProfile, search, selectedGroups]);
 
   return (
     <>
       <div className="flex flex-wrap gap-2 mt-4">
+        <button
+          type="button"
+          onClick={() => setSelectedGroups([])}
+          className={`text-sm rounded-full px-3 py-1.5 border-2 transition-colors ${
+            selectedGroups.length === 0
+              ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-white"
+              : "border-[var(--color-primary)] hover:bg-[var(--color-secondary)] hover:text-white"
+          }`}
+        >
+          All
+        </button>
         {FILTER_BUTTONS.map((f) => (
           <button
             key={f.value}
             type="button"
-            onClick={() => setGroupFilter(f.value)}
+            onClick={() => toggleGroup(f.value)}
             className={`text-sm rounded-full px-3 py-1.5 border-2 transition-colors ${
-              groupFilter === f.value
+              selectedGroups.includes(f.value)
                 ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-white"
                 : "border-[var(--color-primary)] hover:bg-[var(--color-secondary)] hover:text-white"
             }`}
