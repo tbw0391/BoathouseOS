@@ -245,6 +245,10 @@
       "super-admin" here is the Global admin referenced under Suggestions
       above (Todd, across all clubs) — distinct from each club's own
       Club admin (today's `role = 'admin'`, scoped to their club_id).
+- [ ] Phase 2+ discussion needed: DNS strategy for auto-provisioning each
+      club's own (sub)domain on signup, and per-club customizable branding
+      (icon/logo and color scheme) beyond just a club name — both still
+      need to be talked through/designed, not just Stripe/onboarding plumbing.
 - [ ] Pricing model TBD — leaning toward flat monthly/annual fee tiered by
       roster size (matches how similar tools like TeamSnap/Spond price, and
       is easy for a volunteer club treasurer to approve) over per-athlete or
