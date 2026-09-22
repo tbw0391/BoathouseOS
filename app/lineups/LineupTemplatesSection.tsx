@@ -186,7 +186,17 @@ export function LineupTemplatesSection({
             <TemplateCard
               key={t.id}
               template={t}
-              seats={templateSeats.filter((s) => s.template_id === t.id)}
+              seats={templateSeats
+                .filter((s) => s.template_id === t.id)
+                .sort((a, b) =>
+                  a.seat_role === b.seat_role
+                    ? a.seat_number - b.seat_number
+                    : a.seat_role === "coxswain"
+                      ? -1
+                      : b.seat_role === "coxswain"
+                        ? 1
+                        : 0
+                )}
               roster={roster}
               boats={boats}
               templates={templates}

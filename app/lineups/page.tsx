@@ -122,7 +122,19 @@ export default async function LineupsPage() {
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
 
   function LineupCard({ lineup }: { lineup: Lineup }) {
-    const lineupSeats = seats.filter((s) => s.lineup_id === lineup.id);
+    // Cox rides at the front of the list, matching where they sit in the
+    // boat during a race, not sorted in with the numbered rower seats.
+    const lineupSeats = seats
+      .filter((s) => s.lineup_id === lineup.id)
+      .sort((a, b) =>
+        a.seat_role === b.seat_role
+          ? a.seat_number - b.seat_number
+          : a.seat_role === "coxswain"
+            ? -1
+            : b.seat_role === "coxswain"
+              ? 1
+              : 0
+      );
     const eligibleRoster = rosterForCategory(lineup.category);
     return (
       <div className="border rounded-lg p-3">
