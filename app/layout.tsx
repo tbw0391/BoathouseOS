@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadChatCount } from "@/lib/chat";
-import { parseThemeColors } from "@/lib/theme";
+import { getThemeColors } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,10 +28,13 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: "#022e5d",
-  viewportFit: "cover",
-};
+export async function generateViewport(): Promise<ResolvingViewport> {
+  const theme = await getThemeColors();
+  return {
+    themeColor: theme.primary,
+    viewportFit: "cover",
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -43,6 +46,7 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
   const unreadCount = user ? await getUnreadChatCount(user.id) : null;
+  const theme = await getThemeColors();
 
   let photoUrl: string | null = null;
   if (user) {
@@ -54,8 +58,15 @@ export default async function RootLayout({
     photoUrl = (profileData as { photo_url: string | null } | null)?.photo_url ?? null;
   }
 
+  const themeStyle = {
+    "--color-primary": theme.primary,
+    "--color-secondary": theme.secondary,
+    "--color-accent": theme.accent,
+    "--background": theme.background,
+  } as React.CSSProperties;
+
   return (
-    <html lang="en">
+    <html lang="en" style={themeStyle}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
