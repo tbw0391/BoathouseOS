@@ -127,11 +127,16 @@
 
 ## Volunteer needs
 - [x] Post volunteer needs (title, slots needed, notes), tied to a regatta —
-      admin/coach only for now (no separate "volunteer leader" flag like
-      tent leader has)
+      managed by admin/coach, and tent leader too (2026-09-22: extended to
+      match food tent, since tent leader already covers regatta-day
+      hospitality/volunteer coordination)
 - [x] Sign up for a volunteer slot, cancel your own signup
 - [x] Track slots filled vs. needed (shows "Filled" once claimed out; the
       sign-up button disables itself)
+- [x] Excel/CSV import for volunteer slots (2026-09-22), same pattern as the
+      food tent item import: Title/Task/Name, Slots Needed/Slots/People
+      Needed, Description/Notes columns (case-insensitive), only Title
+      required
 - [ ] Edit/delete needs its own polish pass (currently basic — same
       edit/delete pattern as food tent items)
 

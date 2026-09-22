@@ -11,13 +11,14 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
 
   const { data: callerProfile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, is_tent_leader")
     .eq("id", user.id)
     .single();
 
-  const profile = callerProfile as { role: string } | null;
-  if (profile?.role !== "admin" && profile?.role !== "coach") {
-    throw new Error("Only admins and coaches can do that.");
+  const profile = callerProfile as { role: string; is_tent_leader: boolean } | null;
+  const isManager = profile?.role === "admin" || profile?.role === "coach" || profile?.is_tent_leader;
+  if (!isManager) {
+    throw new Error("Only admins, coaches, and tent leaders can do that.");
   }
 
   return { user, supabase };
@@ -49,6 +50,59 @@ export async function createVolunteerNeed(formData: FormData) {
 
   revalidatePath("/volunteer");
   revalidatePath("/");
+}
+
+export interface VolunteerNeedImportRow {
+  title?: string;
+  slots_needed?: string;
+  description?: string;
+}
+
+export async function importVolunteerNeeds(eventId: string, rows: VolunteerNeedImportRow[]) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+
+  if (!eventId) throw new Error("Missing event.");
+
+  const toInsert: {
+    event_id: string;
+    title: string;
+    slots_needed: number;
+    description: string | null;
+    created_by: string;
+  }[] = [];
+  const rowErrors: string[] = [];
+
+  rows.forEach((row, i) => {
+    const rowLabel = `Row ${i + 2}`; // +2: header row + 1-index
+    const title = String(row.title ?? "").trim();
+    if (!title) {
+      rowErrors.push(`${rowLabel}: missing title.`);
+      return;
+    }
+
+    const slotsRaw = String(row.slots_needed ?? "1").trim();
+    const slotsNeeded = Math.max(1, Number(slotsRaw) || 1);
+
+    toInsert.push({
+      event_id: eventId,
+      title,
+      slots_needed: slotsNeeded,
+      description: String(row.description ?? "").trim() || null,
+      created_by: user.id,
+    });
+  });
+
+  if (toInsert.length === 0) {
+    return { imported: 0, errors: rowErrors.length ? rowErrors : ["No valid rows found."] };
+  }
+
+  const { error, data } = await supabase.from("volunteer_needs").insert(toInsert).select("id");
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/volunteer");
+  revalidatePath("/");
+  return { imported: data?.length ?? 0, errors: rowErrors };
 }
 
 export async function updateVolunteerNeed(formData: FormData) {

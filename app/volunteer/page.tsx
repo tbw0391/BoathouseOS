@@ -3,6 +3,7 @@ import type { Profile, ScheduleEvent, VolunteerNeed, VolunteerSignup } from "@/l
 import { NeedForm } from "./NeedForm";
 import { NeedRow } from "./NeedRow";
 import { SignupControl } from "./SignupControl";
+import { ImportNeedsForm } from "./ImportNeedsForm";
 
 export default async function VolunteerPage() {
   const supabase = await createClient();
@@ -12,12 +13,13 @@ export default async function VolunteerPage() {
 
   const { data: callerProfile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, is_tent_leader")
     .eq("id", user?.id ?? "")
     .single();
-  const isManager = (callerProfile as { role: string } | null)?.role
-    ? ["admin", "coach"].includes((callerProfile as { role: string }).role)
-    : false;
+  const caller = callerProfile as { role: string; is_tent_leader: boolean } | null;
+  const isManager = Boolean(
+    caller?.role === "admin" || caller?.role === "coach" || caller?.is_tent_leader
+  );
 
   const { data: eventsData } = await supabase
     .from("schedule_events")
@@ -100,7 +102,12 @@ export default async function VolunteerPage() {
                   );
                 })}
 
-                {isManager && <NeedForm eventId={event.id} />}
+                {isManager && (
+                  <div className="flex flex-col gap-3">
+                    <NeedForm eventId={event.id} />
+                    <ImportNeedsForm eventId={event.id} />
+                  </div>
+                )}
               </div>
             </div>
           );
