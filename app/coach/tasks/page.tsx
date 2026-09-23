@@ -4,6 +4,7 @@ import type {
   CoachTaskAssignment,
   Lineup,
   Profile,
+  Race,
   ScheduleEvent,
   TaskType,
 } from "@/lib/database.types";
@@ -55,6 +56,23 @@ export default async function CoachTasksPage() {
     ((lineupsData as Pick<Lineup, "id" | "boat_name">[] | null) ?? []).map((l) => [l.id, l.boat_name])
   );
 
+  // Tasks auto-created straight off a race import (see importRaces) don't
+  // have a boat yet — fall back to the race's own name so the task still
+  // reads as something other than a bare "Launch."
+  const raceIds = [...new Set(tasks.map((t) => t.race_id).filter((id): id is string => !!id))];
+  const { data: racesData } = raceIds.length
+    ? await supabase.from("races").select("id, race_name").in("id", raceIds)
+    : { data: [] as Pick<Race, "id" | "race_name">[] };
+  const raceNameByRaceId = new Map(
+    ((racesData as Pick<Race, "id" | "race_name">[] | null) ?? []).map((r) => [r.id, r.race_name])
+  );
+
+  function subtitleForTask(task: CoachTask): string | null {
+    if (task.lineup_id) return boatNameByLineupId.get(task.lineup_id) ?? null;
+    if (task.race_id) return raceNameByRaceId.get(task.race_id) ?? null;
+    return null;
+  }
+
   const { data: rosterData } = await supabase
     .from("profiles")
     .select("id, display_name, role")
@@ -100,7 +118,7 @@ export default async function CoachTasksPage() {
                 key={task.id}
                 task={task}
                 taskTypes={taskTypes}
-                boatName={task.lineup_id ? boatNameByLineupId.get(task.lineup_id) ?? null : null}
+                subtitle={subtitleForTask(task)}
                 assignedIds={taskAssignments.map((a) => a.user_id)}
                 assignedNames={taskAssignments.map((a) => nameById.get(a.user_id) ?? "Unknown")}
                 roster={roster}

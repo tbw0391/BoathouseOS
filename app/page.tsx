@@ -426,9 +426,10 @@ async function loadCoachTaskBanners(
 
   const eventIds = [...new Set(tasks.map((t) => t.event_id))];
   const lineupIds = [...new Set(tasks.map((t) => t.lineup_id).filter((id): id is string => !!id))];
+  const raceIds = [...new Set(tasks.map((t) => t.race_id).filter((id): id is string => !!id))];
   const taskTypeIds = [...new Set(tasks.map((t) => t.task_type_id))];
 
-  const [{ data: eventRows }, { data: lineupRows }, { data: taskTypeRows }] = await Promise.all([
+  const [{ data: eventRows }, { data: lineupRows }, { data: raceRows }, { data: taskTypeRows }] = await Promise.all([
     supabase
       .from("schedule_events")
       .select("*")
@@ -437,11 +438,19 @@ async function loadCoachTaskBanners(
     lineupIds.length
       ? supabase.from("lineups").select("id, boat_name, race_name").in("id", lineupIds)
       : Promise.resolve({ data: [] as Pick<Lineup, "id" | "boat_name" | "race_name">[] }),
+    // A task auto-created straight off a race import (see importRaces)
+    // doesn't have a boat yet — fall back to the race's own name.
+    raceIds.length
+      ? supabase.from("races").select("id, race_name").in("id", raceIds)
+      : Promise.resolve({ data: [] as Pick<Race, "id" | "race_name">[] }),
     supabase.from("task_types").select("*").in("id", taskTypeIds),
   ]);
   const eventById = new Map(((eventRows as ScheduleEvent[] | null) ?? []).map((e) => [e.id, e]));
   const lineupById = new Map(
     ((lineupRows as Pick<Lineup, "id" | "boat_name" | "race_name">[] | null) ?? []).map((l) => [l.id, l])
+  );
+  const raceNameByRaceId = new Map(
+    ((raceRows as Pick<Race, "id" | "race_name">[] | null) ?? []).map((r) => [r.id, r.race_name])
   );
   const taskTypeNameById = new Map(((taskTypeRows as TaskType[] | null) ?? []).map((t) => [t.id, t.name]));
 
@@ -454,7 +463,7 @@ async function loadCoachTaskBanners(
       return {
         taskTypeName: taskTypeNameById.get(task.task_type_id) ?? "a task",
         boatName: lineup?.boat_name ?? null,
-        raceName: lineup?.race_name ?? null,
+        raceName: lineup?.race_name ?? (task.race_id ? raceNameByRaceId.get(task.race_id) ?? null : null),
         eventTitle: event.title,
       };
     })

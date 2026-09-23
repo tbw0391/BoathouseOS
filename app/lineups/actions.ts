@@ -108,13 +108,18 @@ async function createLinkedTemplate(
   if (seatsError) throw new Error(seatsError.message);
 }
 
-// A boat assigned to a race needs a Launch and Recovery task without the
-// coach having to add them by hand every time — best-effort: a missing
+// A boat or a race needs a Launch and Recovery task without the coach
+// having to add them by hand every time — best-effort: a missing
 // Launch/Recovery task type (e.g. renamed or deleted) shouldn't block the
-// lineup itself from being created.
+// lineup/race itself from being created.
 async function createLaunchRecoveryTasks(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  { lineupId, eventId, userId }: { lineupId: string; eventId: string; userId: string }
+  {
+    eventId,
+    userId,
+    lineupId = null,
+    raceId = null,
+  }: { eventId: string; userId: string; lineupId?: string | null; raceId?: string | null }
 ) {
   const { data: typesData } = await supabase
     .from("task_types")
@@ -128,12 +133,74 @@ async function createLaunchRecoveryTasks(
       event_id: eventId,
       task_type_id: t.id,
       lineup_id: lineupId,
+      race_id: raceId,
       created_by: userId,
     }))
   );
   if (error && !isUniqueViolation(error)) {
     console.error("Failed to auto-create launch/recovery tasks:", error.message);
   }
+}
+
+// Bulk variant of createLaunchRecoveryTasks for importRaces, which can add
+// many races at once — one task_types lookup and one insert instead of N.
+async function createLaunchRecoveryTasksForRaces(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  { eventId, userId, raceIds }: { eventId: string; userId: string; raceIds: string[] }
+) {
+  if (raceIds.length === 0) return;
+
+  const { data: typesData } = await supabase
+    .from("task_types")
+    .select("id")
+    .in("name", ["Launch", "Recovery"]);
+  const types = (typesData as { id: string }[] | null) ?? [];
+  if (types.length === 0) return;
+
+  const { error } = await supabase.from("coach_tasks").insert(
+    raceIds.flatMap((raceId) =>
+      types.map((t) => ({
+        event_id: eventId,
+        task_type_id: t.id,
+        race_id: raceId,
+        created_by: userId,
+      }))
+    )
+  );
+  if (error && !isUniqueViolation(error)) {
+    console.error("Failed to auto-create launch/recovery tasks for imported races:", error.message);
+  }
+}
+
+// A pending race often gets its own Launch/Recovery tasks the moment it's
+// added to the schedule (before any boat is assigned — see
+// ensureRaceLaunchRecoveryTasks in importRaces below). Once a boat IS
+// assigned, re-point those same tasks at the new lineup instead of creating
+// a duplicate pair, so "Launch — boat TBD" just becomes "Launch — Chase".
+// Falls back to creating a fresh lineup-tied pair if the race never got
+// tasks in the first place.
+async function linkOrCreateLaunchRecoveryTasksForLineup(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  {
+    raceId,
+    lineupId,
+    eventId,
+    userId,
+  }: { raceId: string | null; lineupId: string; eventId: string; userId: string }
+) {
+  if (raceId) {
+    const { data: linked, error } = await supabase
+      .from("coach_tasks")
+      .update({ lineup_id: lineupId })
+      .eq("race_id", raceId)
+      .select("id");
+    if (error) {
+      console.error("Failed to link race tasks to lineup:", error.message);
+    } else if ((linked?.length ?? 0) > 0) {
+      return;
+    }
+  }
+  await createLaunchRecoveryTasks(supabase, { eventId, userId, lineupId });
 }
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -421,8 +488,15 @@ export async function importRaces(eventId: string, rows: RaceImportRow[]) {
   const { error, data } = await supabase.from("races").insert(toInsert).select("id");
   if (error) throw new Error(error.message);
 
+  await createLaunchRecoveryTasksForRaces(supabase, {
+    eventId,
+    userId: user.id,
+    raceIds: (data ?? []).map((r) => r.id),
+  });
+
   revalidatePath("/lineups");
   revalidatePath("/");
+  revalidatePath("/coach/tasks");
   return { imported: data?.length ?? 0, errors: rowErrors };
 }
 
@@ -500,7 +574,12 @@ export async function createLineupForRace(formData: FormData) {
     .eq("id", raceId);
   if (raceUpdateError) throw new Error(raceUpdateError.message);
 
-  await createLaunchRecoveryTasks(supabase, { lineupId, eventId: race.event_id, userId: user.id });
+  await linkOrCreateLaunchRecoveryTasksForLineup(supabase, {
+    raceId,
+    lineupId,
+    eventId: race.event_id,
+    userId: user.id,
+  });
 
   revalidatePath("/lineups");
   revalidatePath("/");

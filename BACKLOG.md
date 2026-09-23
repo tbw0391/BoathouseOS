@@ -151,14 +151,29 @@
       launch/recovery crew is usually not the same crew racing that boat —
       2026-09-23 decision).
 - [x] Home-page banner for a rower's own assigned tasks (2026-09-23, revised
-      same day): "You're on Launch for <boat name> at <event> (<date>)" —
-      leads with the boat name, since that's the one thing a rower actually
-      needs from this. Rower/coxswain only, not shown to parents at all
-      (unlike the lineup banner) — this is just "which boat am I on the
-      hook for," not something a parent needs to track on the rower's
-      behalf. In-app only, same as every other home banner in this app — no
-      push/text/email, that's still blocked on the "Real push notifications
+      twice same day): "You're on Launch for <boat name> at <event> (<race
+      name>)" — leads with the boat name (the one thing a rower actually
+      needs), and swaps the event date out for the race name/number when
+      the task's boat has one set, since the date isn't useful here.
+      Rower/coxswain only, not shown to parents at all (unlike the lineup
+      banner) — this is just "which boat am I on the hook for," not
+      something a parent needs to track on the rower's behalf. In-app only,
+      same as every other home banner in this app — no push/text/email,
+      that's still blocked on the "Real push notifications
       (PWA)" infra item.
+- [x] Auto-create Launch and Recovery tasks as soon as a race is added to
+      the schedule (2026-09-23), not just once a boat is assigned — a race
+      is usually added before its lineup is decided (see "Races collected
+      before assignment" under Lineups), so a coach can start lining up
+      launch/recovery volunteers right away instead of waiting on the boat.
+      New `coach_tasks.race_id` column (0056_auto_tasks_on_race_import.sql,
+      also backfilled for every already-pending race), same partial-unique
+      /  best-effort pattern as the lineup version. When a boat is later
+      assigned to that race, the same Launch/Recovery tasks get re-pointed
+      at the new lineup instead of creating a duplicate pair — "Launch —
+      Women's 2V8" becomes "Launch — Chase" once the boat's picked, same
+      task, same assignees. Falls back to creating a fresh lineup-tied pair
+      only if the race never got tasks in the first place.
 
 ## Volunteer needs
 - [x] Post volunteer needs (title, slots needed, notes), tied to a regatta —
