@@ -15,7 +15,7 @@ import {
   Wrench,
   Hammer,
   Navigation,
-  MapPin,
+  ClipboardList,
   Settings,
   Vote,
   Megaphone,
@@ -60,7 +60,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/suggestions": Lightbulb,
   "/boat-maintenance": Wrench,
   "/site-maintenance": Hammer,
-  "/coach/tracking": MapPin,
+  "/coach": ClipboardList,
   "/todo": ListTodo,
   "/admin": Settings,
 };
@@ -799,7 +799,7 @@ export default async function Home() {
       )}
 
       <div className="w-full grid grid-cols-3 gap-4">
-        {NAV_SECTIONS.filter((s) => s.href !== "/coach/tracking" || isCoachOrAdmin)
+        {NAV_SECTIONS.filter((s) => s.href !== "/coach" || isCoachOrAdmin)
           .filter((s) => {
             const visibility = navVisibilityByHref[s.href] ?? "everyone";
             if (isAdmin) return true; // admins always see every tile, off/admins-only ones greyed or noted below

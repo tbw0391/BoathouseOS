@@ -163,6 +163,28 @@ export interface LineupTemplateSeat {
   rower_id: string | null;
 }
 
+export interface TaskType {
+  id: string;
+  name: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CoachTask {
+  id: string;
+  event_id: string;
+  task_type_id: string;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface CoachTaskAssignment {
+  task_id: string;
+  user_id: string;
+  assigned_at: string;
+}
+
 export interface VolunteerNeed {
   id: string;
   event_id: string | null;

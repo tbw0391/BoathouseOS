@@ -50,7 +50,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   { href: "/polls", label: "Polls" },
   { href: "/boat-maintenance", label: "Boat Maintenance" },
   { href: "/site-maintenance", label: "Site Maintenance" },
-  { href: "/coach/tracking", label: "Live Tracking" },
+  { href: "/coach", label: "Coach" },
   { href: "/schedule", label: "Schedule" },
   { href: "/suggestions", label: "Suggestions" },
 ];
