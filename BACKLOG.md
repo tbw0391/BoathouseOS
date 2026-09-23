@@ -102,6 +102,13 @@
       Men's boat can only pull from the Men's group, Masters only from
       Masters) — an already-assigned person outside the group still shows
       correctly, just can't be newly picked for a mismatched boat
+- [x] Each boat's own seat pickers exclude whoever's already seated
+      elsewhere in that same boat (2026-09-23): pick someone for seat 3 and
+      they drop out of every other seat's dropdown for that boat, so the
+      same rower can't accidentally end up in two seats of one boat. Each
+      boat's list starts full and only shrinks based on its own seats — a
+      different boat still shows everyone. No restriction across different
+      boats (someone can still be picked for two different boats).
 - [x] Reusable boat fleet: named boats (Chase, OSU, Tin Tin, Athena, New M,
       Ulysses, Mantis, Killer Queen, M2, 08 — all seeded as 8+ for now) with
       a fixed class each, editable anytime from the Fleet section on the

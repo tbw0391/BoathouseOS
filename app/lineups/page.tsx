@@ -157,6 +157,23 @@ export default async function LineupsPage() {
               : 0
       );
     const eligibleRoster = rosterForCategory(lineup.category);
+    // Once someone's picked for one seat in this boat, they drop out of
+    // every other seat's dropdown in the same boat — a boat's own list
+    // shrinks as it fills in, but stays full for every other boat.
+    const assignedInThisBoatIds = new Set(
+      lineupSeats.map((s) => s.rower_id).filter((id): id is string => !!id)
+    );
+    function rosterForSeat(seat: LineupSeat) {
+      const availableForThisSeat = eligibleRoster.filter(
+        (p) => p.id === seat.rower_id || !assignedInThisBoatIds.has(p.id)
+      );
+      return seat.rower_id && !availableForThisSeat.some((p) => p.id === seat.rower_id)
+        ? [
+            ...availableForThisSeat,
+            { id: seat.rower_id, display_name: nameById.get(seat.rower_id) ?? "Unknown" },
+          ]
+        : availableForThisSeat;
+    }
     return (
       <div className="border rounded-lg p-3">
         <div className="flex items-start justify-between">
@@ -186,14 +203,7 @@ export default async function LineupsPage() {
                 <SeatAssign
                   seatId={seat.id}
                   currentRowerId={seat.rower_id}
-                  roster={
-                    seat.rower_id && !eligibleRoster.some((p) => p.id === seat.rower_id)
-                      ? [
-                          ...eligibleRoster,
-                          { id: seat.rower_id, display_name: nameById.get(seat.rower_id) ?? "Unknown" },
-                        ]
-                      : eligibleRoster
-                  }
+                  roster={rosterForSeat(seat)}
                 />
               ) : (
                 <span>{seat.rower_id ? nameById.get(seat.rower_id) ?? "Unknown" : "—"}</span>
