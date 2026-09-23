@@ -6,7 +6,8 @@ import { BioForm } from "./BioForm";
 import { RoleToggle } from "./RoleToggle";
 import { RemoveMemberButton } from "./RemoveMemberButton";
 import { PermanentlyDeleteButton } from "./PermanentlyDeleteButton";
-import { setBoardMember, setTentLeader, setRemoved, permanentlyDeleteProfile } from "./actions";
+import { ResetPasswordButton } from "./ResetPasswordButton";
+import { setBoardMember, setTentLeader, setRemoved, permanentlyDeleteProfile, resetMemberPassword } from "./actions";
 import { TEAM_LABELS } from "@/lib/teams";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -212,6 +213,12 @@ export default async function BioPage({
               name={profile.display_name}
               isRemoved={profile.disabled_at !== null}
               onToggle={setRemoved.bind(null, profile.id)}
+            />
+          )}
+          {isCallerAdmin && (
+            <ResetPasswordButton
+              name={profile.display_name}
+              onReset={resetMemberPassword.bind(null, profile.id)}
             />
           )}
         </div>

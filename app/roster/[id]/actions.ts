@@ -278,6 +278,43 @@ export async function permanentlyDeleteProfile(profileId: string) {
   revalidatePath("/roster");
 }
 
+// Admin-only, direct set (not an emailed reset link) — this app has no
+// outbound email configured, and a small club coach/admin is a faster,
+// more reliable path than a "forgot password" email that might never
+// arrive. The admin sets the new password themselves and relays it to the
+// member directly.
+export async function resetMemberPassword(profileId: string, newPassword: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const callerRole = (callerProfile as { role: string } | null)?.role;
+  if (callerRole !== "admin") {
+    throw new Error("Only admins can reset another member's password.");
+  }
+
+  if (newPassword.length < 8) {
+    throw new Error("Password must be at least 8 characters.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(profileId, { password: newPassword });
+  if (error) {
+    if (error.status === 404) {
+      throw new Error("This person doesn't have a login yet (roster-only member) — nothing to reset.");
+    }
+    throw new Error(error.message);
+  }
+}
+
 export async function setTentLeader(profileId: string, isTentLeader: boolean) {
   const supabase = await createClient();
   const {
