@@ -12,6 +12,7 @@ import type {
 } from "@/lib/database.types";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_OPTIONS, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
+import { resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { BoatsSection } from "./BoatsSection";
 import { CreateLineupForm } from "./CreateLineupForm";
 import { SeatAssign } from "./SeatAssign";
@@ -41,6 +42,20 @@ export default async function LineupsPage() {
     .single();
   const callerRole = (callerProfile as { role: string } | null)?.role;
   const canManage = callerRole === "admin" || callerRole === "coach";
+  const isAdmin = callerRole === "admin";
+
+  const { data: settingsData } = await supabase
+    .from("club_settings")
+    .select("key, value")
+    .eq("key", "lineup_section_visibility");
+  const settingsByKey = new Map(
+    ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
+  );
+  const sectionVisibilityById = resolveLineupSectionVisibility(settingsByKey);
+  function sectionVisible(id: string): boolean {
+    if (isAdmin) return true;
+    return (sectionVisibilityById[id] ?? "everyone") === "everyone";
+  }
 
   const { data: eventsData } = await supabase
     .from("schedule_events")
@@ -224,6 +239,7 @@ export default async function LineupsPage() {
           {LINEUP_CATEGORY_OPTIONS.map((cat) => {
             const categoryLineups = eventLineups.filter((l) => l.category === cat);
             if (categoryLineups.length === 0) return null;
+            if (!sectionVisible(LINEUP_CATEGORY_TEAM[cat])) return null;
             return (
               <div key={cat}>
                 <h3 className="text-sm font-medium text-[var(--color-primary)] mb-2">{LINEUP_CATEGORIES[cat]}</h3>
@@ -257,8 +273,8 @@ export default async function LineupsPage() {
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">Lineups</h1>
 
-      {canManage && <BoatsSection boats={boats} />}
-      {canManage && (
+      {canManage && sectionVisible("fleet") && <BoatsSection boats={boats} />}
+      {canManage && sectionVisible("templates") && (
         <LineupTemplatesSection
           templates={templates}
           templateSeats={templateSeats}

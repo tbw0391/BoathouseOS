@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { NAV_SECTIONS, NAV_VISIBILITY_OPTIONS, resolveNavVisibility } from "@/lib/navSections";
+import { LINEUP_SECTIONS, resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { THEME_COLOR_LABELS, parseThemeColors, type ThemeColorKey } from "@/lib/theme";
-import { updateNavToggles, updateThemeColors, resetThemeColors } from "./actions";
+import { updateNavToggles, updateLineupSectionVisibility, updateThemeColors, resetThemeColors } from "./actions";
 
 const VISIBILITY_LABEL: Record<string, string> = {
   everyone: "Everyone",
@@ -27,12 +28,13 @@ export default async function AdminPage() {
   const { data: settingsData } = await supabase
     .from("club_settings")
     .select("key, value")
-    .in("key", ["nav_visibility", "nav_disabled_hrefs", "theme_colors"]);
+    .in("key", ["nav_visibility", "nav_disabled_hrefs", "theme_colors", "lineup_section_visibility"]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
   );
   const visibilityByHref = resolveNavVisibility(settingsByKey);
   const themeColors = parseThemeColors(settingsByKey.get("theme_colors"));
+  const lineupSectionVisibility = resolveLineupSectionVisibility(settingsByKey);
 
   return (
     <div className="min-h-screen p-8">
@@ -92,6 +94,43 @@ export default async function AdminPage() {
                     <input
                       type="radio"
                       name={`visibility:${s.href}`}
+                      value={option}
+                      defaultChecked={current === option}
+                      className="w-4 h-4"
+                    />
+                    {VISIBILITY_LABEL[option]}
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        <button
+          type="submit"
+          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          Save
+        </button>
+      </form>
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">Lineups sections</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        Control who sees each section of the Lineups page: everyone, admins only, or off for
+        everyone.
+      </p>
+
+      <form action={updateLineupSectionVisibility} className="flex flex-col gap-3 max-w-sm">
+        {LINEUP_SECTIONS.map((s) => {
+          const current = lineupSectionVisibility[s.id] ?? "everyone";
+          return (
+            <div key={s.id} className="border rounded-lg px-4 py-3 text-sm flex flex-col gap-2">
+              <span className="font-medium">{s.label}</span>
+              <div className="flex gap-4">
+                {NAV_VISIBILITY_OPTIONS.map((option) => (
+                  <label key={option} className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <input
+                      type="radio"
+                      name={`visibility:${s.id}`}
                       value={option}
                       defaultChecked={current === option}
                       className="w-4 h-4"
