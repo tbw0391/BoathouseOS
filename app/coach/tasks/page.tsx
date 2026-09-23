@@ -48,10 +48,10 @@ export default async function CoachTasksPage() {
 
   const { data: rosterData } = await supabase
     .from("profiles")
-    .select("id, display_name")
+    .select("id, display_name, role")
     .is("disabled_at", null)
     .order("display_name", { ascending: true });
-  const roster = (rosterData as Pick<Profile, "id" | "display_name">[] | null) ?? [];
+  const roster = (rosterData as Pick<Profile, "id" | "display_name" | "role">[] | null) ?? [];
   const nameById = new Map(roster.map((p) => [p.id, p.display_name]));
 
   const taskIdsWithTasks = new Set(tasks.map((t) => t.event_id));

@@ -142,3 +142,40 @@ export async function unassignRowerFromTask(taskId: string, userId: string) {
   revalidatePath("/coach/tasks");
   revalidatePath("/");
 }
+
+export async function assignRowerGroupToTask(taskId: string, userIds: string[]) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  if (!taskId || userIds.length === 0) return;
+
+  const { error } = await supabase
+    .from("coach_task_assignments")
+    .upsert(
+      userIds.map((userId) => ({ task_id: taskId, user_id: userId })),
+      { onConflict: "task_id,user_id" }
+    );
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/coach/tasks");
+  revalidatePath("/");
+}
+
+export async function unassignRowerGroupFromTask(taskId: string, userIds: string[]) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  if (!taskId || userIds.length === 0) return;
+
+  const { error } = await supabase
+    .from("coach_task_assignments")
+    .delete()
+    .eq("task_id", taskId)
+    .in("user_id", userIds);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/coach/tasks");
+  revalidatePath("/");
+}

@@ -17,7 +17,7 @@ export function TaskRow({
   taskTypes: TaskType[];
   assignedNames: string[];
   assignedIds: string[];
-  roster: Pick<Profile, "id" | "display_name">[];
+  roster: Pick<Profile, "id" | "display_name" | "role">[];
   canManage: boolean;
 }) {
   const [editing, setEditing] = useState(false);

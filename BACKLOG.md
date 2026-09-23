@@ -125,8 +125,12 @@
       the same hub). Tasks are per schedule event (practice or regatta,
       unlike Volunteer Needs which is regatta-only), coach/admin can
       add/edit/delete a task and toggle which roster members are assigned;
-      everyone can see who's assigned, read-only. New tables `task_types`,
-      `coach_tasks`, `coach_task_assignments` (0054_coach_tasks.sql).
+      everyone can see who's assigned, read-only. An "All Rowers" checkbox
+      sits at the top of the assign-rowers list to bulk-assign/unassign
+      everyone with the rower role in one click, since launch/recovery
+      tasks usually go to the whole team rather than picking names one by
+      one. New tables `task_types`, `coach_tasks`, `coach_task_assignments`
+      (0054_coach_tasks.sql).
 - [x] Coaches can add their own custom task types as needed, not just a
       fixed built-in list: `task_types` is a small reusable list (seeded
       with Launch/Recovery) managed from a "Manage task types" toggle at the
