@@ -41,6 +41,19 @@ export async function addMember(formData: FormData) {
 
   const admin = createAdminClient();
 
+  // Without this, re-submitting the same email (e.g. a double-click, or
+  // retrying after an unrelated error) hits generateLink's existing-user
+  // case, which then throws an unhandled "duplicate key" from Postgres
+  // instead of a message anyone can act on.
+  const { data: existingProfile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  if (existingProfile) {
+    throw new Error("A member with this email already exists.");
+  }
+
   if (!createLogin) {
     const { data: inserted, error: profileError } = await admin
       .from("profiles")
@@ -57,6 +70,7 @@ export async function addMember(formData: FormData) {
       .single();
 
     if (profileError) {
+      if (profileError.code === "23505") throw new Error("A member with this email already exists.");
       throw new Error(profileError.message);
     }
 
@@ -92,6 +106,7 @@ export async function addMember(formData: FormData) {
   });
 
   if (profileError) {
+    if (profileError.code === "23505") throw new Error("A member with this email already exists.");
     throw new Error(profileError.message);
   }
 

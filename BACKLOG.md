@@ -3,6 +3,19 @@
 ## Roster
 - [x] Read-only roster list (name, role, boat side, phone, email)
 - [x] Add member form (admin/coach)
+- [x] Fixed (2026-09-23): submitting "Add member" with an email that already
+      has a profile crashed the whole Roster page ("An error occurred in
+      the Server Components render") instead of showing a normal inline
+      error. Root cause: the "create a login for them" path called
+      Supabase's `generateLink` (which resolves to the existing auth user
+      for an already-registered email rather than erroring) and then tried
+      to insert a second `profiles` row with that same id, hitting an
+      unhandled `profiles_pkey` duplicate-key error from Postgres. Now
+      checked up front — a clear "A member with this email already exists"
+      error, plus a defense-in-depth catch on the insert itself in case of
+      a race (two near-simultaneous submissions). Found via live Vercel
+      logs (`vercel logs --follow`), since production redacts server error
+      messages in the browser by design.
 - [x] Bio page per member (address, phone, birthday, high school, grad year,
       fun fact, photo, 2K/5K erg time, team, board member flag)
 - [x] Edit member profile (self, or coach/admin)
@@ -11,6 +24,22 @@
       no data is actually deleted)
 - [x] Signup flow so new members can self-register (/signup: name, email,
       password, role (rower/coxswain/parent), and groups)
+- [x] Self-service "Forgot password?" (2026-09-23): standard Supabase email
+      flow — /forgot-password sends a reset link (always shows the same
+      "check your email" message whether or not that email has an account,
+      so it can't be used to probe who's registered), the link hits
+      /auth/callback (a Route Handler, the only place allowed to persist
+      the session cookie from the reset code — a Server Component can't set
+      cookies at all) which exchanges the code for a session and lands on
+      /reset-password to set a new one. Complements the existing admin-reset
+      tool on a member's profile (2026-09-23, same day) rather than
+      replacing it. Caveat: this app has no custom email provider
+      configured, so delivery relies on Supabase's built-in sender, which is
+      rate-limited and not meant for production reliability — worth
+      revisiting if reset emails turn out to be slow/unreliable/in spam.
+      Needs the deployed origin's `/auth/callback` added to Supabase's Auth
+      → URL Configuration → Redirect URLs allow-list, or the reset link
+      won't complete.
 - [x] QR code button (roster page, admin/coach only) that shows a scannable
       link to the signup page for recruiting new members
 - [x] Self-selectable groups at signup and profile edit: Men's, Women's,

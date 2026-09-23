@@ -2,28 +2,40 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+
     setLoading(true);
-
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
+    const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
+
     if (error) {
-      setError(error.message);
+      setError(
+        error.message.includes("session")
+          ? "This reset link has expired or was already used — request a new one."
+          : error.message
+      );
       return;
     }
     router.push("/");
@@ -32,10 +44,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm flex flex-col gap-4"
-      >
+      <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-4">
         <Image
           src="/branding/logo-full.png"
           alt="Westerville Crew"
@@ -45,19 +54,22 @@ export default function LoginPage() {
           className="w-32 h-auto mx-auto"
         />
 
+        <p className="text-sm text-gray-500 text-center">Set a new password.</p>
+
         <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          type="password"
+          placeholder="New password (min 8 characters)"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
+          minLength={8}
           className="border rounded px-3 py-2"
         />
         <input
           type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Confirm new password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
           required
           className="border rounded px-3 py-2"
         />
@@ -69,15 +81,8 @@ export default function LoginPage() {
           disabled={loading}
           className="bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 disabled:opacity-50"
         >
-          {loading ? "Signing in..." : "Sign in"}
+          {loading ? "Saving..." : "Set new password"}
         </button>
-
-        <Link href="/forgot-password" className="text-sm text-gray-500 hover:underline text-center">
-          Forgot password?
-        </Link>
-        <Link href="/signup" className="text-sm text-gray-500 hover:underline text-center">
-          New here? Create an account
-        </Link>
       </form>
     </div>
   );
