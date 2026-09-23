@@ -149,6 +149,7 @@ export async function createBoat(formData: FormData) {
   }
 
   revalidatePath("/lineups");
+  revalidatePath("/boats");
 }
 
 export interface BoatImportRow {
@@ -206,6 +207,7 @@ export async function importBoats(rows: BoatImportRow[]) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/lineups");
+  revalidatePath("/boats");
   revalidatePath("/boat-maintenance");
   return { imported: data?.length ?? 0, errors: rowErrors };
 }
