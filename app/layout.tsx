@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { ServiceWorkerUpdater } from "@/components/ServiceWorkerUpdater";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getThemeColors } from "@/lib/theme";
@@ -71,6 +72,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ServiceWorkerUpdater />
         <Header unreadCount={unreadCount} userId={user?.id ?? null} photoUrl={photoUrl} />
         <PullToRefresh>
           <div className="pb-16">{children}</div>
