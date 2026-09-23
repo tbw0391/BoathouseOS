@@ -90,6 +90,8 @@
 - [x] Assign rowers/coxswain to seats (coach/admin only, everyone else sees
       read-only names)
 - [x] View lineups by event, grouped under each schedule event like Food Tent
+      (2026-09-23: superseded by the race-box grid below — events are now a
+      button linking to their own page instead of always-expanded inline)
 - [x] Category per boat (2026-09-21 decision: replaced the Varsity/Novice
       split with a numbered depth chart, since depth is per boat class, not
       a fixed team-wide rank — e.g. someone can be in the 1V8 and the 2V4
@@ -135,6 +137,22 @@
       existing "Races needing a lineup" flow: pick a boat, seats fill in
       from the boat's saved crew if it has one, adjust seats as needed. Same
       auto Launch/Recovery task creation as a CSV import.
+- [x] Race-box grid per regatta (2026-09-23): the Lineups page is now just a
+      button per event (`/lineups/[eventId]`) instead of every event's full
+      detail always expanded inline. Clicking a regatta shows a grid of
+      boxes, roster-page style — one per race (or per boat, for a lineup
+      that was never built from a race row), labeled with its name and
+      category/boat class. Box color is the at-a-glance status: white/
+      outlined = no boat yet, green = boat assigned, gold/silver/bronze =
+      finished with that placement (reuses the `lineups.place` results
+      feature). Clicking a box opens its detail below the grid — the boat
+      picker if it's still pending, or the full seat/results editor
+      (unchanged from before) once a boat's assigned. Fleet and Lineup
+      Templates stay page-level on the Lineups index, not per-regatta.
+      Extracted the old always-visible lineup card into `LineupDetail.tsx`
+      and the boat-assignment form into `AssignBoatPanel.tsx` (replacing
+      `PendingRaceRow.tsx`, removed) so both the grid and its detail panel
+      share the same components.
 - [x] Home-screen banner for coaches/admins: "N races still need a lineup
       for <regatta>" once races have been imported without an assignment.
 - [x] Lineup Templates: a reusable named crew (e.g. "Men's 1V8", "Men's
