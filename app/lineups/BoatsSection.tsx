@@ -12,7 +12,7 @@ const OTHER_BOAT_CLASSES = BOAT_CLASS_OPTIONS.filter(
   (cls) => !Object.values(CATEGORY_BOAT_CLASS).includes(cls)
 );
 
-function BoatTypeSelect({ defaultValue }: { defaultValue: string }) {
+export function BoatTypeSelect({ defaultValue }: { defaultValue: string }) {
   return (
     <select name="boat_type" defaultValue={defaultValue} required className="border rounded px-2 py-1 text-sm">
       <option value="" disabled>
