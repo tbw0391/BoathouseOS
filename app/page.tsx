@@ -803,6 +803,7 @@ export default async function Home() {
           .filter((s) => {
             const visibility = navVisibilityByHref[s.href] ?? "everyone";
             if (isAdmin) return true; // admins always see every tile, off/admins-only ones greyed or noted below
+            if (visibility === "coaches") return isCoachOrAdmin;
             return visibility === "everyone";
           })
           .concat(isAdmin ? [{ href: "/todo", label: "To-do List" }, { href: "/admin", label: "Admin Settings" }] : [])
@@ -829,7 +830,13 @@ export default async function Home() {
               <Link
                 key={s.href}
                 href={s.href}
-                title={visibility === "admins" ? "Visible to admins only" : undefined}
+                title={
+                  visibility === "admins"
+                    ? "Visible to admins only"
+                    : visibility === "coaches"
+                      ? "Visible to coaches and admins only"
+                      : undefined
+                }
                 className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[var(--color-primary)] px-4 py-6 font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
               >
                 <Icon className="w-6 h-6" />

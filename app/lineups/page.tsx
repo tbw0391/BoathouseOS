@@ -54,7 +54,9 @@ export default async function LineupsPage() {
   const sectionVisibilityById = resolveLineupSectionVisibility(settingsByKey);
   function sectionVisible(id: string): boolean {
     if (isAdmin) return true;
-    return (sectionVisibilityById[id] ?? "everyone") === "everyone";
+    const visibility = sectionVisibilityById[id] ?? "everyone";
+    if (visibility === "coaches") return canManage;
+    return visibility === "everyone";
   }
 
   const { data: eventsData } = await supabase

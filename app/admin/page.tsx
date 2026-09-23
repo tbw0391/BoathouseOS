@@ -7,6 +7,7 @@ import { updateNavToggles, updateLineupSectionVisibility, updateThemeColors, res
 
 const VISIBILITY_LABEL: Record<string, string> = {
   everyone: "Everyone",
+  coaches: "Coaches only",
   admins: "Admins only",
   off: "Off",
 };
@@ -78,8 +79,8 @@ export default async function AdminPage() {
 
       <h2 className="text-lg font-semibold mb-2">Home screen buttons</h2>
       <p className="text-sm text-gray-500 mb-6">
-        Control who sees each button on the home screen: everyone, admins only, or off for
-        everyone — handy for features you&apos;re still setting up.
+        Control who sees each button on the home screen: everyone, coaches only, admins only, or
+        off for everyone — handy for features you&apos;re still setting up.
       </p>
 
       <form action={updateNavToggles} className="flex flex-col gap-3 max-w-sm">
@@ -115,8 +116,8 @@ export default async function AdminPage() {
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Lineups sections</h2>
       <p className="text-sm text-gray-500 mb-6">
-        Control who sees each section of the Lineups page: everyone, admins only, or off for
-        everyone.
+        Control who sees each section of the Lineups page: everyone, coaches only, admins only,
+        or off for everyone.
       </p>
 
       <form action={updateLineupSectionVisibility} className="flex flex-col gap-3 max-w-sm">

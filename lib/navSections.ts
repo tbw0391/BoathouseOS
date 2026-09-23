@@ -4,9 +4,9 @@ export interface NavSectionDef {
 }
 
 // Per-href home-screen visibility, set from /admin: everyone (default),
-// admins only, or off for everyone.
-export type NavVisibility = "everyone" | "admins" | "off";
-export const NAV_VISIBILITY_OPTIONS: NavVisibility[] = ["everyone", "admins", "off"];
+// coaches (and admins), admins only, or off for everyone.
+export type NavVisibility = "everyone" | "coaches" | "admins" | "off";
+export const NAV_VISIBILITY_OPTIONS: NavVisibility[] = ["everyone", "coaches", "admins", "off"];
 
 // Reads the club_settings "nav_visibility" JSON blob, falling back to the
 // older binary "nav_disabled_hrefs" list (pre-3-way-toggle) so existing
