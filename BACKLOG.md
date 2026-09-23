@@ -118,12 +118,22 @@
       now, but worth tightening later if it causes mistakes.
 
 ## Coach Tasks
-- [ ] Coaches can assign practice/regatta-day tasks to rowers (e.g. launch
-      and recovery of boats), not just seat assignments — under the coach's
-      button/section, separate from Lineups.
-- [ ] Coaches can add their own custom task types as needed, not just a
-      fixed built-in list (launch/recovery to start, but shouldn't be
-      hardcoded to only those).
+- [x] Coaches can assign practice/regatta-day tasks to rowers (e.g. launch
+      and recovery of boats), not just seat assignments — lives at
+      /coach/tasks under a new "Coach" hub tile (2026-09-23), alongside Live
+      Tracking (moved from its own top-level tile to /coach/tracking under
+      the same hub). Tasks are per schedule event (practice or regatta,
+      unlike Volunteer Needs which is regatta-only), coach/admin can
+      add/edit/delete a task and toggle which roster members are assigned;
+      everyone can see who's assigned, read-only. New tables `task_types`,
+      `coach_tasks`, `coach_task_assignments` (0054_coach_tasks.sql).
+- [x] Coaches can add their own custom task types as needed, not just a
+      fixed built-in list: `task_types` is a small reusable list (seeded
+      with Launch/Recovery) managed from a "Manage task types" toggle at the
+      top of the Coach Tasks page, same pattern as the Boat Fleet on
+      Lineups. A type in use by a task can't be deleted (FK restrict).
+- [ ] Home-page banner for a rower's own assigned tasks (like the existing
+      lineup banner) — not built yet, worth adding as a fast follow.
 
 ## Volunteer needs
 - [x] Post volunteer needs (title, slots needed, notes), tied to a regatta —
