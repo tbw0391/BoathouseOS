@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   CoachTask,
   CoachTaskAssignment,
+  Lineup,
   Profile,
   ScheduleEvent,
   TaskType,
@@ -45,6 +46,14 @@ export default async function CoachTasksPage() {
 
   const { data: assignmentsData } = await supabase.from("coach_task_assignments").select("*");
   const assignments = (assignmentsData as CoachTaskAssignment[] | null) ?? [];
+
+  const lineupIds = [...new Set(tasks.map((t) => t.lineup_id).filter((id): id is string => !!id))];
+  const { data: lineupsData } = lineupIds.length
+    ? await supabase.from("lineups").select("id, boat_name").in("id", lineupIds)
+    : { data: [] as Pick<Lineup, "id" | "boat_name">[] };
+  const boatNameByLineupId = new Map(
+    ((lineupsData as Pick<Lineup, "id" | "boat_name">[] | null) ?? []).map((l) => [l.id, l.boat_name])
+  );
 
   const { data: rosterData } = await supabase
     .from("profiles")
@@ -91,6 +100,7 @@ export default async function CoachTasksPage() {
                 key={task.id}
                 task={task}
                 taskTypes={taskTypes}
+                boatName={task.lineup_id ? boatNameByLineupId.get(task.lineup_id) ?? null : null}
                 assignedIds={taskAssignments.map((a) => a.user_id)}
                 assignedNames={taskAssignments.map((a) => nameById.get(a.user_id) ?? "Unknown")}
                 roster={roster}

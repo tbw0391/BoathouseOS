@@ -108,6 +108,34 @@ async function createLinkedTemplate(
   if (seatsError) throw new Error(seatsError.message);
 }
 
+// A boat assigned to a race needs a Launch and Recovery task without the
+// coach having to add them by hand every time — best-effort: a missing
+// Launch/Recovery task type (e.g. renamed or deleted) shouldn't block the
+// lineup itself from being created.
+async function createLaunchRecoveryTasks(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  { lineupId, eventId, userId }: { lineupId: string; eventId: string; userId: string }
+) {
+  const { data: typesData } = await supabase
+    .from("task_types")
+    .select("id")
+    .in("name", ["Launch", "Recovery"]);
+  const types = (typesData as { id: string }[] | null) ?? [];
+  if (types.length === 0) return;
+
+  const { error } = await supabase.from("coach_tasks").insert(
+    types.map((t) => ({
+      event_id: eventId,
+      task_type_id: t.id,
+      lineup_id: lineupId,
+      created_by: userId,
+    }))
+  );
+  if (error && !isUniqueViolation(error)) {
+    console.error("Failed to auto-create launch/recovery tasks:", error.message);
+  }
+}
+
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
     data: { user },
@@ -328,8 +356,11 @@ export async function createLineup(formData: FormData) {
     .insert(seats.map((s) => ({ ...s, lineup_id: lineupId })));
   if (seatsError) throw new Error(seatsError.message);
 
+  await createLaunchRecoveryTasks(supabase, { lineupId, eventId, userId: user.id });
+
   revalidatePath("/lineups");
   revalidatePath("/");
+  revalidatePath("/coach/tasks");
 }
 
 export interface RaceImportRow {
@@ -469,8 +500,11 @@ export async function createLineupForRace(formData: FormData) {
     .eq("id", raceId);
   if (raceUpdateError) throw new Error(raceUpdateError.message);
 
+  await createLaunchRecoveryTasks(supabase, { lineupId, eventId: race.event_id, userId: user.id });
+
   revalidatePath("/lineups");
   revalidatePath("/");
+  revalidatePath("/coach/tasks");
 }
 
 // A template can either be based on a fleet boat — which pins its boat
@@ -620,6 +654,7 @@ export async function deleteLineup(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/lineups");
+  revalidatePath("/coach/tasks");
 }
 
 export async function assignSeat(seatId: string, rowerId: string | null) {

@@ -8,6 +8,7 @@ import type { CoachTask, Profile, TaskType } from "@/lib/database.types";
 export function TaskRow({
   task,
   taskTypes,
+  boatName,
   assignedNames,
   assignedIds,
   roster,
@@ -15,6 +16,7 @@ export function TaskRow({
 }: {
   task: CoachTask;
   taskTypes: TaskType[];
+  boatName: string | null;
   assignedNames: string[];
   assignedIds: string[];
   roster: Pick<Profile, "id" | "display_name" | "role">[];
@@ -96,7 +98,10 @@ export function TaskRow({
     <div className="border rounded-lg p-3">
       <div className="flex items-start justify-between">
         <div>
-          <p className="font-medium">{typeName}</p>
+          <p className="font-medium">
+            {typeName}
+            {boatName && <span className="text-sm font-normal text-gray-500"> — {boatName}</span>}
+          </p>
           {task.notes && <p className="text-sm text-gray-500">{task.notes}</p>}
         </div>
         {canManage && (

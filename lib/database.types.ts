@@ -174,6 +174,7 @@ export interface CoachTask {
   id: string;
   event_id: string;
   task_type_id: string;
+  lineup_id: string | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;
