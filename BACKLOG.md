@@ -329,7 +329,16 @@
       notifications)
 - [ ] Real push notifications (phone alert even when the app is closed) for
       new messages / schedule changes (PWA) — step 2, once ready
-- [ ] Deploy (Vercel) + point a real domain
+- [x] Deploy (Vercel) (2026-09-23): live at https://w-crew-app.vercel.app. The
+      Vercel project + its Supabase integration (env vars: POSTGRES_*,
+      SUPABASE_*, NEXT_PUBLIC_SUPABASE_*) already existed from ~2026-09-18,
+      pointed at the same Supabase project as local dev — just needed
+      `vercel link` + `vercel deploy --prod`. No Supabase Auth redirect-URL
+      config needed since this app only does email+password sign-in, no
+      magic links/OAuth. Env vars are currently only set for the Production
+      environment, not Preview/Development, in case future PR-preview
+      deploys need them too.
+- [ ] Point a real (non-vercel.app) domain at the deployment above.
 - [ ] Check the PWA precache config (next.config.ts / @ducanh2912/next-pwa)
       once actually deployed — no explicit runtimeCaching set today, so it's
       relying on Workbox's default precache list; worth confirming it isn't
