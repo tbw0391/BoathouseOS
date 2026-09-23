@@ -27,6 +27,8 @@ import type {
   AnnouncementAudience,
   ChatGroup,
   CoachAnnouncement,
+  CoachTask,
+  CoachTaskAssignment,
   EventForecast,
   FamilyLink,
   FoodTentItem,
@@ -37,6 +39,7 @@ import type {
   Profile,
   Race,
   ScheduleEvent,
+  TaskType,
   VolunteerNeed,
 } from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
@@ -81,6 +84,13 @@ type LineupBanner = {
   raceTimeLabel: string | null;
   eventTitle: string;
   eventDate: string;
+};
+
+type CoachTaskBanner = {
+  taskTypeName: string;
+  boatName: string | null;
+  raceName: string | null;
+  eventTitle: string;
 };
 
 type PendingRaceBanner = { eventTitle: string; eventDate: string; count: number };
@@ -392,6 +402,65 @@ async function loadSignupCallBanners(
     }));
 }
 
+// Coach Tasks (e.g. Launch/Recovery) assignment: shown only to the rower/
+// coxswain themselves, not their parent — unlike the lineup banner, this is
+// just "which boat am I on the hook for," not something a parent needs to
+// track on their behalf.
+async function loadCoachTaskBanners(
+  supabase: SupabaseServerClient,
+  opts: { userId: string; isRowerOrCoxswain: boolean }
+): Promise<CoachTaskBanner[]> {
+  const { userId, isRowerOrCoxswain } = opts;
+  if (!isRowerOrCoxswain) return [];
+
+  const { data: assignmentRows } = await supabase
+    .from("coach_task_assignments")
+    .select("*")
+    .eq("user_id", userId);
+  const assignments = (assignmentRows as CoachTaskAssignment[] | null) ?? [];
+  if (assignments.length === 0) return [];
+
+  const taskIds = [...new Set(assignments.map((a) => a.task_id))];
+  const { data: taskRows } = await supabase.from("coach_tasks").select("*").in("id", taskIds);
+  const tasks = (taskRows as CoachTask[] | null) ?? [];
+
+  const eventIds = [...new Set(tasks.map((t) => t.event_id))];
+  const lineupIds = [...new Set(tasks.map((t) => t.lineup_id).filter((id): id is string => !!id))];
+  const taskTypeIds = [...new Set(tasks.map((t) => t.task_type_id))];
+
+  const [{ data: eventRows }, { data: lineupRows }, { data: taskTypeRows }] = await Promise.all([
+    supabase
+      .from("schedule_events")
+      .select("*")
+      .in("id", eventIds)
+      .gte("starts_at", startOfToday()),
+    lineupIds.length
+      ? supabase.from("lineups").select("id, boat_name, race_name").in("id", lineupIds)
+      : Promise.resolve({ data: [] as Pick<Lineup, "id" | "boat_name" | "race_name">[] }),
+    supabase.from("task_types").select("*").in("id", taskTypeIds),
+  ]);
+  const eventById = new Map(((eventRows as ScheduleEvent[] | null) ?? []).map((e) => [e.id, e]));
+  const lineupById = new Map(
+    ((lineupRows as Pick<Lineup, "id" | "boat_name" | "race_name">[] | null) ?? []).map((l) => [l.id, l])
+  );
+  const taskTypeNameById = new Map(((taskTypeRows as TaskType[] | null) ?? []).map((t) => [t.id, t.name]));
+
+  return tasks
+    .filter((task) => assignments.some((a) => a.task_id === task.id))
+    .map((task) => {
+      const event = eventById.get(task.event_id);
+      if (!event) return null;
+      const lineup = task.lineup_id ? lineupById.get(task.lineup_id) : undefined;
+      return {
+        taskTypeName: taskTypeNameById.get(task.task_type_id) ?? "a task",
+        boatName: lineup?.boat_name ?? null,
+        raceName: lineup?.race_name ?? null,
+        eventTitle: event.title,
+      };
+    })
+    .filter((b): b is NonNullable<typeof b> => b !== null);
+}
+
 // Coach/admin-sent broadcasts, shown as a home banner only to their intended
 // audience (rowers/coxswains or parents) — coaches see these on the
 // /announcements page instead, not as a banner on their own home page.
@@ -449,6 +518,7 @@ export default async function Home() {
 
   let banners: FoodTentBanner[] = [];
   let lineupBanners: LineupBanner[] = [];
+  let coachTaskBanners: CoachTaskBanner[] = [];
   let pendingRaceBanners: PendingRaceBanner[] = [];
   let foodPrepBanners: FoodPrepBanner[] = [];
   let signupCallBanners: SignupCallBanner[] = [];
@@ -536,6 +606,7 @@ export default async function Home() {
     const [
       foodBanners,
       lineupBannerResults,
+      coachTaskBannerResults,
       pendingRaceBannerResults,
       familyLinkRows,
       foodPrepBannerResults,
@@ -551,6 +622,7 @@ export default async function Home() {
         isCoachOrAdmin,
         householdUserIds,
       }),
+      loadCoachTaskBanners(supabase, { userId: user.id, isRowerOrCoxswain }),
       isCoachOrAdmin ? loadPendingRaceBanners(supabase) : Promise.resolve([]),
       supabase.from("family_links").select("rower_id").in("guardian_id", householdUserIds),
       isFoodTentManager ? loadFoodPrepBanners(supabase) : Promise.resolve([]),
@@ -565,6 +637,7 @@ export default async function Home() {
     banners = foodBanners;
     upcomingRegattaForecast = forecastResult;
     lineupBanners = lineupBannerResults;
+    coachTaskBanners = coachTaskBannerResults;
     pendingRaceBanners = pendingRaceBannerResults;
     foodPrepBanners = foodPrepBannerResults;
     announcementBanners = announcementBannerResults;
@@ -771,6 +844,27 @@ export default async function Home() {
               )}{" "}
               at {b.eventTitle} ({b.eventDate}
               {b.raceTimeLabel && <>, racing at <strong>{b.raceTimeLabel}</strong></>})
+            </div>
+          ))}
+        </div>
+      )}
+
+      {coachTaskBanners.length > 0 && (
+        <div className="w-full flex flex-col gap-2">
+          {coachTaskBanners.map((b, i) => (
+            <div key={i} className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm">
+              📋 You&apos;re on <strong>{b.taskTypeName}</strong>
+              {b.boatName && (
+                <>
+                  {" "}for <strong>{b.boatName}</strong>
+                </>
+              )}{" "}
+              at {b.eventTitle}
+              {b.raceName && (
+                <>
+                  {" "}(<strong>{b.raceName}</strong>)
+                </>
+              )}
             </div>
           ))}
         </div>

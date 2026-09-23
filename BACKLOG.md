@@ -136,8 +136,29 @@
       with Launch/Recovery) managed from a "Manage task types" toggle at the
       top of the Coach Tasks page, same pattern as the Boat Fleet on
       Lineups. A type in use by a task can't be deleted (FK restrict).
-- [ ] Home-page banner for a rower's own assigned tasks (like the existing
-      lineup banner) — not built yet, worth adding as a fast follow.
+- [x] Auto-create Launch and Recovery tasks for every boat assigned to a
+      race (2026-09-23): whenever a lineup is created (both the direct
+      "create a lineup" flow and applying a template/fleet boat to a pending
+      race), a Launch task and a Recovery task are created automatically for
+      that boat, tied to it via `coach_tasks.lineup_id`
+      (0055_auto_launch_recovery_tasks.sql, which also backfilled the pair
+      for every lineup that already existed). Shows as "Launch — <boat
+      name>" on the Coach Tasks page. Best-effort: if the Launch/Recovery
+      task types have been renamed or deleted, lineup creation still
+      succeeds, it just skips auto-creating tasks. Deleting the lineup
+      cascades and removes its auto-created tasks too. Rower assignment is
+      still manual (not pre-filled from the boat's own crew, since the
+      launch/recovery crew is usually not the same crew racing that boat —
+      2026-09-23 decision).
+- [x] Home-page banner for a rower's own assigned tasks (2026-09-23, revised
+      same day): "You're on Launch for <boat name> at <event> (<date>)" —
+      leads with the boat name, since that's the one thing a rower actually
+      needs from this. Rower/coxswain only, not shown to parents at all
+      (unlike the lineup banner) — this is just "which boat am I on the
+      hook for," not something a parent needs to track on the rower's
+      behalf. In-app only, same as every other home banner in this app — no
+      push/text/email, that's still blocked on the "Real push notifications
+      (PWA)" infra item.
 
 ## Volunteer needs
 - [x] Post volunteer needs (title, slots needed, notes), tied to a regatta —
