@@ -248,6 +248,7 @@ export async function updateBoat(formData: FormData) {
   }
 
   revalidatePath("/lineups");
+  revalidatePath("/boats");
 }
 
 export async function deleteBoat(formData: FormData) {
@@ -261,6 +262,7 @@ export async function deleteBoat(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/lineups");
+  revalidatePath("/boats");
 }
 
 export async function createLineup(formData: FormData) {
