@@ -9,6 +9,7 @@ import {
   FLEET_CATEGORY_OPTIONS,
   CATEGORY_BOAT_CLASS,
 } from "@/lib/lineupCategories";
+import { HULL_COLOR_OPTIONS, RIG_OPTIONS } from "@/lib/boatOptions";
 import type { LineupCategory } from "@/lib/database.types";
 
 function seatsForBoatClass(boatClass: string): { seat_number: number; seat_role: "rower" | "coxswain" }[] {
@@ -137,10 +138,23 @@ export async function createBoat(formData: FormData) {
 
   const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
 
+  const hullColorRaw = String(formData.get("hull_color") ?? "").trim();
+  const hullColor = HULL_COLOR_OPTIONS.includes(hullColorRaw) ? hullColorRaw : null;
+
+  const rigRaw = String(formData.get("rig") ?? "").trim();
+  const rig = RIG_OPTIONS.includes(rigRaw) ? rigRaw : null;
+
   const boatId = crypto.randomUUID();
-  const { error } = await supabase
-    .from("boats")
-    .insert({ id: boatId, name, boat_class: boatClass, category, notes, created_by: user.id });
+  const { error } = await supabase.from("boats").insert({
+    id: boatId,
+    name,
+    boat_class: boatClass,
+    category,
+    notes,
+    hull_color: hullColor,
+    rig,
+    created_by: user.id,
+  });
 
   if (error) throw new Error(error.message);
 

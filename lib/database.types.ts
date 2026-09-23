@@ -117,6 +117,8 @@ export interface Boat {
   boat_class: string;
   category: LineupCategory | null;
   notes: string | null;
+  hull_color: string | null;
+  rig: string | null;
   created_by: string | null;
   created_at: string;
 }
