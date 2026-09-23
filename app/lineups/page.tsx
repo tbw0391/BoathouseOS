@@ -22,7 +22,9 @@ import { EditRaceResult } from "./EditRaceResult";
 import { LineupTemplatesSection } from "./LineupTemplatesSection";
 import { EventIcon } from "@/components/EventIcon";
 import { ImportRacesForm } from "./ImportRacesForm";
+import { ImportStarredRacesButton } from "./ImportStarredRacesButton";
 import { PendingRaceRow } from "./PendingRaceRow";
+import { parseStarredLines } from "@/lib/scheduleStars";
 
 const SEAT_ROLE_LABEL: Record<LineupSeat["seat_role"], string> = {
   rower: "Seat",
@@ -208,6 +210,10 @@ export default async function LineupsPage() {
     const uncategorized = eventLineups.filter((l) => !l.category);
     const eventPendingRaces = pendingRaces.filter((r) => r.event_id === event.id);
 
+    const starredNames = parseStarredLines(event.description);
+    const eventRaceNames = new Set(races.filter((r) => r.event_id === event.id).map((r) => r.race_name));
+    const newStarredCount = starredNames.filter((name) => !eventRaceNames.has(name)).length;
+
     return (
       <div>
         <h2 className="flex items-center gap-1.5 text-lg font-semibold">
@@ -219,6 +225,10 @@ export default async function LineupsPage() {
         </h2>
 
         <div className="mt-3 flex flex-col gap-5 max-w-lg">
+          {canManage && newStarredCount > 0 && (
+            <ImportStarredRacesButton eventId={event.id} count={newStarredCount} />
+          )}
+
           {(eventPendingRaces.length > 0 || canManage) && (
             <div>
               <h3 className="text-sm font-medium text-[var(--color-primary)] mb-2">

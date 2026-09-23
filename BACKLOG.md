@@ -116,6 +116,18 @@
       time, tied to an event) that a coach bulk-imports from Excel/CSV,
       independent of any boat/crew. A race with no lineup yet shows under
       "Races needing a lineup" on the Lineups page for that event.
+- [x] Add races straight from a regatta's own schedule description
+      (2026-09-23): a regatta's description can already hold the full
+      published heat sheet with the club's own races marked by a trailing ★
+      (shows highlighted yellow on the Schedule page). A "★ Add N races from
+      the schedule" button now appears on that event's Lineups section
+      (coach/admin only) whenever it has starred lines not yet turned into
+      races — one click creates a `races` row for each (matched/deduped by
+      exact line text against existing races, so re-clicking after adding
+      more stars only adds the new ones), and they drop straight into the
+      existing "Races needing a lineup" flow: pick a boat, seats fill in
+      from the boat's saved crew if it has one, adjust seats as needed. Same
+      auto Launch/Recovery task creation as a CSV import.
 - [x] Home-screen banner for coaches/admins: "N races still need a lineup
       for <regatta>" once races have been imported without an assignment.
 - [x] Lineup Templates: a reusable named crew (e.g. "Men's 1V8", "Men's

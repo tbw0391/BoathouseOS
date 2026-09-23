@@ -10,6 +10,7 @@ import {
   CATEGORY_BOAT_CLASS,
 } from "@/lib/lineupCategories";
 import { HULL_COLOR_OPTIONS, RIG_OPTIONS } from "@/lib/boatOptions";
+import { parseStarredLines } from "@/lib/scheduleStars";
 import type { LineupCategory } from "@/lib/database.types";
 
 function seatsForBoatClass(boatClass: string): { seat_number: number; seat_role: "rower" | "coxswain" }[] {
@@ -498,6 +499,57 @@ export async function importRaces(eventId: string, rows: RaceImportRow[]) {
   revalidatePath("/");
   revalidatePath("/coach/tasks");
   return { imported: data?.length ?? 0, errors: rowErrors };
+}
+
+// Pulls the ★-marked lines out of a regatta's own description (the same
+// lines that show highlighted on the Schedule page) and turns any that
+// aren't already a race for this event into one — same "Races needing a
+// lineup" flow as a CSV import, just sourced from the schedule instead of a
+// spreadsheet. Matches by exact race name, so re-clicking after adding more
+// starred lines only adds the new ones.
+export async function createRacesFromDescription(eventId: string) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+
+  if (!eventId) throw new Error("Missing event.");
+
+  const { data: event, error: eventError } = await supabase
+    .from("schedule_events")
+    .select("description")
+    .eq("id", eventId)
+    .single();
+  if (eventError || !event) throw new Error("That event couldn't be found.");
+
+  const starredNames = parseStarredLines(event.description);
+  if (starredNames.length === 0) return { imported: 0 };
+
+  const { data: existingRacesData } = await supabase
+    .from("races")
+    .select("race_name")
+    .eq("event_id", eventId);
+  const existingNames = new Set(
+    ((existingRacesData as { race_name: string }[] | null) ?? []).map((r) => r.race_name)
+  );
+
+  const newNames = [...new Set(starredNames.filter((name) => !existingNames.has(name)))];
+  if (newNames.length === 0) return { imported: 0 };
+
+  const { error, data } = await supabase
+    .from("races")
+    .insert(newNames.map((raceName) => ({ event_id: eventId, race_name: raceName, created_by: user.id })))
+    .select("id");
+  if (error) throw new Error(error.message);
+
+  await createLaunchRecoveryTasksForRaces(supabase, {
+    eventId,
+    userId: user.id,
+    raceIds: (data ?? []).map((r) => r.id),
+  });
+
+  revalidatePath("/lineups");
+  revalidatePath("/");
+  revalidatePath("/coach/tasks");
+  return { imported: data?.length ?? 0 };
 }
 
 export async function deleteRace(formData: FormData) {
