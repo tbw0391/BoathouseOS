@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { createBoat } from "@/app/lineups/actions";
 import { BoatTypeSelect } from "@/app/lineups/BoatsSection";
+import { HULL_COLORS, HULL_COLOR_OPTIONS, RIGS, RIG_OPTIONS } from "@/lib/boatOptions";
 
 export function AddBoatForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -53,6 +54,28 @@ export function AddBoatForm() {
 
       <input name="name" placeholder="Boat name" required className="border rounded px-3 py-2 text-sm" />
       <BoatTypeSelect defaultValue="" />
+
+      <select name="hull_color" defaultValue="" required className="border rounded px-3 py-2 text-sm">
+        <option value="" disabled>
+          Hull color
+        </option>
+        {HULL_COLOR_OPTIONS.map((color) => (
+          <option key={color} value={color}>
+            {HULL_COLORS[color].label}
+          </option>
+        ))}
+      </select>
+
+      <select name="rig" defaultValue="" required className="border rounded px-3 py-2 text-sm">
+        <option value="" disabled>
+          Rig
+        </option>
+        {RIG_OPTIONS.map((rig) => (
+          <option key={rig} value={rig}>
+            {RIGS[rig]}
+          </option>
+        ))}
+      </select>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
