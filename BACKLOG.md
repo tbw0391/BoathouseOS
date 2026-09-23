@@ -32,6 +32,18 @@
       display name), sort by first or last name, and filter down to one
       group (Men's/Women's/Development/Masters/Alumni/Coaches/Parent) —
       all client-side on the roster table.
+- [x] Admin can reset another member's password (2026-09-23): "Reset
+      password" button on a member's profile page (admin-only), sets their
+      password directly via the Supabase admin API
+      (`auth.admin.updateUserById`, `lib/supabase/admin.ts`) — no email
+      involved. A "Generate" button fills in a random one, or the admin can
+      type their own; either way it's shown once for the admin to relay to
+      the member directly. Chosen over an emailed "forgot password" link
+      since this app has no outbound email configured yet and self-service
+      change-your-own-password doesn't exist either — this was the more
+      reliable near-term fix for a small club. A roster-only member (no
+      login) surfaces a clear "nothing to reset" error instead of a raw API
+      failure.
 
 ## Schedule
 - [x] List upcoming/past events, split into Regattas and Practice
