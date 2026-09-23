@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Boat } from "@/lib/database.types";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES } from "@/lib/lineupCategories";
+import { HULL_COLORS, RIGS } from "@/lib/boatOptions";
 import { AddBoatForm } from "./AddBoatForm";
 
 export default async function BoatsPage() {
@@ -16,7 +17,7 @@ export default async function BoatsPage() {
     supabase.auth.getUser(),
     supabase
       .from("boats")
-      .select("id, name, boat_class, category, notes, created_by, created_at")
+      .select("id, name, boat_class, category, notes, hull_color, rig, created_by, created_at")
       .order("name", { ascending: true }),
   ]);
 
@@ -69,6 +70,19 @@ export default async function BoatsPage() {
               >
                 <span className="truncate w-full font-medium">{boat.name}</span>
                 <span className="text-xs text-gray-500 truncate w-full">{typeLabel}</span>
+                <span className="flex items-center justify-center gap-1 text-[11px] text-gray-500">
+                  {boat.hull_color && (
+                    <>
+                      <span
+                        className="w-2.5 h-2.5 rounded-full border shrink-0"
+                        style={{ backgroundColor: HULL_COLORS[boat.hull_color]?.swatch }}
+                      />
+                      {HULL_COLORS[boat.hull_color]?.label}
+                    </>
+                  )}
+                  {boat.hull_color && boat.rig && <span>·</span>}
+                  {boat.rig && RIGS[boat.rig]}
+                </span>
               </div>
             );
           })}
