@@ -19,9 +19,9 @@ import {
   Settings,
   Vote,
   Megaphone,
-  Ship,
   type LucideIcon,
 } from "lucide-react";
+import RacingScull from "@/components/icons/RacingScull";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AnnouncementAudience,
@@ -49,7 +49,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/roster": Users,
   "/schedule": Calendar,
   "/lineups": Waves,
-  "/boats": Ship,
+  "/boats": RacingScull,
   "/on-water": Navigation,
   "/workouts": Dumbbell,
   "/food-tent": Tent,
