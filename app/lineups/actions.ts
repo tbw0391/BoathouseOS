@@ -722,6 +722,28 @@ export async function updateLineupRace(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updateLineupPlace(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const lineupId = String(formData.get("lineup_id") ?? "").trim();
+  if (!lineupId) throw new Error("Missing boat.");
+
+  const placeRaw = String(formData.get("place") ?? "").trim();
+  let place: number | null = null;
+  if (placeRaw) {
+    place = Math.trunc(Number(placeRaw));
+    if (!Number.isFinite(place) || place < 1) throw new Error("Place must be a positive number.");
+  }
+
+  const { error } = await supabase.from("lineups").update({ place }).eq("id", lineupId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/lineups");
+  revalidatePath("/schedule/regatta");
+  revalidatePath("/");
+}
+
 export async function deleteLineup(formData: FormData) {
   const supabase = await createClient();
   await requireManager(supabase);

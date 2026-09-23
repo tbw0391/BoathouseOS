@@ -18,6 +18,7 @@ import { CreateLineupForm } from "./CreateLineupForm";
 import { SeatAssign } from "./SeatAssign";
 import { DeleteLineupButton } from "./DeleteLineupButton";
 import { EditRaceInfo } from "./EditRaceInfo";
+import { EditRaceResult } from "./EditRaceResult";
 import { LineupTemplatesSection } from "./LineupTemplatesSection";
 import { EventIcon } from "@/components/EventIcon";
 import { ImportRacesForm } from "./ImportRacesForm";
@@ -166,6 +167,7 @@ export default async function LineupsPage() {
             </p>
             {lineup.notes && <p className="text-sm text-gray-500">{lineup.notes}</p>}
             <EditRaceInfo lineup={lineup} canManage={canManage} />
+            <EditRaceResult lineup={lineup} canManage={canManage} />
           </div>
           {canManage && <DeleteLineupButton lineupId={lineup.id} />}
         </div>

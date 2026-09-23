@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { deleteScheduleEvent, updateScheduleEvent } from "./actions";
 import type { EventType, ScheduleEvent } from "@/lib/database.types";
 import { EventIcon } from "@/components/EventIcon";
+import { placeEmoji } from "@/lib/raceResults";
 
 const RECURRENCE_LABEL: Record<ScheduleEvent["recurrence"], string> = {
   none: "",
@@ -39,10 +40,12 @@ export function EventCard({
   event,
   eventType,
   canManage,
+  medalPlace = null,
 }: {
   event: ScheduleEvent;
   eventType: EventType;
   canManage: boolean;
+  medalPlace?: number | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +163,11 @@ export function EventCard({
         <h3 className="flex items-center gap-1.5 font-medium">
           <EventIcon title={event.title} />
           {event.title}
+          {medalPlace != null && medalPlace <= 3 && (
+            <span title={`We finished in ${medalPlace === 1 ? "1st" : medalPlace === 2 ? "2nd" : "3rd"} place`}>
+              {placeEmoji(medalPlace)}
+            </span>
+          )}
         </h3>
         <span className="whitespace-nowrap text-xs text-gray-500">
           {formatWhen(event.starts_at, event.ends_at)}

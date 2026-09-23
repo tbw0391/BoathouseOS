@@ -106,6 +106,7 @@ export interface Lineup {
   notes: string | null;
   race_time: string | null;
   race_name: string | null;
+  place: number | null;
   created_by: string | null;
   created_at: string;
   chat_group_id: string | null;

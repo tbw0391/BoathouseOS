@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import type { EventType, Role, ScheduleEvent } from "@/lib/database.types";
+import type { EventType, Lineup, Role, ScheduleEvent } from "@/lib/database.types";
 import { createScheduleEvent } from "./actions";
 import { EventCard } from "./EventCard";
 
@@ -24,6 +24,26 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
     .eq("event_type", eventType)
     .order("starts_at", { ascending: true });
   const events = (eventsData as ScheduleEvent[] | null) ?? [];
+
+  // A medal shows on a regatta once one of our boats there has a recorded
+  // top-3 finish — the best (lowest) place across all its boats.
+  const { data: lineupsData } =
+    eventType === "regatta" && events.length > 0
+      ? await supabase
+          .from("lineups")
+          .select("event_id, place")
+          .in(
+            "event_id",
+            events.map((e) => e.id)
+          )
+          .not("place", "is", null)
+      : { data: [] as Pick<Lineup, "event_id" | "place">[] };
+  const bestPlaceByEventId = new Map<string, number>();
+  for (const l of (lineupsData as Pick<Lineup, "event_id" | "place">[] | null) ?? []) {
+    if (l.place == null || !l.event_id) continue;
+    const current = bestPlaceByEventId.get(l.event_id);
+    if (current === undefined || l.place < current) bestPlaceByEventId.set(l.event_id, l.place);
+  }
 
   const now = new Date();
   const upcoming = events.filter((e) => new Date(e.starts_at).getTime() >= now.getTime());
@@ -104,7 +124,13 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
       <div className="flex flex-col gap-3">
         {upcoming.length ? (
           upcoming.map((event) => (
-            <EventCard key={event.id} event={event} eventType={eventType} canManage={canManage} />
+            <EventCard
+              key={event.id}
+              event={event}
+              eventType={eventType}
+              canManage={canManage}
+              medalPlace={bestPlaceByEventId.get(event.id) ?? null}
+            />
           ))
         ) : (
           <p className="text-sm text-gray-500">Nothing scheduled yet.</p>
@@ -118,7 +144,13 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
           </summary>
           <div className="mt-3 flex flex-col gap-3">
             {past.map((event) => (
-              <EventCard key={event.id} event={event} eventType={eventType} canManage={canManage} />
+              <EventCard
+                key={event.id}
+                event={event}
+                eventType={eventType}
+                canManage={canManage}
+                medalPlace={bestPlaceByEventId.get(event.id) ?? null}
+              />
             ))}
           </div>
         </details>
