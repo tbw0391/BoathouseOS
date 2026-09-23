@@ -461,6 +461,7 @@ export default async function Home() {
   let isParent = false;
   let isRowerOrCoxswain = false;
   let isFoodTentManager = false;
+  let firstName: string | null = null;
 
   let householdUserIds: string[] = [];
 
@@ -479,7 +480,7 @@ export default async function Home() {
     ] = await Promise.all([
       getUnreadChatCount(user.id),
       getUnreadScheduleCount(user.id),
-      supabase.from("profiles").select("role, spouse_id, is_tent_leader").eq("id", user.id).single(),
+      supabase.from("profiles").select("role, spouse_id, is_tent_leader, first_name").eq("id", user.id).single(),
       supabase.from("chat_groups").select("id").eq("team", "coach").maybeSingle(),
       supabase
         .from("schedule_events")
@@ -494,13 +495,14 @@ export default async function Home() {
     unreadCount = unreadCountResult;
     unreadScheduleCount = unreadScheduleCountResult;
 
-    const caller = callerResult.data as Pick<Profile, "role" | "spouse_id" | "is_tent_leader"> | null;
+    const caller = callerResult.data as Pick<Profile, "role" | "spouse_id" | "is_tent_leader" | "first_name"> | null;
     const callerRole = caller?.role;
     isAdmin = callerRole === "admin";
     isCoachOrAdmin = callerRole === "admin" || callerRole === "coach";
     isParent = callerRole === "parent";
     isRowerOrCoxswain = callerRole === "rower" || callerRole === "coxswain";
     isFoodTentManager = isCoachOrAdmin || Boolean(caller?.is_tent_leader);
+    firstName = caller?.first_name ?? null;
 
     if ((coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id) {
       coachChatHref = `/messages/${(coachGroupResult.data as Pick<ChatGroup, "id">).id}`;
@@ -589,6 +591,11 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen p-8 flex flex-col items-center gap-8">
+      {firstName && (
+        <div className="w-full text-left font-medium text-gray-700">
+          Welcome, {firstName}
+        </div>
+      )}
       <div className="text-center">
         <Image
           src="/branding/logo-full.png"
