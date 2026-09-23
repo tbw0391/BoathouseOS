@@ -40,6 +40,7 @@ export function resolveNavVisibility(
 export const NAV_SECTIONS: NavSectionDef[] = [
   { href: "/roster", label: "Roster" },
   { href: "/lineups", label: "Lineups" },
+  { href: "/boats", label: "Boats" },
   { href: "/on-water", label: "On the Water" },
   { href: "/workouts", label: "Workouts" },
   { href: "/food-tent", label: "Food Tent" },

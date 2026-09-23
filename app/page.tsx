@@ -19,6 +19,7 @@ import {
   Settings,
   Vote,
   Megaphone,
+  Ship,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -48,6 +49,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/roster": Users,
   "/schedule": Calendar,
   "/lineups": Waves,
+  "/boats": Ship,
   "/on-water": Navigation,
   "/workouts": Dumbbell,
   "/food-tent": Tent,
