@@ -28,7 +28,7 @@ export function BottomNav({ userId }: { userId: string | null }) {
             href={tab.href}
             aria-label={tab.label}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] ${
-              active ? "text-[#022e5d] font-medium" : "text-gray-500"
+              active ? "text-[var(--color-primary)] font-medium" : "text-gray-500"
             }`}
           >
             <Icon className="w-6 h-6" />

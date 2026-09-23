@@ -21,17 +21,17 @@ export function Header({
     <header className="sticky top-0 z-10 border-b bg-white">
       <div className="relative flex items-center justify-center px-4 py-2">
         <div className="absolute left-4 flex items-center gap-4">
-          <Link href="/photos" aria-label="Photos" className="inline-flex items-center justify-center text-[#022e5d]">
+          <Link href="/photos" aria-label="Photos" className="inline-flex items-center justify-center text-[var(--color-primary)]">
             <Camera className="w-7 h-7" />
           </Link>
-          <Link href="/walk-up-songs" aria-label="Walk up songs" className="inline-flex items-center justify-center text-[#022e5d]">
+          <Link href="/walk-up-songs" aria-label="Walk up songs" className="inline-flex items-center justify-center text-[var(--color-primary)]">
             <Music className="w-7 h-7" />
           </Link>
           {unreadCount !== null && (
             <Link
               href="/messages"
               aria-label="Messages"
-              className="relative inline-flex items-center justify-center text-[#022e5d]"
+              className="relative inline-flex items-center justify-center text-[var(--color-primary)]"
             >
               <MessageCircle className="w-7 h-7" />
               {unreadCount > 0 && (
@@ -63,7 +63,7 @@ export function Header({
                   className="w-8 h-8 rounded-full object-cover border"
                 />
               ) : (
-                <CircleUserRound className="w-8 h-8 text-[#022e5d]" />
+                <CircleUserRound className="w-8 h-8 text-[var(--color-primary)]" />
               )}
             </Link>
           </div>
@@ -73,7 +73,7 @@ export function Header({
         <div className="border-t px-4 py-1.5">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-1 text-sm text-[#022e5d] hover:underline"
+            className="inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:underline"
           >
             <ChevronLeft className="w-4 h-4" />
             Back

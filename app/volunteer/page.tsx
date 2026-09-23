@@ -4,6 +4,7 @@ import { NeedForm } from "./NeedForm";
 import { NeedRow } from "./NeedRow";
 import { SignupControl } from "./SignupControl";
 import { ImportNeedsForm } from "./ImportNeedsForm";
+import { EventIcon } from "@/components/EventIcon";
 
 export default async function VolunteerPage() {
   const supabase = await createClient();
@@ -58,7 +59,8 @@ export default async function VolunteerPage() {
           const eventNeeds = needs.filter((n) => n.event_id === event.id);
           return (
             <div key={event.id}>
-              <h2 className="text-lg font-semibold">
+              <h2 className="flex items-center gap-1.5 text-lg font-semibold">
+                <EventIcon title={event.title} className="w-6 h-6" />
                 {event.title}{" "}
                 <span className="text-sm font-normal text-gray-500">
                   {new Date(event.starts_at).toLocaleDateString()}

@@ -17,6 +17,7 @@ import { WishlistItemForm } from "./WishlistItemForm";
 import { WishlistItemRow } from "./WishlistItemRow";
 import { WishlistSignupControl } from "./WishlistSignupControl";
 import { PublishControl } from "./PublishControl";
+import { EventIcon } from "@/components/EventIcon";
 
 const STATUS_LABEL: Record<FoodTentStatus["status"], string> = {
   draft: "Draft",
@@ -150,7 +151,8 @@ export default async function FoodTentPage() {
           const canPublish = isManager && status?.status !== "published" && eventItems.length > 0;
           return (
             <div key={event.id}>
-              <h2 className="text-lg font-semibold">
+              <h2 className="flex items-center gap-1.5 text-lg font-semibold">
+                <EventIcon title={event.title} className="w-6 h-6" />
                 {event.title}{" "}
                 <span className="text-sm font-normal text-gray-500">
                   {new Date(event.starts_at).toLocaleDateString()}
