@@ -55,8 +55,23 @@
       every request.
 
 ## Race Results
-- [ ] Mark a race final as finished with a placement (1st/2nd/3rd) once results are posted
-- [ ] Show a regatta icon with a medal (1st/2nd/3rd) on the schedule once a race final we're in has finished
+- [x] Mark a race final as finished with a placement (2026-09-23): a
+      "Enter result" control on each boat's LineupCard (Lineups page, next
+      to the existing race name/time editor), coach/admin only — a plain
+      finishing-place number, not restricted to just 1st/2nd/3rd, since a
+      boat can finish 5th too and that's still worth recording. Lives on
+      `lineups.place` (0057_lineup_race_results.sql) rather than on the
+      underlying `races` row, matching how race_name/race_time already work
+      as a per-lineup editable snapshot rather than a live join — also
+      covers lineups that were never built from an imported race row.
+      Non-managers see a read-only "🥇 1st place" once set, nothing before
+      that.
+- [x] Show a regatta icon with a medal (1st/2nd/3rd) on the schedule once a
+      race final we're in has finished (2026-09-23): on
+      Schedule → Regattas, the event's icon row shows 🥇/🥈/🥉 once any of
+      its boats has a recorded place of 1-3 (the best place if more than
+      one boat placed); no medal for 4th and below, or before results are
+      entered. Regatta list only, not Practice.
 - [ ] Notify people when a Westerville boat is actually racing down the course
       (live, while the race is happening) — depends on push notifications
       (PWA) being built first; also need to decide the trigger: someone at
