@@ -4,16 +4,16 @@
   --background: #ffffff;
   --foreground: #171717;
   /* Site-wide theme colors, admin-editable at /admin. These defaults match
-     the colors the app shipped with; RootLayout overrides them (and
-     --background) inline once colors are picked, via the `style` attribute
-     on <html> so they win regardless of the dark-mode media query below. */
+     the colors the app shipped with; RootLayout overrides --background
+     inline once a color is picked, via the `style` attribute on <html>. */
   --color-primary: #022e5d;
   --color-secondary: #404040;
   --color-accent: #01213f;
-  /* Tells the browser this page supports both schemes, so native form
-     controls (inputs, buttons) pick matching colors instead of staying
-     light-styled while their (inherited) text color flips to white. */
-  color-scheme: light dark;
+  /* The app has no dark-mode design, so tell the browser this page is
+     light-only. Otherwise native form controls (date pickers, selects,
+     scrollbars) render dark-styled on phones set to dark mode while sitting
+     on our light background/text. */
+  color-scheme: light;
 }
 
 @theme inline {
@@ -23,12 +23,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* No dark-mode variant of --background/--foreground: the app only has a
+   light-themed design (admin-configurable background, but buttons/text
+   throughout assume a light background with dark text and don't set an
+   explicit color of their own). Following the system dark-mode media query
+   here used to flip --foreground to a near-white gray while --background
+   stayed pinned light (via the inline style below), making button/body text
+   nearly invisible on phones set to dark mode. */
 
 body {
   background: var(--background);
