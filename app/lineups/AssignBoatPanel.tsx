@@ -3,12 +3,28 @@
 import { useState, useTransition } from "react";
 import { createLineupForRace, deleteRace } from "./actions";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { LINEUP_CATEGORIES } from "@/lib/lineupCategories";
-import type { Boat } from "@/lib/database.types";
+import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
+import type { Boat, LineupCategory } from "@/lib/database.types";
 
-export function AssignBoatPanel({ raceId, boats }: { raceId: string; boats: Boat[] }) {
+export function AssignBoatPanel({
+  raceId,
+  boats,
+  category,
+}: {
+  raceId: string;
+  boats: Boat[];
+  category: LineupCategory | null;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // A race's category (e.g. a men's depth chart entry) only fields boats
+  // built for that same team; boats with no category (singles/doubles/pairs)
+  // aren't gendered, so they stay available regardless of the race.
+  const raceTeam = category ? LINEUP_CATEGORY_TEAM[category] : null;
+  const eligibleBoats = raceTeam
+    ? boats.filter((b) => !b.category || LINEUP_CATEGORY_TEAM[b.category as LineupCategory] === raceTeam)
+    : boats;
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -35,13 +51,17 @@ export function AssignBoatPanel({ raceId, boats }: { raceId: string; boats: Boat
         <label className="text-sm font-medium">Assign a boat</label>
         {boats.length === 0 ? (
           <p className="text-xs text-gray-500">Add a boat to the fleet above first.</p>
+        ) : eligibleBoats.length === 0 ? (
+          <p className="text-xs text-gray-500">
+            No {category ? LINEUP_CATEGORIES[category].split(" ")[0] : ""} boats in the fleet yet.
+          </p>
         ) : (
           <>
             <select name="boat_id" required defaultValue="" className="border rounded px-2 py-1 text-sm">
               <option value="" disabled>
                 Choose a boat
               </option>
-              {boats.map((b) => (
+              {eligibleBoats.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name} (
                   {b.category ? LINEUP_CATEGORIES[b.category] : BOAT_CLASSES[b.boat_class]?.label ?? b.boat_class})
@@ -56,7 +76,7 @@ export function AssignBoatPanel({ raceId, boats }: { raceId: string; boats: Boat
         )}
         {error && <p className="text-xs text-red-600">{error}</p>}
         <div className="flex gap-2">
-          {boats.length > 0 && (
+          {eligibleBoats.length > 0 && (
             <button
               type="submit"
               disabled={isPending}

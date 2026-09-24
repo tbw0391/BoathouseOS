@@ -69,7 +69,7 @@ export function EventRacesView({
             />
           ) : selected.raceId ? (
             canManage ? (
-              <AssignBoatPanel raceId={selected.raceId} boats={boats} />
+              <AssignBoatPanel raceId={selected.raceId} boats={boats} category={selected.category} />
             ) : (
               <p className="text-sm text-gray-500">Waiting on a coach to assign a boat.</p>
             )
