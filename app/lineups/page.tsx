@@ -130,16 +130,6 @@ export default async function LineupsPage() {
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">Lineups</h1>
 
-      {canManage && sectionVisible("fleet") && <BoatsSection boats={boats} />}
-      {canManage && sectionVisible("templates") && (
-        <LineupTemplatesSection
-          templates={templates}
-          templateSeats={templateSeats}
-          roster={roster}
-          boats={boats}
-        />
-      )}
-
       {upcoming.length === 0 && past.length === 0 && (
         <p className="text-sm text-gray-500">No events on the schedule yet.</p>
       )}
@@ -149,6 +139,20 @@ export default async function LineupsPage() {
           <EventButton key={event.id} event={event} />
         ))}
       </div>
+
+      {canManage && (sectionVisible("fleet") || sectionVisible("templates")) && (
+        <div className="mt-8 flex flex-col gap-3">
+          {sectionVisible("fleet") && <BoatsSection boats={boats} />}
+          {sectionVisible("templates") && (
+            <LineupTemplatesSection
+              templates={templates}
+              templateSeats={templateSeats}
+              roster={roster}
+              boats={boats}
+            />
+          )}
+        </div>
+      )}
 
       {past.length > 0 && (
         <details className="mt-8 w-full">
