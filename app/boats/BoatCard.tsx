@@ -99,8 +99,13 @@ export function BoatCard({ boat, canManage }: { boat: Boat; canManage: boolean }
     ? LINEUP_CATEGORIES[boat.category]
     : BOAT_CLASSES[boat.boat_class]?.label ?? boat.boat_class;
 
+  const tint = boat.hull_color ? HULL_COLORS[boat.hull_color]?.swatch : null;
+
   return (
-    <div className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-[var(--color-primary)] px-3 py-3 text-sm text-center min-w-0">
+    <div
+      className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-[var(--color-primary)] px-3 py-3 text-sm text-center min-w-0"
+      style={tint ? { backgroundColor: `color-mix(in srgb, ${tint} 18%, white)` } : undefined}
+    >
       <span className="truncate w-full font-medium">{boat.name}</span>
       <span className="text-xs text-gray-500 truncate w-full">{typeLabel}</span>
       <span className="flex items-center justify-center gap-1 text-[11px] text-gray-500">

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Boat } from "@/lib/database.types";
 import { AddBoatForm } from "./AddBoatForm";
-import { BoatCard } from "./BoatCard";
+import { BoatsGrid } from "./BoatsGrid";
 
 export default async function BoatsPage() {
   const supabase = await createClient();
@@ -55,13 +55,7 @@ export default async function BoatsPage() {
         <p className="text-sm text-gray-500 mt-4">No boats yet.</p>
       )}
 
-      {boats.length > 0 && (
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {boats.map((boat) => (
-            <BoatCard key={boat.id} boat={boat} canManage={canManage} />
-          ))}
-        </div>
-      )}
+      {boats.length > 0 && <BoatsGrid boats={boats} canManage={canManage} />}
     </div>
   );
 }
