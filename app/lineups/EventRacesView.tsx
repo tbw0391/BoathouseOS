@@ -46,7 +46,7 @@ export function EventRacesView({
       {items.length === 0 ? (
         <p className="text-sm text-gray-500">No races or boats yet.</p>
       ) : (
-        <div className="grid grid-cols-3 gap-2 max-w-3xl">
+        <div className="flex flex-col gap-2">
           {items.map((item) => (
             <RaceBox
               key={item.key}

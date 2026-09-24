@@ -30,13 +30,15 @@ export function RaceBox({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-28 flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-2 py-2 text-sm text-center transition hover:brightness-95 min-w-0 ${STATE_CLASSES[item.state]} ${
+      className={`flex w-full items-center gap-3 rounded-lg border-2 px-3 py-2 text-sm text-left transition hover:brightness-95 min-w-0 ${STATE_CLASSES[item.state]} ${
         selected ? "ring-2 ring-offset-1 ring-[var(--color-primary)]" : ""
       }`}
     >
-      <span className="text-lg leading-none h-5">{icon ?? ""}</span>
-      <span className="font-medium line-clamp-2 w-full">{item.label}</span>
-      <span className="text-xs text-gray-500 truncate w-full h-4">{item.categoryLabel || ""}</span>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium truncate">{item.label}</div>
+        <div className="text-xs text-gray-500 truncate">{item.categoryLabel || ""}</div>
+      </div>
+      {icon && <span className="text-lg leading-none shrink-0">{icon}</span>}
     </button>
   );
 }
