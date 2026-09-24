@@ -56,7 +56,7 @@ export function RaceBox({
       }`}
     >
       {icon && <span className="absolute top-1 right-1.5 text-lg leading-none">{icon}</span>}
-      {firstLine && <span className="text-xs text-gray-500 truncate w-full">{firstLine}</span>}
+      {firstLine && <span className="font-medium truncate w-full">{firstLine}</span>}
       <span className="font-medium line-clamp-2 w-full">{rest}</span>
     </button>
   );
