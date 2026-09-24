@@ -34,8 +34,8 @@ export function NeedRow({
   function remove() {
     const warning =
       signupCount > 0
-        ? `Delete "${need.title}"? This removes the whole slot AND everyone's signups for it (${signupCount} ${signupCount === 1 ? "person" : "people"}).`
-        : `Delete "${need.title}"?`;
+        ? `Delete "${need.title}"? This removes the whole slot AND everyone's signups for it (${signupCount} ${signupCount === 1 ? "person" : "people"}). If you just want to remove your own signup, use "Cancel" next to your name instead.`
+        : `Delete "${need.title}"? This removes the whole volunteer slot.`;
     if (!window.confirm(warning)) return;
     setError(null);
     startTransition(async () => {
@@ -118,9 +118,10 @@ export function NeedRow({
               <button
                 onClick={remove}
                 disabled={isPending}
+                title="Deletes this volunteer slot for everyone, not just your own signup"
                 className="text-xs border border-red-600 text-red-600 rounded px-2 py-1 disabled:opacity-50"
               >
-                Delete
+                Delete slot
               </button>
             </>
           )}

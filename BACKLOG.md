@@ -280,8 +280,11 @@
       food tent item import: Title/Task/Name, Slots Needed/Slots/People
       Needed, Description/Notes columns (case-insensitive), only Title
       required
-- [ ] Edit/delete needs its own polish pass (currently basic — same
-      edit/delete pattern as food tent items)
+- [x] Edit/delete polish pass (2026-09-24): manager delete button now says
+      "Delete slot" (not just "Delete") with a tooltip clarifying it removes
+      the slot for everyone, and the confirm dialog points people at the
+      "Cancel" link next to their own name if they just want to drop their
+      own signup — matching the food tent item's confirm copy.
 
 ## Workouts
 - [ ] Content TBD (button/route scaffolded, waiting on requirements)
