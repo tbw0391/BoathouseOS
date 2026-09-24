@@ -1,4 +1,4 @@
-import type { Lineup, LineupSeat } from "@/lib/database.types";
+import type { Lineup, LineupSeat, LineupCategory } from "@/lib/database.types";
 
 export type RaceBoxState = "pending" | "assigned" | "gold" | "silver" | "bronze";
 
@@ -11,6 +11,7 @@ export interface RaceBoxItem {
   key: string;
   label: string;
   categoryLabel: string;
+  category: LineupCategory | null;
   state: RaceBoxState;
   raceId: string | null;
   lineup: Lineup | null;
