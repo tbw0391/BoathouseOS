@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { BoatCard } from "./BoatCard";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { LINEUP_CATEGORIES } from "@/lib/lineupCategories";
+import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { HULL_COLORS, RIGS } from "@/lib/boatOptions";
-import type { Boat } from "@/lib/database.types";
+import type { Boat, Team } from "@/lib/database.types";
 
 type SortKey = "name" | "type" | "hull_color" | "rig";
 
@@ -14,6 +14,12 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "type", label: "Type" },
   { key: "hull_color", label: "Hull color" },
   { key: "rig", label: "Rig" },
+];
+
+const FILTER_TEAMS: { key: Team; label: string }[] = [
+  { key: "mens", label: "Men's" },
+  { key: "womens", label: "Women's" },
+  { key: "masters", label: "Masters" },
 ];
 
 function sortValue(boat: Boat, key: SortKey): string {
@@ -36,8 +42,9 @@ function sortValue(boat: Boat, key: SortKey): string {
 export function BoatsGrid({ boats, canManage }: { boats: Boat[]; canManage: boolean }) {
   // Order of this array is sort priority: first key wins ties broken by the next.
   const [sortKeys, setSortKeys] = useState<SortKey[]>([]);
+  const [filterTeams, setFilterTeams] = useState<Team[]>([]);
 
-  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+  function handleSortChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const selected = Array.from(e.target.selectedOptions, (opt) => opt.value as SortKey);
     // Keep already-selected keys in their existing priority order, then
     // append newly-selected ones at the end.
@@ -46,28 +53,66 @@ export function BoatsGrid({ boats, canManage }: { boats: Boat[]; canManage: bool
     setSortKeys([...kept, ...added]);
   }
 
+  function handleFilterChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setFilterTeams(Array.from(e.target.selectedOptions, (opt) => opt.value as Team));
+  }
+
+  const filteredBoats = useMemo(() => {
+    if (filterTeams.length === 0) return boats;
+    return boats.filter((boat) => {
+      const team = boat.category ? LINEUP_CATEGORY_TEAM[boat.category] : null;
+      return team ? filterTeams.includes(team) : false;
+    });
+  }, [boats, filterTeams]);
+
   const sortedBoats = useMemo(() => {
-    if (sortKeys.length === 0) return boats;
-    return [...boats].sort((a, b) => {
+    if (sortKeys.length === 0) return filteredBoats;
+    return [...filteredBoats].sort((a, b) => {
       for (const key of sortKeys) {
         const cmp = sortValue(a, key).localeCompare(sortValue(b, key));
         if (cmp !== 0) return cmp;
       }
       return 0;
     });
-  }, [boats, sortKeys]);
+  }, [filteredBoats, sortKeys]);
 
   return (
     <div className="mt-4">
-      <div className="flex items-center gap-2 mb-3">
-        <label htmlFor="boat-sort" className="text-sm text-gray-600">
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <label htmlFor="boat-filter" className="text-sm text-gray-600">
+          Filter by team
+        </label>
+        <select
+          id="boat-filter"
+          multiple
+          value={filterTeams}
+          onChange={handleFilterChange}
+          className="border rounded px-2 py-1 text-sm"
+        >
+          {FILTER_TEAMS.map((opt) => (
+            <option key={opt.key} value={opt.key}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {filterTeams.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilterTeams([])}
+            className="text-xs text-gray-500 hover:underline"
+          >
+            Clear
+          </button>
+        )}
+
+        <label htmlFor="boat-sort" className="text-sm text-gray-600 ml-4">
           Sort by
         </label>
         <select
           id="boat-sort"
           multiple
           value={sortKeys}
-          onChange={handleChange}
+          onChange={handleSortChange}
           className="border rounded px-2 py-1 text-sm"
         >
           {SORT_OPTIONS.map((opt) => (
@@ -98,6 +143,9 @@ export function BoatsGrid({ boats, canManage }: { boats: Boat[]; canManage: bool
             <BoatCard key={boat.id} boat={boat} canManage={canManage} />
           ))}
         </div>
+      )}
+      {sortedBoats.length === 0 && (
+        <p className="text-sm text-gray-500">No boats match the selected filter.</p>
       )}
     </div>
   );
