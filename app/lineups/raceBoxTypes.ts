@@ -11,7 +11,6 @@ export interface RaceBoxItem {
   key: string;
   label: string;
   categoryLabel: string;
-  raceTime: string | null;
   state: RaceBoxState;
   raceId: string | null;
   lineup: Lineup | null;
