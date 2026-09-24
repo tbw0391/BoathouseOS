@@ -29,7 +29,27 @@ export function EventRacesView({
   starredCount: number;
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const selected = items.find((i) => i.key === selectedKey) ?? null;
+
+  function renderDetail(item: RaceBoxItem) {
+    if (item.lineup) {
+      return (
+        <LineupDetail
+          lineup={item.lineup}
+          lineupSeats={item.lineupSeats}
+          eligibleRoster={item.eligibleRoster}
+          canManage={canManage}
+        />
+      );
+    }
+    if (item.raceId) {
+      return canManage ? (
+        <AssignBoatPanel raceId={item.raceId} boats={boats} category={item.category} />
+      ) : (
+        <p className="text-sm text-gray-500">Waiting on a coach to assign a boat.</p>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="min-h-screen p-8">
@@ -48,32 +68,15 @@ export function EventRacesView({
       ) : (
         <div className="flex flex-col gap-2">
           {items.map((item) => (
-            <RaceBox
-              key={item.key}
-              item={item}
-              selected={selectedKey === item.key}
-              onClick={() => setSelectedKey(selectedKey === item.key ? null : item.key)}
-            />
+            <div key={item.key} className="flex flex-col gap-2">
+              <RaceBox
+                item={item}
+                selected={selectedKey === item.key}
+                onClick={() => setSelectedKey(selectedKey === item.key ? null : item.key)}
+              />
+              {selectedKey === item.key && <div className="max-w-lg">{renderDetail(item)}</div>}
+            </div>
           ))}
-        </div>
-      )}
-
-      {selected && (
-        <div className="mt-4 max-w-lg">
-          {selected.lineup ? (
-            <LineupDetail
-              lineup={selected.lineup}
-              lineupSeats={selected.lineupSeats}
-              eligibleRoster={selected.eligibleRoster}
-              canManage={canManage}
-            />
-          ) : selected.raceId ? (
-            canManage ? (
-              <AssignBoatPanel raceId={selected.raceId} boats={boats} category={selected.category} />
-            ) : (
-              <p className="text-sm text-gray-500">Waiting on a coach to assign a boat.</p>
-            )
-          ) : null}
         </div>
       )}
 
