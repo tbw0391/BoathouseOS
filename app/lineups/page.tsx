@@ -90,7 +90,14 @@ export default async function LineupsPage() {
       eventIdsWithLineups.has(e.id) ||
       eventIdsWithRaces.has(e.id)
   );
-  const upcoming = relevantEvents.filter((e) => new Date(e.starts_at).getTime() >= now.getTime());
+  const upcoming = relevantEvents
+    .filter((e) => new Date(e.starts_at).getTime() >= now.getTime())
+    .sort((a, b) => {
+      const aRegatta = a.event_type === "regatta" ? 0 : 1;
+      const bRegatta = b.event_type === "regatta" ? 0 : 1;
+      if (aRegatta !== bRegatta) return aRegatta - bRegatta;
+      return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+    });
   const past = relevantEvents
     .filter((e) => new Date(e.starts_at).getTime() < now.getTime())
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
@@ -100,13 +107,13 @@ export default async function LineupsPage() {
     return (
       <Link
         href={`/lineups/${event.id}`}
-        className="flex items-center justify-between gap-2 rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+        className="flex items-center justify-between gap-2 rounded-lg border-2 border-[var(--color-primary)] px-6 py-5 hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
       >
-        <span className="flex items-center gap-1.5 font-medium">
-          <EventIcon title={event.title} className="w-5 h-5" />
+        <span className="flex items-center gap-2 text-lg font-medium">
+          <EventIcon title={event.title} className="w-7 h-7" />
           {event.title}
         </span>
-        <span className="text-sm text-gray-500 text-right">
+        <span className="text-base text-gray-500 text-right">
           {new Date(event.starts_at).toLocaleDateString()}
           {pendingCount > 0 && (
             <>
@@ -137,14 +144,14 @@ export default async function LineupsPage() {
         <p className="text-sm text-gray-500">No events on the schedule yet.</p>
       )}
 
-      <div className="flex flex-col gap-3 max-w-lg">
+      <div className="flex flex-col gap-3 w-full">
         {upcoming.map((event) => (
           <EventButton key={event.id} event={event} />
         ))}
       </div>
 
       {past.length > 0 && (
-        <details className="mt-8 max-w-lg">
+        <details className="mt-8 w-full">
           <summary className="cursor-pointer text-sm font-medium text-gray-500 hover:text-black">
             Past ({past.length})
           </summary>
