@@ -16,6 +16,19 @@ const STATE_ICON: Partial<Record<RaceBoxState, string>> = {
   bronze: "🥉",
 };
 
+// A race name like "Event 4 - Women's V8+" leads with the race number; only
+// that lead is used on the number/time line, since the type of race (the
+// part after the separator) is already tracked separately as categoryLabel.
+function raceNumber(label: string): string {
+  const match = label.match(/^(.*?)[-:–—]\s*.+$/);
+  return (match ? match[1] : label).trim();
+}
+
+function formatRaceTime(raceTime: string | null): string | null {
+  if (!raceTime) return null;
+  return new Date(raceTime).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
 export function RaceBox({
   item,
   selected,
@@ -26,17 +39,20 @@ export function RaceBox({
   onClick: () => void;
 }) {
   const icon = STATE_ICON[item.state];
+  const timeLabel = formatRaceTime(item.raceTime);
+  const firstLine = [raceNumber(item.label), timeLabel].filter(Boolean).join(" · ");
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-28 flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-2 py-2 text-sm text-center transition hover:brightness-95 min-w-0 ${STATE_CLASSES[item.state]} ${
+      className={`relative flex h-28 flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-2 py-2 text-sm text-center transition hover:brightness-95 min-w-0 ${STATE_CLASSES[item.state]} ${
         selected ? "ring-2 ring-offset-1 ring-[var(--color-primary)]" : ""
       }`}
     >
-      <span className="text-lg leading-none h-5">{icon ?? ""}</span>
-      <span className="font-medium line-clamp-2 w-full">{item.label}</span>
-      <span className="text-xs text-gray-500 truncate w-full h-4">{item.categoryLabel || ""}</span>
+      {icon && <span className="absolute top-1 right-1.5 text-lg leading-none">{icon}</span>}
+      <span className="font-medium truncate w-full">{firstLine}</span>
+      <span className="font-medium line-clamp-2 w-full">{item.categoryLabel || ""}</span>
     </button>
   );
 }
