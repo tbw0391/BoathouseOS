@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Boat } from "@/lib/database.types";
-import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { LINEUP_CATEGORIES } from "@/lib/lineupCategories";
-import { HULL_COLORS, RIGS } from "@/lib/boatOptions";
 import { AddBoatForm } from "./AddBoatForm";
+import { BoatCard } from "./BoatCard";
 
 export default async function BoatsPage() {
   const supabase = await createClient();
@@ -59,33 +57,9 @@ export default async function BoatsPage() {
 
       {boats.length > 0 && (
         <div className="mt-4 grid grid-cols-3 gap-2">
-          {boats.map((boat) => {
-            const typeLabel = boat.category
-              ? LINEUP_CATEGORIES[boat.category]
-              : BOAT_CLASSES[boat.boat_class]?.label ?? boat.boat_class;
-            return (
-              <div
-                key={boat.id}
-                className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-[var(--color-primary)] px-3 py-3 text-sm text-center min-w-0"
-              >
-                <span className="truncate w-full font-medium">{boat.name}</span>
-                <span className="text-xs text-gray-500 truncate w-full">{typeLabel}</span>
-                <span className="flex items-center justify-center gap-1 text-[11px] text-gray-500">
-                  {boat.hull_color && (
-                    <>
-                      <span
-                        className="w-2.5 h-2.5 rounded-full border shrink-0"
-                        style={{ backgroundColor: HULL_COLORS[boat.hull_color]?.swatch }}
-                      />
-                      {HULL_COLORS[boat.hull_color]?.label}
-                    </>
-                  )}
-                  {boat.hull_color && boat.rig && <span>·</span>}
-                  {boat.rig && RIGS[boat.rig]}
-                </span>
-              </div>
-            );
-          })}
+          {boats.map((boat) => (
+            <BoatCard key={boat.id} boat={boat} canManage={canManage} />
+          ))}
         </div>
       )}
     </div>

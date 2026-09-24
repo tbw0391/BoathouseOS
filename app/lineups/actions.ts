@@ -333,9 +333,15 @@ export async function updateBoat(formData: FormData) {
 
   const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
 
+  const hullColorRaw = String(formData.get("hull_color") ?? "").trim();
+  const hullColor = HULL_COLOR_OPTIONS.includes(hullColorRaw) ? hullColorRaw : null;
+
+  const rigRaw = String(formData.get("rig") ?? "").trim();
+  const rig = RIG_OPTIONS.includes(rigRaw) ? rigRaw : null;
+
   const { error } = await supabase
     .from("boats")
-    .update({ name, boat_class: boatClass, category, notes })
+    .update({ name, boat_class: boatClass, category, notes, hull_color: hullColor, rig })
     .eq("id", boatId);
 
   if (error) throw new Error(error.message);
