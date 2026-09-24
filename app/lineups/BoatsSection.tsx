@@ -3,8 +3,16 @@
 import { useRef, useState, useTransition } from "react";
 import { createBoat, updateBoat, deleteBoat } from "./actions";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
-import { LINEUP_CATEGORIES, FLEET_CATEGORY_GROUPS, CATEGORY_BOAT_CLASS } from "@/lib/lineupCategories";
-import type { Boat } from "@/lib/database.types";
+import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM, FLEET_CATEGORY_GROUPS, CATEGORY_BOAT_CLASS } from "@/lib/lineupCategories";
+import type { Boat, Team } from "@/lib/database.types";
+
+// Boats with no category (singles/doubles/pairs) aren't tied to a team, so
+// they get no shading — only a men's/women's/masters depth-chart boat does.
+const TEAM_BG: Partial<Record<Team, string>> = {
+  mens: "bg-blue-50",
+  womens: "bg-gray-100",
+  masters: "bg-yellow-50",
+};
 
 // Boats out of the Men's/Women's depth scheme (singles, doubles, pairs) —
 // offered as a plain boat-class fallback in the same picker.
@@ -97,9 +105,10 @@ function BoatRow({ boat }: { boat: Boat }) {
   }
 
   const typeLabel = boat.category ? LINEUP_CATEGORIES[boat.category] : BOAT_CLASSES[boat.boat_class]?.label ?? boat.boat_class;
+  const team = boat.category ? LINEUP_CATEGORY_TEAM[boat.category] : null;
 
   return (
-    <li className="flex items-center justify-between text-sm">
+    <li className={`flex items-center justify-between text-sm rounded px-2 py-1 ${team ? TEAM_BG[team] ?? "" : ""}`}>
       <span>
         {boat.name} <span className="text-gray-500">({typeLabel})</span>
       </span>
