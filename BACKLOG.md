@@ -511,10 +511,12 @@
       to 100+ other rowing clubs, each with fully isolated data. Today there
       is zero tenant isolation (almost every RLS policy is "readable by any
       authenticated user") since there's only ever been one club.
-- [ ] Demo landing page: a standalone marketing/demo web page (separate from
-      the app itself) to show other rowing clubs what the app does when
-      pitching — feature overview, screenshots, maybe a guided tour or a
-      read-only sandbox login. Purpose/content/hosting still TBD.
+- [x] Demo landing page (2026-09-25): /welcome, which signed-out visitors
+      to boathouseos.app now land on (deep links still go to /login).
+      Tagline, "Try the demo" as the main button, feature cards, the
+      interest form, and a sign-in link.
+- [ ] Landing page follow-ups: real screenshots of the app, maybe a
+      guided tour.
 - [ ] Phase 1 (schema + RLS isolation only — no branding/onboarding/billing
       yet) is fully designed and reviewed: a `clubs` table, `club_id` on
       every table with composite FKs to enforce parent/child consistency, a

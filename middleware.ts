@@ -73,15 +73,18 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/forgot-password') ||
     // Public so people who scan the "interested" QR code can leave their
     // details without signing in.
-    request.nextUrl.pathname.startsWith('/interest');
+    request.nextUrl.pathname.startsWith('/interest') ||
+    // The public landing page for visiting clubs.
+    request.nextUrl.pathname === '/welcome';
 
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    // The bare domain gets the landing page; deep links go straight to login.
+    url.pathname = request.nextUrl.pathname === '/' ? '/welcome' : '/login';
     return NextResponse.redirect(url);
   }
 
-  if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
+  if (user && ['/login', '/signup', '/welcome'].includes(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
