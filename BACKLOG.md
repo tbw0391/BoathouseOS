@@ -1,4 +1,4 @@
-# W-Crew-app Backlog
+# BoatHouseOS Backlog
 
 ## Roster
 - [x] Read-only roster list (name, role, boat side, phone, email)
@@ -113,7 +113,7 @@
       its boats has a recorded place of 1-3 (the best place if more than
       one boat placed); no medal for 4th and below, or before results are
       entered. Regatta list only, not Practice.
-- [ ] Notify people when a Westerville boat is actually racing down the course
+- [ ] Notify people when one of the club's boats is actually racing down the course
       (live, while the race is happening) — depends on push notifications
       (PWA) being built first; also need to decide the trigger: someone at
       the course manually marks "racing now" vs. pulling from a live regatta
@@ -463,9 +463,11 @@
       and only coaches/admins `disabled_at`.
 - [ ] Per-IP rate limit on the public "Interested?" form (/interest), like
       signup has.
-- [ ] Keep the public demo and real clubs in separate Supabase projects /
+- [x] Keep the public demo and real clubs in separate Supabase projects /
       Vercel deployments (the demo reset wipes data, and "Try the demo"
-      signs everyone in as an admin).
+      signs everyone in as an admin). Done 2026-09-25: BoatHouseOS runs on
+      its own Supabase project and Vercel project (boathouseos), separate
+      from W-Crew-app's.
 - [ ] Supabase dashboard settings: stronger password minimum + leaked
       password check, custom SMTP for auth emails, MFA on admin and
       Supabase/Vercel/GitHub/registrar accounts, Pro plan for backups.
