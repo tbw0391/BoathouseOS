@@ -421,10 +421,17 @@
       deploys need them too.
 - [x] Point a real (non-vercel.app) domain at the deployment above
       (2026-09-25): https://boathouseos.app (currently redirects to www).
-- [ ] Check the PWA precache config (next.config.ts / @ducanh2912/next-pwa)
-      once actually deployed — no explicit runtimeCaching set today, so it's
-      relying on Workbox's default precache list; worth confirming it isn't
-      precaching large/dynamic routes unnecessarily.
+- [x] Check the PWA precache config (2026-09-25): the precache list is just
+      _next/static, icons, leaflet markers, and public/branding — fine,
+      except the unused source art (Concept.png 2MB, Logo.png, icon.png) was
+      downloaded on every install. Now excluded via publicExcludes.
+- [ ] Decide whether the PWA should cache signed-in data on the device.
+      next-pwa's default runtime caching keeps visited pages ("pages", 24h)
+      and cross-origin responses incl. Supabase API reads ("cross-origin",
+      1h) in the browser's Cache Storage, and signing out doesn't clear
+      them — so roster phones/addresses can linger on a shared device.
+      Options: NetworkOnly for those caches (loses offline), or clear
+      caches on sign-out.
 - [ ] Swap raw `<img>` tags for `next/image` on photos and avatars (photos
       page, roster bio page, roster table) for automatic resizing/
       optimization — needs the Supabase storage domain added to
@@ -471,8 +478,14 @@
 - [ ] Supabase dashboard settings: stronger password minimum + leaked
       password check, custom SMTP for auth emails, MFA on admin and
       Supabase/Vercel/GitHub/registrar accounts, Pro plan for backups.
-- [ ] Check upload size/type limits on the avatars and photos buckets.
-- [ ] GitHub: protect main, turn on Dependabot.
+- [x] Upload size/type limits on the avatars and photos buckets
+      (2026-09-25, 0061_storage_upload_limits.sql): both were unlimited;
+      now images only (no SVG), 5MB avatars / 15MB photos.
+- [x] Dependabot version updates: .github/dependabot.yml (weekly npm,
+      minor/patch grouped).
+- [ ] GitHub settings (by hand): turn on Dependabot alerts + security
+      updates, and protect main — at least block force-push and deletion;
+      requiring PRs would break committing from the GitHub web editor.
 - [ ] Privacy policy page (collects names, phones, and minors' data).
 - [ ] Advisor leftovers: `latest_messages_for_groups` and
       `demo_baseline.excluded_tables` have no fixed search_path; several

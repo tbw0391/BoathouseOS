@@ -5,6 +5,14 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
+  // Source brand art the app never loads (the derived logo/mark files are
+  // what's used); Concept.png alone is 2MB, downloaded on every install.
+  publicExcludes: [
+    "!noprecache/**/*",
+    "!branding/Concept.png",
+    "!branding/Logo.png",
+    "!branding/icon.png",
+  ],
   workboxOptions: {
     skipWaiting: true,
   },
