@@ -37,7 +37,7 @@ export function SignupQrButton() {
             className="bg-white rounded-lg p-6 flex flex-col items-center gap-4 max-w-xs w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-medium">Scan to join Westerville Crew</h2>
+            <h2 className="font-medium">Scan to join BoatHouseOS</h2>
             {signupUrl && <QRCodeSVG value={signupUrl} size={220} />}
             <p className="text-xs text-gray-500 break-all text-center">{signupUrl}</p>
             <div className="flex gap-2 w-full">

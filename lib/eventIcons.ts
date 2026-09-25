@@ -2,9 +2,7 @@
 // schedule event's title (same pattern as the food-item emoji matching on
 // the home page). Add more entries here as other regattas get their own
 // logo.
-const EVENT_ICON_RULES: { keywords: string[]; url: string }[] = [
-  { keywords: ["cuyahoga", "hotc"], url: "/regatta-icons/hotc.png" },
-];
+const EVENT_ICON_RULES: { keywords: string[]; url: string }[] = [];
 
 export function getEventIconUrl(title: string): string | null {
   const lower = title.toLowerCase();

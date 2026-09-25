@@ -683,7 +683,7 @@ export default async function Home() {
       <div className="text-center">
         <Image
           src="/branding/logo-full.png"
-          alt="Westerville Crew"
+          alt="Club logo"
           width={480}
           height={530}
           priority
@@ -965,7 +965,7 @@ export default async function Home() {
             <ShoppingBag className="w-7 h-7 shrink-0" />
             <div>
               <p className="text-lg font-bold leading-tight">Team Store</p>
-              <p className="text-sm text-white/80">Shop official Westerville Crew gear →</p>
+              <p className="text-sm text-white/80">Shop official club gear →</p>
             </div>
           </a>
           {featuredItems.length > 0 && (

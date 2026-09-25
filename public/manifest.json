@@ -1,7 +1,7 @@
 {
-  "name": "W-Crew-app",
-  "short_name": "W-Crew",
-  "description": "Westerville Rowing Club — roster, schedule, lineups, volunteers, and messaging.",
+  "name": "BoatHouseOS",
+  "short_name": "BoatHouseOS",
+  "description": "Rowing club management — roster, schedule, lineups, volunteers, and messaging.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#022e5d",

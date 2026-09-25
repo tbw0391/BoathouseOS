@@ -38,7 +38,7 @@ export default function LoginPage() {
       >
         <Image
           src="/branding/logo-full.png"
-          alt="Westerville Crew"
+          alt="Club logo"
           width={480}
           height={530}
           priority

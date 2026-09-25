@@ -1,6 +1,6 @@
-# W-Crew-app
+# BoatHouseOS
 
-PWA for Westerville Rowing Club: roster, schedule, lineups, volunteer needs,
+PWA for rowing clubs: roster, schedule, lineups, volunteer needs,
 team store link, and messaging.
 
 ## Stack

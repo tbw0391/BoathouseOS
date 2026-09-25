@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-4">
         <Image
           src="/branding/logo-full.png"
-          alt="Westerville Crew"
+          alt="Club logo"
           width={480}
           height={530}
           priority

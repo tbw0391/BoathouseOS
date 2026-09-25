@@ -45,7 +45,7 @@ export function Header({
         <Link href="/" aria-label="Home" className="inline-flex">
           <Image
             src="/icons/icon-512.png"
-            alt="Westerville Crew home"
+            alt="Home"
             width={512}
             height={512}
             priority

@@ -48,13 +48,13 @@ export default function SignupPage() {
       >
         <Image
           src="/branding/logo-full.png"
-          alt="Westerville Crew"
+          alt="Club logo"
           width={480}
           height={530}
           priority
           className="w-32 h-auto mx-auto"
         />
-        <h1 className="text-xl font-bold text-center">Join Westerville Crew</h1>
+        <h1 className="text-xl font-bold text-center">Join BoatHouseOS</h1>
 
         {/* Honeypot: hidden from sighted users, bots often fill every field. */}
         <input

@@ -20,13 +20,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "W-Crew-app",
-  description: "Westerville Rowing Club — roster, schedule, lineups, volunteers, and messaging.",
+  title: "BoatHouseOS",
+  description: "Rowing club management — roster, schedule, lineups, volunteers, and messaging.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "W-Crew",
+    title: "BoatHouseOS",
   },
 };
 
