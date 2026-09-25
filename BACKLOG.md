@@ -515,7 +515,9 @@
       to boathouseos.app now land on (deep links still go to /login).
       Tagline, "Try the demo" as the main button, feature cards, the
       interest form, and a sign-in link.
-- [ ] Landing page follow-ups: real screenshots of the app, maybe a
+- [ ] Landing page follow-ups: real screenshots of the app (Todd will add
+      phone shots of Lineups, a Regatta race, and home in club colors to
+      public/branding/screens/), maybe a
       guided tour.
 - [ ] Phase 1 (schema + RLS isolation only — no branding/onboarding/billing
       yet) is fully designed and reviewed: a `clubs` table, `club_id` on
