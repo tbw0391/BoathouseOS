@@ -47,6 +47,7 @@ import { getUnreadChatCount } from "@/lib/chat";
 import { getUnreadScheduleCount } from "@/lib/schedule";
 import { getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
+import { QrCodes } from "@/app/global-admin/qr/QrCodes";
 
 const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/roster": Users,
@@ -990,6 +991,8 @@ export default async function Home() {
           )}
         </div>
       )}
+
+      <QrCodes compact />
     </div>
   );
 }
