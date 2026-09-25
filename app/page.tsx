@@ -696,15 +696,21 @@ export default async function Home() {
   return (
     <div className="min-h-screen p-8 flex flex-col items-center gap-8">
       {demoClub ? (
-        <div className="w-full flex items-center gap-3">
+        <div className="w-full flex flex-col items-center gap-2 text-center">
           {demoClub.blade && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={demoClub.blade} alt="" width={66} height={36} className="shrink-0" />
+            <img
+              src={demoClub.blade}
+              alt=""
+              width={198}
+              height={108}
+              className="max-w-full h-auto [image-rendering:pixelated]"
+            />
           )}
-          <h1 className="flex-1 min-w-0 text-xl font-bold leading-tight text-[var(--color-primary)]">
+          <h1 className="text-2xl font-bold leading-tight text-[var(--color-primary)]">
             {demoClub.name}
           </h1>
-          <Link href="/choose-club" className="text-xs text-gray-500 underline shrink-0">
+          <Link href="/choose-club" className="text-xs text-gray-500 underline">
             Change club
           </Link>
         </div>
