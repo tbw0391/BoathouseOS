@@ -4,9 +4,10 @@ import { AddMemberForm } from "./AddMemberForm";
 import { ImportForm } from "./ImportForm";
 import { SignupQrButton } from "./SignupQrButton";
 import { RosterGrid, type RosterProfile } from "./RosterGrid";
+import { PendingApprovals } from "./PendingApprovals";
 
 const ROSTER_COLUMNS =
-  "id, email, display_name, role, phone, boat_side, disabled_at, first_name, last_name, photo_url, is_board_member";
+  "id, email, display_name, role, phone, boat_side, disabled_at, first_name, last_name, photo_url, is_board_member, approved_at";
 
 export default async function RosterPage() {
   const supabase = await createClient();
@@ -25,7 +26,11 @@ export default async function RosterPage() {
     supabase.from("profile_teams").select("*"),
   ]);
 
-  const allProfiles = (data as RosterProfile[] | null) ?? [];
+  // Pending self-signups only come back for admins (RLS), and are listed
+  // separately rather than in the roster itself.
+  const fetched = (data as (RosterProfile & { approved_at: string | null })[] | null) ?? [];
+  const pendingMembers = fetched.filter((p) => !p.approved_at && p.id !== user?.id);
+  const allProfiles = fetched.filter((p) => p.approved_at);
   const currentProfile = allProfiles.find((p) => p.id === user?.id);
   const canManage = currentProfile?.role === "admin" || currentProfile?.role === "coach";
   const profiles = canManage ? allProfiles : allProfiles.filter((p) => !p.disabled_at);
@@ -53,6 +58,8 @@ export default async function RosterPage() {
           <SignupQrButton />
         </div>
       )}
+
+      {pendingMembers.length > 0 && <PendingApprovals members={pendingMembers} />}
 
       {error && (
         <p className="text-sm text-red-600 mt-4">

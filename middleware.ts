@@ -92,8 +92,10 @@ export async function middleware(request: NextRequest) {
   // sends them somewhere that explains why everything is empty.
   if (user && !isAuthRoute) {
     const onPending = request.nextUrl.pathname.startsWith('/pending');
-    const { data: approved } = await supabase.rpc('is_approved');
-    if (!approved && !onPending) {
+    const { data: approved, error: approvalError } = await supabase.rpc('is_approved');
+    // If the check itself fails (e.g. the migration isn't applied yet), don't
+    // lock everyone out; RLS still guards the data.
+    if (!approvalError && !approved && !onPending) {
       const url = request.nextUrl.clone();
       url.pathname = '/pending';
       return NextResponse.redirect(url);

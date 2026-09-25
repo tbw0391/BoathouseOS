@@ -545,6 +545,7 @@ export default async function Home() {
   let isRowerOrCoxswain = false;
   let isFoodTentManager = false;
   let isGlobalAdmin = false;
+  let pendingApprovalCount = 0;
 
   let householdUserIds: string[] = [];
 
@@ -552,7 +553,7 @@ export default async function Home() {
     const now = new Date();
     const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    // These six only need the user's id, not each other's results, so run
+    // These seven only need the user's id, not each other's results, so run
     // them concurrently instead of one round trip at a time.
     const [
       unreadCountResult,
@@ -561,6 +562,7 @@ export default async function Home() {
       coachGroupResult,
       regattaResult,
       globalAdminResult,
+      pendingApprovalResult,
     ] = await Promise.all([
       getUnreadChatCount(user.id),
       getUnreadScheduleCount(user.id),
@@ -575,7 +577,16 @@ export default async function Home() {
         .order("starts_at", { ascending: true })
         .limit(1),
       supabase.rpc("is_global_admin"),
+      // RLS only returns other people's pending rows to admins, so this is 0
+      // for everyone else.
+      supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .is("approved_at", null)
+        .neq("id", user.id),
     ]);
+
+    pendingApprovalCount = pendingApprovalResult.count ?? 0;
 
     isGlobalAdmin = globalAdminResult.data === true;
 
@@ -686,6 +697,16 @@ export default async function Home() {
       >
         🙋 Yes, I&apos;m interested in this software. Please let me know when it&apos;s available!
       </Link>
+
+      {pendingApprovalCount > 0 && (
+        <Link
+          href="/roster"
+          className="w-full block text-center bg-amber-100 border-2 border-amber-400 rounded-lg px-4 py-3 text-sm font-medium hover:bg-amber-200 transition-colors"
+        >
+          {pendingApprovalCount} {pendingApprovalCount === 1 ? "person is" : "people are"} waiting for
+          approval →
+        </Link>
+      )}
 
       {announcementBanners.length > 0 && (
         <div className="w-full flex flex-col gap-2">
