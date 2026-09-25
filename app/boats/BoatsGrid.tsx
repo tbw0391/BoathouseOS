@@ -17,8 +17,8 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ];
 
 const FILTER_TEAMS: { key: Team; label: string }[] = [
-  { key: "mens", label: "Men's" },
-  { key: "womens", label: "Women's" },
+  { key: "mens", label: "M" },
+  { key: "womens", label: "W" },
   { key: "masters", label: "Masters" },
 ];
 

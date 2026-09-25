@@ -1,7 +1,15 @@
 import { getEventIconUrl } from "@/lib/eventIcons";
 
-export function EventIcon({ title, className = "w-5 h-5" }: { title: string; className?: string }) {
-  const url = getEventIconUrl(title);
+export function EventIcon({
+  title,
+  iconUrl,
+  className = "w-5 h-5",
+}: {
+  title: string;
+  iconUrl?: string | null;
+  className?: string;
+}) {
+  const url = iconUrl || getEventIconUrl(title);
   if (!url) return null;
 
   return (

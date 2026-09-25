@@ -17,7 +17,11 @@ function buildCsp(nonce: string) {
     `object-src 'none'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' data: blob: ${supabaseUrl} https://*.tile.openstreetmap.org`,
+    // https: (not just specific hosts) because "Add regatta from a link"
+    // (lib/urlMeta.ts / lib/crewtimer.ts) fetches a regatta's icon from
+    // whatever domain the coach happened to paste — the set of hosts isn't
+    // known ahead of time the way it is for e.g. Supabase or OSM tiles.
+    `img-src 'self' data: blob: https: ${supabaseUrl}`,
     `font-src 'self' data:`,
     `connect-src 'self' ${supabaseUrl} ${supabaseWs}`,
   ].join('; ');
@@ -111,5 +115,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|icons|branding|sw.js|workbox-.*).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|icons|branding|regatta-icons|sw.js|workbox-.*).*)'],
 };

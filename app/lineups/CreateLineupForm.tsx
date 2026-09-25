@@ -80,7 +80,7 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
       </select>
       <input
         name="race_name"
-        placeholder="Race name (optional, e.g. Event 4 - Women's V8+)"
+        placeholder="Race name (optional, e.g. Event 4 - W V8+)"
         className="border rounded px-3 py-2 text-sm"
       />
       <label className="flex flex-col gap-1 text-xs text-gray-500">

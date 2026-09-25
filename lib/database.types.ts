@@ -59,6 +59,9 @@ export interface ScheduleEvent {
   recurrence: ScheduleRecurrence;
   created_by: string | null;
   created_at: string;
+  crewtimer_mobile_id: string | null;
+  crewtimer_synced_at: string | null;
+  icon_url: string | null;
 }
 
 export interface EventForecast {
@@ -108,6 +111,7 @@ export interface Lineup {
   race_time: string | null;
   race_name: string | null;
   place: number | null;
+  result_time: string | null;
   created_by: string | null;
   created_at: string;
   chat_group_id: string | null;

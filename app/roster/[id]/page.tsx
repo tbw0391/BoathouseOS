@@ -7,6 +7,7 @@ import { RoleToggle } from "./RoleToggle";
 import { RemoveMemberButton } from "./RemoveMemberButton";
 import { PermanentlyDeleteButton } from "./PermanentlyDeleteButton";
 import { ResetPasswordButton } from "./ResetPasswordButton";
+import { LogOutButton } from "./LogOutButton";
 import { setBoardMember, setTentLeader, setRemoved, permanentlyDeleteProfile, resetMemberPassword } from "./actions";
 import { TEAM_LABELS } from "@/lib/teams";
 
@@ -187,7 +188,7 @@ export default async function BioPage({
           {canEdit && (
             <Link
               href={`/roster/${id}?edit=1`}
-              className="text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2"
+              className="w-52 text-center text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2"
             >
               Edit
             </Link>
@@ -221,6 +222,7 @@ export default async function BioPage({
               onReset={resetMemberPassword.bind(null, profile.id)}
             />
           )}
+          {isSelf && <LogOutButton />}
         </div>
       </div>
 

@@ -47,7 +47,7 @@ export function ResetPasswordButton({
           setDone(false);
           setPassword(generatePassword());
         }}
-        className="text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2"
+        className="w-52 text-center text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2"
       >
         Reset password
       </button>

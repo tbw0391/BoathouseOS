@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { EventType, Lineup, Role, ScheduleEvent } from "@/lib/database.types";
 import { createScheduleEvent } from "./actions";
 import { EventCard } from "./EventCard";
+import { AddRegattaFromUrlForm } from "./AddRegattaFromUrlForm";
 
 export async function ScheduleTypeView({ eventType, label }: { eventType: EventType; label: string }) {
   const supabase = await createClient();
@@ -58,6 +59,12 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
       </Link>
       <h1 className="text-2xl font-bold mt-4 mb-6">{label}</h1>
 
+      {canManage && eventType === "regatta" && (
+        <div className="max-w-lg flex flex-col">
+          <AddRegattaFromUrlForm />
+        </div>
+      )}
+
       {canManage && (
         <form
           action={createScheduleEvent}
@@ -99,6 +106,20 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
             placeholder="Details (optional)"
             className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
           />
+          {eventType === "regatta" && (
+            <label className="flex flex-col gap-1 text-sm text-gray-600">
+              CrewTimer mobile ID (optional)
+              <input
+                name="crewtimer_mobile_id"
+                placeholder="e.g. r12967"
+                className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
+              />
+              <span className="text-xs text-gray-400">
+                From this regatta&apos;s crewtimer.com results link. Once set, race results for our
+                coxed boats fill in automatically on the Lineups page.
+              </span>
+            </label>
+          )}
           <label className="flex flex-col gap-1 text-sm text-gray-600">
             Repeats
             <select

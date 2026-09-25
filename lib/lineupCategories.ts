@@ -14,8 +14,8 @@ const DEPTH_BOAT_CLASSES: { slug: string; label: string; boatClass: string }[] =
 const DEPTHS = [1, 2, 3, 4];
 
 const GENDERS: { slug: "mens" | "womens"; label: string }[] = [
-  { slug: "mens", label: "Men's" },
-  { slug: "womens", label: "Women's" },
+  { slug: "mens", label: "M" },
+  { slug: "womens", label: "W" },
 ];
 
 const LINEUP_CATEGORIES: Record<string, string> = {};
@@ -68,6 +68,14 @@ LINEUP_CATEGORIES.development = "Development";
 LINEUP_CATEGORY_TEAM.masters = "masters";
 LINEUP_CATEGORY_TEAM.development = "development";
 LINEUP_CATEGORY_GROUPS.push({ label: "Other", options: ["masters", "development"] });
+
+// Flat Novice categories, one per gender — like masters/development, this is
+// never depth-numbered and never a Fleet boat's own "category".
+LINEUP_CATEGORIES.mens_novice = "M Novice";
+LINEUP_CATEGORIES.womens_novice = "W Novice";
+LINEUP_CATEGORY_TEAM.mens_novice = "mens";
+LINEUP_CATEGORY_TEAM.womens_novice = "womens";
+LINEUP_CATEGORY_GROUPS.push({ label: "Novice", options: ["mens_novice", "womens_novice"] });
 
 export { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM, LINEUP_CATEGORY_GROUPS, CATEGORY_BOAT_CLASS, FLEET_CATEGORY_GROUPS };
 export const LINEUP_CATEGORY_OPTIONS = Object.keys(LINEUP_CATEGORIES);

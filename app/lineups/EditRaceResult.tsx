@@ -9,7 +9,7 @@ export function EditRaceResult({
   lineup,
   canManage,
 }: {
-  lineup: Pick<Lineup, "id" | "place">;
+  lineup: Pick<Lineup, "id" | "place" | "result_time">;
   canManage: boolean;
 }) {
   const [editing, setEditing] = useState(false);
@@ -48,6 +48,7 @@ export function EditRaceResult({
     return lineup.place ? (
       <p className="text-xs font-medium mt-1">
         {placeEmoji(lineup.place)} {ordinalPlace(lineup.place)} place
+        {lineup.result_time && ` — ${lineup.result_time}`}
       </p>
     ) : null;
   }
@@ -100,7 +101,11 @@ export function EditRaceResult({
       onClick={() => setEditing(true)}
       className="text-xs text-gray-500 hover:underline text-left mt-1"
     >
-      {lineup.place ? `${placeEmoji(lineup.place)} ${ordinalPlace(lineup.place)} place` : "Enter result"}
+      {lineup.place
+        ? `${placeEmoji(lineup.place)} ${ordinalPlace(lineup.place)} place${
+            lineup.result_time ? ` — ${lineup.result_time}` : ""
+          }`
+        : "Enter result"}
     </button>
   );
 }

@@ -225,7 +225,7 @@ export function LineupTemplatesSection({
         <input
           key={boatId}
           name="name"
-          placeholder="Template name (e.g. Men's 1V8)"
+          placeholder="Template name (e.g. M 1V8)"
           defaultValue={selectedBoat?.category ? LINEUP_CATEGORIES[selectedBoat.category] : ""}
           required
           className="border rounded px-3 py-2 text-sm"
