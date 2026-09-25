@@ -124,12 +124,11 @@ export async function getHotcSchedule(club: DemoClub): Promise<HotcSchedule | nu
   return { date: feed.regattaInfo?.Date ?? null, races };
 }
 
-// What a demo race becomes on the Lineups page. Clubs racing more than one
-// boat in an event get a letter ("Dayton Boat Club B"), which is kept so
-// each boat is its own race there.
-export function hotcRaceName(race: Pick<HotcRace, "eventNum" | "eventName" | "crew">): string {
-  const letter = race.crew.match(/\s([A-Z])$/)?.[1];
-  return `Race ${race.eventNum}: ${race.eventName}${letter ? ` (${letter} boat)` : ""}`;
+// What a demo race becomes on the Lineups page. The bow number keeps each
+// boat its own race, since a club can enter several boats in one event —
+// usually lettered ("Dayton Boat Club B"), but not always.
+export function hotcRaceName(race: Pick<HotcRace, "eventNum" | "eventName" | "bow">): string {
+  return `Race ${race.eventNum}: ${race.eventName}${race.bow ? ` (Bow ${race.bow})` : ""}`;
 }
 
 // CrewTimer start times ("7:45 AM") are local to Cleveland, which is on
@@ -143,16 +142,18 @@ export function hotcRaceTime(date: string | null, start: string | null): string 
 }
 
 // Best-guess lineup category from the event name ("Womens Youth 8+"), so the
-// boat picker offers that team's boats and the seat picker its rowers. The
-// A/B/C/D boat letter stands in for depth. Singles, doubles, pairs, and
-// mixed events stay uncategorized, same as on the Lineups page.
+// boat picker offers that team's boats and the seat picker its rowers.
+// Depth comes from the event name ("Womens Youth 2nd 8+") or, failing that,
+// the boat's A-D letter. Singles, doubles, pairs, and mixed events stay
+// uncategorized, same as on the Lineups page.
 export function hotcRaceCategory(race: Pick<HotcRace, "eventName" | "crew">): LineupCategory | null {
   const boatSlug = { "8+": "8plus", "4+": "4plus", "4x": "4x", "4-": "4minus" }[
     race.eventName.match(/(8\+|4\+|4x|4-)/)?.[1] ?? ""
   ];
   if (!boatSlug) return null;
+  const namedDepth = race.eventName.match(/\b([1-4])(?:st|nd|rd|th)\b/)?.[1];
   const letter = race.crew.match(/\s([A-D])$/)?.[1];
-  const depth = letter ? letter.charCodeAt(0) - 64 : 1;
+  const depth = namedDepth ? Number(namedDepth) : letter ? letter.charCodeAt(0) - 64 : 1;
   const team = /^womens/i.test(race.eventName) ? "womens" : /^mens/i.test(race.eventName) ? "mens" : null;
   if (!team) return null;
   if (/masters/i.test(race.eventName)) {
