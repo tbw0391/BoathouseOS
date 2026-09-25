@@ -18,6 +18,7 @@ import {
   Settings,
   Vote,
   Megaphone,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import RacingScull from "@/components/icons/RacingScull";
@@ -65,6 +66,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/coach": ClipboardList,
   "/todo": ListTodo,
   "/admin": Settings,
+  "/global-admin": ShieldCheck,
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -541,6 +543,7 @@ export default async function Home() {
   let isParent = false;
   let isRowerOrCoxswain = false;
   let isFoodTentManager = false;
+  let isGlobalAdmin = false;
 
   let householdUserIds: string[] = [];
 
@@ -548,7 +551,7 @@ export default async function Home() {
     const now = new Date();
     const weekOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    // These five only need the user's id, not each other's results, so run
+    // These six only need the user's id, not each other's results, so run
     // them concurrently instead of one round trip at a time.
     const [
       unreadCountResult,
@@ -556,6 +559,7 @@ export default async function Home() {
       callerResult,
       coachGroupResult,
       regattaResult,
+      globalAdminResult,
     ] = await Promise.all([
       getUnreadChatCount(user.id),
       getUnreadScheduleCount(user.id),
@@ -569,7 +573,10 @@ export default async function Home() {
         .lte("starts_at", weekOut.toISOString())
         .order("starts_at", { ascending: true })
         .limit(1),
+      supabase.rpc("is_global_admin"),
     ]);
+
+    isGlobalAdmin = globalAdminResult.data === true;
 
     unreadCount = unreadCountResult;
     unreadScheduleCount = unreadScheduleCountResult;
@@ -898,6 +905,7 @@ export default async function Home() {
             return visibility === "everyone";
           })
           .concat(isAdmin ? [{ href: "/todo", label: "To-do List" }, { href: "/admin", label: "Admin Settings" }] : [])
+          .concat(isGlobalAdmin ? [{ href: "/global-admin", label: "Global Admin" }] : [])
           .map((s) => {
             const Icon = ICONS_BY_HREF[s.href];
             const badgeCount =

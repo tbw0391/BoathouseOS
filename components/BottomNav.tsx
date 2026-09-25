@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Waves, Megaphone, type LucideIcon } from "lucide-react";
+import { Home, Waves, Megaphone, LogOut, type LucideIcon } from "lucide-react";
+import { signOut } from "@/app/login/actions";
 
 const TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: "Home", icon: Home },
@@ -36,6 +37,16 @@ export function BottomNav({ userId }: { userId: string | null }) {
           </Link>
         );
       })}
+      <form action={signOut} className="flex-1 flex">
+        <button
+          type="submit"
+          aria-label="Log out"
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] text-gray-500"
+        >
+          <LogOut className="w-6 h-6" />
+          Log out
+        </button>
+      </form>
     </nav>
   );
 }

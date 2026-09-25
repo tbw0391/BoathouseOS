@@ -36,6 +36,8 @@ export async function generateViewport(): Promise<Viewport> {
   };
 }
 
+const GLOBAL_ADMIN_BACKGROUND = "#fed7aa";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -46,12 +48,15 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
   const theme = await getThemeColors();
+  const { data: isGlobalAdmin } = user ? await supabase.rpc("is_global_admin") : { data: false };
 
   const themeStyle = {
     "--color-primary": theme.primary,
     "--color-secondary": theme.secondary,
     "--color-accent": theme.accent,
-    "--background": theme.background,
+    // Light orange for the global admin account, so it's obvious at a
+    // glance not to hand this device to a visitor.
+    "--background": isGlobalAdmin ? GLOBAL_ADMIN_BACKGROUND : theme.background,
   } as React.CSSProperties;
 
   return (
