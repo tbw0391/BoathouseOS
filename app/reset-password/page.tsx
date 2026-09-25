@@ -47,11 +47,11 @@ export default function ResetPasswordPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-4">
         <Image
           src="/branding/logo-full.png"
-          alt="Club logo"
-          width={480}
-          height={530}
+          alt="BoatHouseOS"
+          width={789}
+          height={205}
           priority
-          className="w-32 h-auto mx-auto"
+          className="w-64 h-auto mx-auto"
         />
 
         <p className="text-sm text-gray-500 text-center">Set a new password.</p>

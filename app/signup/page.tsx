@@ -48,11 +48,11 @@ export default function SignupPage() {
       >
         <Image
           src="/branding/logo-full.png"
-          alt="Club logo"
-          width={480}
-          height={530}
+          alt="BoatHouseOS"
+          width={789}
+          height={205}
           priority
-          className="w-32 h-auto mx-auto"
+          className="w-64 h-auto mx-auto"
         />
         <h1 className="text-xl font-bold text-center">Join BoatHouseOS</h1>
 
