@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,6 +14,20 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [demoPending, startDemo] = useTransition();
+
+  // Anyone on this page is signed out (middleware sends signed-in users
+  // away), so drop the service worker's runtime caches: visited pages and
+  // Supabase responses would otherwise keep member data on a shared device.
+  // The precache (app shell, icons) holds nothing personal and stays.
+  useEffect(() => {
+    if (!("caches" in window)) return;
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(names.filter((n) => !n.startsWith("workbox-precache")).map((n) => caches.delete(n)))
+      )
+      .catch(() => {});
+  }, []);
 
   function handleDemo() {
     setError(null);

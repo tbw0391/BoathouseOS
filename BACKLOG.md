@@ -425,7 +425,9 @@
       _next/static, icons, leaflet markers, and public/branding — fine,
       except the unused source art (Concept.png 2MB, Logo.png, icon.png) was
       downloaded on every install. Now excluded via publicExcludes.
-- [ ] Decide whether the PWA should cache signed-in data on the device.
+- [x] Fixed (2026-09-25): the login page now deletes every runtime cache
+      (keeps only the workbox precache) on load. Was:
+      PWA cached signed-in data on the device.
       next-pwa's default runtime caching keeps visited pages ("pages", 24h)
       and cross-origin responses incl. Supabase API reads ("cross-origin",
       1h) in the browser's Cache Storage, and signing out doesn't clear
