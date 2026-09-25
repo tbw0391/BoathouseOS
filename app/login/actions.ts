@@ -59,7 +59,7 @@ export async function signInAsDemo() {
   });
   if (verifyError) throw new Error(verifyError.message);
 
-  redirect("/");
+  redirect("/choose-club");
 }
 
 export async function signOut() {

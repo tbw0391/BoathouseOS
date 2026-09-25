@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import {
   Users,
   Calendar,
@@ -48,6 +49,7 @@ import { getUnreadScheduleCount } from "@/lib/schedule";
 import { getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
 import { QrCodes } from "@/app/global-admin/qr/QrCodes";
+import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 
 const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/roster": Users,
@@ -689,8 +691,29 @@ export default async function Home() {
     }
   }
 
+  const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
+
   return (
     <div className="min-h-screen p-8 flex flex-col items-center gap-8">
+      {demoClub ? (
+        <div className="w-full flex items-center gap-3">
+          {demoClub.blade && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={demoClub.blade} alt="" width={66} height={36} className="shrink-0" />
+          )}
+          <h1 className="flex-1 min-w-0 text-xl font-bold leading-tight text-[var(--color-primary)]">
+            {demoClub.name}
+          </h1>
+          <Link href="/choose-club" className="text-xs text-gray-500 underline shrink-0">
+            Change club
+          </Link>
+        </div>
+      ) : (
+        <Link href="/choose-club" className="text-sm text-gray-600 underline">
+          See it in your club&apos;s colors →
+        </Link>
+      )}
+
       <Link
         href="/interest"
         className="w-full block text-center bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 font-medium hover:bg-[var(--color-accent)] transition-colors"

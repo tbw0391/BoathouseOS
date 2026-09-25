@@ -23,6 +23,14 @@ export function isHexColor(value: unknown): value is string {
 }
 
 export async function getThemeColors(): Promise<ThemeColors> {
+  // A demo visitor who picked their club on /choose-club sees its colors.
+  // Kept in a cookie, not club_settings, since every visitor shares the one
+  // demo account.
+  const { cookies } = await import("next/headers");
+  const { DEMO_CLUB_COOKIE, findDemoClub } = await import("@/lib/demoClubs");
+  const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
+  if (demoClub?.colors) return { ...DEFAULT_THEME_COLORS, ...demoClub.colors };
+
   const { createClient } = await import("@/lib/supabase/server");
   const supabase = await createClient();
   const { data } = await supabase
