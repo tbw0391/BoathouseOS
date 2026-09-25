@@ -130,6 +130,9 @@ export default function SignupPage() {
         <Link href="/login" className="text-sm text-gray-500 hover:underline text-center">
           Already have an account? Sign in
         </Link>
+        <Link href="/privacy" className="text-xs text-gray-400 hover:underline text-center">
+          Privacy policy
+        </Link>
       </form>
     </div>
   );

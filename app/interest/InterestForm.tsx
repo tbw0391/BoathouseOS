@@ -36,6 +36,11 @@ export function InterestForm() {
     <form action={handleSubmit} className="relative flex flex-col gap-3 max-w-md border rounded-lg p-4">
       <p className="text-sm text-gray-600">
         Leave an email, a phone number, or both, and we&apos;ll let you know when it&apos;s ready.
+        We&apos;ll only use it to contact you about BoathouseOS (
+        <Link href="/privacy" className="underline">
+          privacy policy
+        </Link>
+        ).
       </p>
 
       <input

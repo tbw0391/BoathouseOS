@@ -75,7 +75,8 @@ export async function middleware(request: NextRequest) {
     // details without signing in.
     request.nextUrl.pathname.startsWith('/interest') ||
     // The public landing page for visiting clubs.
-    request.nextUrl.pathname === '/welcome';
+    request.nextUrl.pathname === '/welcome' ||
+    request.nextUrl.pathname === '/privacy';
 
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();

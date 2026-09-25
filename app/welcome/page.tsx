@@ -141,6 +141,10 @@ export default function WelcomePage() {
         <Link href="/login" className="text-[var(--color-primary)] underline">
           Sign in
         </Link>
+        {" · "}
+        <Link href="/privacy" className="underline">
+          Privacy
+        </Link>
       </p>
     </div>
   );

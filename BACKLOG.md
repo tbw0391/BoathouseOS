@@ -490,7 +490,19 @@
 - [x] GitHub settings (2026-09-25): Dependabot alerts + security updates
       on, main protected against force-push and deletion (PRs deliberately
       not required, so web-editor commits still work).
-- [ ] Privacy policy page (collects names, phones, and minors' data).
+- [x] Privacy policy page (2026-09-25): public /privacy, linked from the
+      landing page, signup, and the interest form. Plain-language draft
+      written from what the code actually collects — have it looked over
+      before real clubs sign up, and update it when data collection changes.
+- [ ] Set up email forwarding for privacy@boathouseos.app (the contact on
+      /privacy), e.g. Cloudflare Email Routing or the registrar's forwarding.
+- [ ] Cisco Secure Access (on the work laptop) blocks boathouseos.app as a
+      "security threat", likely because the domain is brand new. Report it
+      via the block page's "Report an incorrect block" link; visiting
+      coaches on filtered networks may hit the same block.
+- [x] Fixed (2026-09-25): the Permissions-Policy header (geolocation=())
+      added 2026-09-22 blocked GPS for the whole site, so the On-Water
+      tracker couldn't work in production. Now geolocation=(self).
 - [ ] Advisor leftovers: `latest_messages_for_groups` and
       `demo_baseline.excluded_tables` have no fixed search_path; several
       SECURITY DEFINER helpers (poll/chat/trigger functions) are still
