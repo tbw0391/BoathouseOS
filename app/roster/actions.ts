@@ -120,3 +120,51 @@ export async function addMember(formData: FormData) {
   revalidatePath("/roster");
   return { inviteLink: linkData.properties.action_link };
 }
+
+async function requireAdmin() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: isAdmin } = await supabase.rpc("is_club_admin");
+  if (!isAdmin) throw new Error("Only admins can approve new members.");
+}
+
+export async function approveMember(profileId: string) {
+  await requireAdmin();
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("profiles")
+    .update({ approved_at: new Date().toISOString() })
+    .eq("id", profileId)
+    .is("approved_at", null);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/roster");
+  revalidatePath("/");
+}
+
+// Deletes the pending signup and its login entirely. Only ever touches
+// accounts that were never approved.
+export async function declineMember(profileId: string) {
+  await requireAdmin();
+
+  const admin = createAdminClient();
+  const { data: deleted, error } = await admin
+    .from("profiles")
+    .delete()
+    .eq("id", profileId)
+    .is("approved_at", null)
+    .select("id");
+  if (error) throw new Error(error.message);
+  if (!deleted?.length) throw new Error("That person isn't waiting for approval.");
+
+  const { error: authError } = await admin.auth.admin.deleteUser(profileId);
+  if (authError && authError.status !== 404) throw new Error(authError.message);
+
+  revalidatePath("/roster");
+  revalidatePath("/");
+}
