@@ -451,11 +451,11 @@
       there's only one club and no global-admin concept yet.
 
 ## Security (before public launch)
-- [ ] Admin approval for new signups: self-signups start "pending", see
+- [x] Admin approval for new signups (2026-09-25, migration 0060): self-signups start "pending", see
       only a "waiting for approval" screen, and can't read any club data
       (enforced in the database, not just the UI) until an admin approves
       them. Admins get a pending list with Approve / Decline.
-- [ ] Lock down privileged profile columns in the database: today any
+- [x] Lock down privileged profile columns in the database (2026-09-25, 0060): today any
       signed-in user can set their own `role` to 'admin' by calling the
       Supabase API directly (the "users can update their own profile"
       policy doesn't restrict columns; only the server action checks).
@@ -472,7 +472,12 @@
 - [ ] Check upload size/type limits on the avatars and photos buckets.
 - [ ] GitHub: protect main, turn on Dependabot.
 - [ ] Privacy policy page (collects names, phones, and minors' data).
-- [ ] Ongoing: review RLS on every new table, run /security-review before
+- [ ] Advisor leftovers: `latest_messages_for_groups` and
+      `demo_baseline.excluded_tables` have no fixed search_path; several
+      SECURITY DEFINER helpers (poll/chat/trigger functions) are still
+      executable by anon — revoke where not needed.
+- [ ] Ongoing: new tables need `select public.apply_approval_gate();` at the
+      end of their migration. Review RLS on every new table, run /security-review before
       big releases, check Supabase Advisors → Security.
 
 ## Safe Sport compliance
