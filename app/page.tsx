@@ -704,7 +704,7 @@ export default async function Home() {
               alt=""
               width={198}
               height={108}
-              className="max-w-full h-auto [image-rendering:pixelated]"
+              className="max-w-full h-auto"
             />
           )}
           <h1 className="text-2xl font-bold leading-tight text-[var(--color-primary)]">
