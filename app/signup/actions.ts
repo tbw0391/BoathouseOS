@@ -80,6 +80,8 @@ export async function signUp(formData: FormData) {
     first_name: firstName,
     last_name: lastName,
     role,
+    // Pending until an admin approves them (see 0060_member_approval.sql).
+    approved_at: null,
   });
 
   if (profileError) {

@@ -87,6 +87,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // New self-signups wait on an admin, and removed members are locked out.
+  // The database enforces this too (see 0060_member_approval.sql); this just
+  // sends them somewhere that explains why everything is empty.
+  if (user && !isAuthRoute) {
+    const onPending = request.nextUrl.pathname.startsWith('/pending');
+    const { data: approved } = await supabase.rpc('is_approved');
+    if (!approved && !onPending) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/pending';
+      return NextResponse.redirect(url);
+    }
+    if (approved && onPending) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
+  }
+
   return response;
 }
 

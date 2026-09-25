@@ -13,7 +13,8 @@ const TABS: { href: string; label: string; icon: LucideIcon }[] = [
 
 export function BottomNav({ userId }: { userId: string | null }) {
   const pathname = usePathname();
-  if (!userId) return null;
+  // The pending screen has its own sign-out button and nowhere else to go.
+  if (!userId || pathname.startsWith("/pending")) return null;
 
   return (
     <nav

@@ -15,6 +15,7 @@ export interface Profile {
   boat_side: BoatSide | null;
   weight_lbs: number | null;
   disabled_at: string | null;
+  approved_at: string | null;
   created_at: string;
   first_name: string | null;
   last_name: string | null;

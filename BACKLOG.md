@@ -419,7 +419,8 @@
       magic links/OAuth. Env vars are currently only set for the Production
       environment, not Preview/Development, in case future PR-preview
       deploys need them too.
-- [ ] Point a real (non-vercel.app) domain at the deployment above.
+- [x] Point a real (non-vercel.app) domain at the deployment above
+      (2026-09-25): https://boathouseos.app (currently redirects to www).
 - [ ] Check the PWA precache config (next.config.ts / @ducanh2912/next-pwa)
       once actually deployed — no explicit runtimeCaching set today, so it's
       relying on Workbox's default precache list; worth confirming it isn't
@@ -448,6 +449,31 @@
       admins, "club" suggestions go to that club's own admins. For now both
       categories are just captured and shown to the single admin role, since
       there's only one club and no global-admin concept yet.
+
+## Security (before public launch)
+- [ ] Admin approval for new signups: self-signups start "pending", see
+      only a "waiting for approval" screen, and can't read any club data
+      (enforced in the database, not just the UI) until an admin approves
+      them. Admins get a pending list with Approve / Decline.
+- [ ] Lock down privileged profile columns in the database: today any
+      signed-in user can set their own `role` to 'admin' by calling the
+      Supabase API directly (the "users can update their own profile"
+      policy doesn't restrict columns; only the server action checks).
+      Only admins should be able to change role / approval / board member,
+      and only coaches/admins `disabled_at`.
+- [ ] Per-IP rate limit on the public "Interested?" form (/interest), like
+      signup has.
+- [ ] Keep the public demo and real clubs in separate Supabase projects /
+      Vercel deployments (the demo reset wipes data, and "Try the demo"
+      signs everyone in as an admin).
+- [ ] Supabase dashboard settings: stronger password minimum + leaked
+      password check, custom SMTP for auth emails, MFA on admin and
+      Supabase/Vercel/GitHub/registrar accounts, Pro plan for backups.
+- [ ] Check upload size/type limits on the avatars and photos buckets.
+- [ ] GitHub: protect main, turn on Dependabot.
+- [ ] Privacy policy page (collects names, phones, and minors' data).
+- [ ] Ongoing: review RLS on every new table, run /security-review before
+      big releases, check Supabase Advisors → Security.
 
 ## Safe Sport compliance
 - [ ] Make the app compliant with US Rowing / Safe Sport requirements —
