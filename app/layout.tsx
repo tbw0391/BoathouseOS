@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { BottomNav } from "@/components/BottomNav";
-import { DemoClubBar } from "@/components/DemoClubBar";
+import { Header } from "@/components/Header";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { ServiceWorkerUpdater } from "@/components/ServiceWorkerUpdater";
 import { createClient } from "@/lib/supabase/server";
+import { getUnreadChatCount } from "@/lib/chat";
 import { getThemeColors } from "@/lib/theme";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { cookies } from "next/headers";
@@ -52,7 +53,18 @@ export default async function RootLayout({
   } = await supabase.auth.getUser();
   const theme = await getThemeColors();
   const { data: isGlobalAdmin } = user ? await supabase.rpc("is_global_admin") : { data: false };
-  const demoClub = user ? findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value) : null;
+  const unreadCount = user ? await getUnreadChatCount(user.id) : null;
+  const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
+
+  let photoUrl: string | null = null;
+  if (user) {
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("photo_url")
+      .eq("id", user.id)
+      .single();
+    photoUrl = (profileData as { photo_url: string | null } | null)?.photo_url ?? null;
+  }
 
   const themeStyle = {
     "--color-primary": theme.primary,
@@ -69,7 +81,12 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ServiceWorkerUpdater />
-        {demoClub && <DemoClubBar name={demoClub.name} blade={demoClub.blade} />}
+        <Header
+          unreadCount={unreadCount}
+          userId={user?.id ?? null}
+          photoUrl={photoUrl}
+          clubBlade={demoClub?.blade ?? null}
+        />
         <PullToRefresh>
           <div className="pb-16">{children}</div>
         </PullToRefresh>
