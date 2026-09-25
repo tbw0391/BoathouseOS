@@ -5,9 +5,9 @@ import { QRCodeSVG } from "qrcode.react";
 
 const CODES = [
   {
-    path: "/login",
+    path: "/welcome",
     title: "Try BoathouseOS",
-    caption: "Scan to try the demo on your own phone",
+    caption: "Scan to see what it does and try the demo on your own phone",
   },
   {
     path: "/interest",
