@@ -59,7 +59,7 @@ export function EditRaceInfo({
         <input
           name="race_name"
           defaultValue={lineup.race_name ?? ""}
-          placeholder="Race name (e.g. Event 4 - Women's V8+)"
+          placeholder="Race name (e.g. Event 4 - W V8+)"
           className="border rounded px-2 py-1 text-xs"
         />
         <input

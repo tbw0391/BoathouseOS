@@ -14,6 +14,7 @@ import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories"
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { parseStarredLines } from "@/lib/scheduleStars";
+import { getOrRefreshCrewTimerResults } from "@/lib/crewtimer";
 import type { RaceBoxItem, RaceBoxState } from "../raceBoxTypes";
 import { EventRacesView } from "../EventRacesView";
 
@@ -97,6 +98,13 @@ export default async function EventRacesPage({ params }: { params: Promise<{ eve
         .order("seat_number", { ascending: true })
     : { data: [] as LineupSeat[] };
   const seats = (seatsData as LineupSeat[] | null) ?? [];
+
+  // Opportunistic, coach/admin-gated (matches who's allowed to write
+  // lineups.place/result_time under RLS) — same refresh-on-page-load
+  // pattern as the home page's weather cache.
+  if (canManage && typedEvent.crewtimer_mobile_id) {
+    await getOrRefreshCrewTimerResults(supabase, typedEvent, lineups, seats);
+  }
 
   function stateForPlace(place: number | null): RaceBoxState {
     if (place === 1) return "gold";

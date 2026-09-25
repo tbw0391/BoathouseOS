@@ -280,6 +280,16 @@
       food tent item import: Title/Task/Name, Slots Needed/Slots/People
       Needed, Description/Notes columns (case-insensitive), only Title
       required
+- [x] Regatta button grid (2026-09-24): the Volunteer Needs page is now a
+      button per regatta (Sailboat icon, same as the Schedule page's Regattas
+      tile) linking to `/volunteer/[eventId]` for that regatta's slots,
+      instead of every regatta's slots always expanded inline on one page —
+      same pattern as the Lineups page's per-event buttons. Every regatta on
+      the schedule automatically gets a button here (no separate "add a
+      section" step needed) since the page just queries
+      `schedule_events` for `event_type = 'regatta'`. A past regatta (start
+      time already passed) drops into a collapsed, greyed-out "Past
+      regattas" section at the bottom instead of sitting with upcoming ones.
 - [x] Edit/delete polish pass (2026-09-24): manager delete button now says
       "Delete slot" (not just "Delete") with a tooltip clarifying it removes
       the slot for everyone, and the confirm dialog points people at the
@@ -390,6 +400,19 @@
       telling them their role changed.
 
 ## Infra / cross-cutting
+- [x] Fixed (2026-09-24): regatta logo icons (e.g. the Head of the Cuyahoga
+      icon on the Lineups event list) showed as a broken image. Root cause:
+      the auth middleware's route matcher (middleware.ts) requires a signed-
+      in session for every path except an explicit exclude list, and that
+      list already carved out `/icons` and `/branding` for pre-auth assets
+      like the login-page logo, but was never updated when `/regatta-icons`
+      was added later — unauthenticated/stale-session requests for those
+      images got redirected to `/login` instead of the image. Added
+      `regatta-icons` to the matcher's exclude list.
+- [x] Log out button (2026-09-24): "Log out" on a member's own bio page
+      (/roster/[id], the page the header's profile avatar links to) —
+      Supabase `auth.signOut()` then redirects to /login. There was no
+      sign-out path anywhere in the app before this.
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
 - [x] Site colors (2026-09-22): admin picks Primary/Secondary/Accent/
       Background from /admin, stored in club_settings.theme_colors and

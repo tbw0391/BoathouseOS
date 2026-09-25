@@ -110,7 +110,7 @@ export default async function LineupsPage() {
         className="flex items-center justify-between gap-2 rounded-lg border-2 border-[var(--color-primary)] px-6 py-5 hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
       >
         <span className="flex items-center gap-2 text-lg font-medium">
-          <EventIcon title={event.title} className="w-7 h-7" />
+          <EventIcon title={event.title} iconUrl={event.icon_url} className="w-7 h-7" />
           {event.title}
         </span>
         <span className="text-base text-gray-500 text-right">

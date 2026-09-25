@@ -152,7 +152,7 @@ export default async function FoodTentPage() {
           return (
             <div key={event.id}>
               <h2 className="flex items-center gap-1.5 text-lg font-semibold">
-                <EventIcon title={event.title} className="w-6 h-6" />
+                <EventIcon title={event.title} iconUrl={event.icon_url} className="w-6 h-6" />
                 {event.title}{" "}
                 <span className="text-sm font-normal text-gray-500">
                   {new Date(event.starts_at).toLocaleDateString()}

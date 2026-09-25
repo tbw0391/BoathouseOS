@@ -28,6 +28,8 @@ export function Header({
   const pathname = usePathname();
   const router = useRouter();
 
+  if (pathname === "/login") return null;
+
   return (
     <header className="sticky top-0 z-10 border-b bg-white">
       <div className="relative flex items-center justify-center px-4 py-2">

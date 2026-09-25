@@ -7,7 +7,7 @@ type SupabaseClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").
 // geocoding) both require a descriptive User-Agent identifying the app and
 // a contact — no API key needed for either, but requests without one get
 // throttled or blocked.
-const USER_AGENT = "BoatHouseOS/1.0 (contact: tbw0391@gmail.com)";
+const USER_AGENT = "WestervilleCrewApp/1.0 (contact: tbw0391@gmail.com)";
 
 // NWS only forecasts about a week out — no point calling out past that.
 const FORECAST_HORIZON_DAYS = 7;

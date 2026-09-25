@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { deleteScheduleEvent, updateScheduleEvent } from "./actions";
 import type { EventType, ScheduleEvent } from "@/lib/database.types";
 import { EventIcon } from "@/components/EventIcon";
@@ -49,7 +49,17 @@ export function EventCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // The form just closes back to the display view on success, which is easy
+  // to miss as a "did that work?" signal — this flashes an explicit
+  // confirmation instead of forcing a jarring full page reload.
+  useEffect(() => {
+    if (!justSaved) return;
+    const timer = setTimeout(() => setJustSaved(false), 2500);
+    return () => clearTimeout(timer);
+  }, [justSaved]);
 
   function handleUpdate(formData: FormData) {
     setError(null);
@@ -57,6 +67,7 @@ export function EventCard({
       try {
         await updateScheduleEvent(formData);
         setEditing(false);
+        setJustSaved(true);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -122,6 +133,21 @@ export function EventCard({
           placeholder="Details (optional)"
           className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
         />
+        {eventType === "regatta" && (
+          <label className="flex flex-col gap-1 text-sm text-gray-600">
+            CrewTimer mobile ID (optional)
+            <input
+              name="crewtimer_mobile_id"
+              defaultValue={event.crewtimer_mobile_id ?? ""}
+              placeholder="e.g. r12967"
+              className="rounded-md border px-3 py-2 outline-none focus:border-[var(--color-primary)]"
+            />
+            <span className="text-xs text-gray-400">
+              From this regatta&apos;s crewtimer.com results link. Once set, race results for our
+              coxed boats fill in automatically on the Lineups page.
+            </span>
+          </label>
+        )}
         <label className="flex flex-col gap-1 text-sm text-gray-600">
           Repeats
           <select
@@ -161,7 +187,7 @@ export function EventCard({
     <div className="border rounded-lg p-4">
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="flex items-center gap-1.5 font-medium">
-          <EventIcon title={event.title} />
+          <EventIcon title={event.title} iconUrl={event.icon_url} />
           {event.title}
           {medalPlace != null && medalPlace <= 3 && (
             <span title={`We finished in ${medalPlace === 1 ? "1st" : medalPlace === 2 ? "2nd" : "3rd"} place`}>
@@ -193,6 +219,7 @@ export function EventCard({
         </div>
       )}
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {justSaved && <p className="mt-2 text-sm font-medium text-green-600">✓ Saved</p>}
       {canManage && (
         <div className="mt-3 flex gap-3 border-t pt-3">
           <button

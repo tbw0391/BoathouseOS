@@ -10,8 +10,8 @@ export interface LineupSectionDef {
 // elsewhere, e.g. lib/lineupCategories.ts's LINEUP_CATEGORY_TEAM), plus the
 // two admin/coach-only management panels at the top of the page.
 export const LINEUP_SECTIONS: LineupSectionDef[] = [
-  { id: "mens", label: "Men's" },
-  { id: "womens", label: "Women's" },
+  { id: "mens", label: "M" },
+  { id: "womens", label: "W" },
   { id: "masters", label: "Masters" },
   { id: "development", label: "Development" },
   { id: "fleet", label: "Fleet (Boats)" },
