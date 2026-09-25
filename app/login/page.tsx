@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import { signInAsDemo } from "./actions";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +13,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [demoPending, startDemo] = useTransition();
+
+  function handleDemo() {
+    setError(null);
+    startDemo(async () => {
+      try {
+        await signInAsDemo();
+      } catch (err) {
+        // redirect() inside the action surfaces as a thrown NEXT_REDIRECT;
+        // let Next handle that, and only show real failures.
+        if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
+        setError("Couldn't open the demo. Please try again.");
+      }
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +60,16 @@ export default function LoginPage() {
           priority
           className="w-32 h-auto mx-auto"
         />
+
+        <button
+          type="button"
+          onClick={handleDemo}
+          disabled={demoPending}
+          className="bg-[var(--color-primary)] text-white rounded px-3 py-3 text-lg font-medium disabled:opacity-50"
+        >
+          {demoPending ? "Opening demo..." : "Try the demo"}
+        </button>
+        <p className="text-center text-xs text-gray-400">or sign in with an account</p>
 
         <input
           type="email"
