@@ -20,6 +20,7 @@ import {
   Vote,
   Megaphone,
   ShieldCheck,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import RacingScull from "@/components/icons/RacingScull";
@@ -50,6 +51,8 @@ import { getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
 import { QrCodes } from "@/app/global-admin/qr/QrCodes";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
+import { HOTC, getHotcSchedule } from "@/lib/hotc";
+import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
 
 const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/roster": Users,
@@ -692,6 +695,10 @@ export default async function Home() {
   }
 
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
+  const hotcSchedule = demoClub ? await getHotcSchedule(demoClub) : null;
+  const hotcResults = (hotcSchedule?.races ?? [])
+    .filter((r) => r.place != null)
+    .sort((a, b) => (a.place as number) - (b.place as number));
 
   return (
     <div className="min-h-screen p-8 flex flex-col items-center gap-8">
@@ -717,6 +724,68 @@ export default async function Home() {
       ) : (
         <Link href="/choose-club" className="text-sm text-gray-600 underline">
           See it in your club&apos;s colors →
+        </Link>
+      )}
+
+      {hotcResults.length > 0 && (
+        <div className="w-full flex flex-col gap-2">
+          {hotcResults.map((r, i) => {
+            const place = r.place as number;
+            const isMedal = place <= 3;
+            const medalStyle =
+              place === 1
+                ? "bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-300 text-yellow-950 border-2 border-yellow-600"
+                : place === 2
+                ? "bg-gradient-to-r from-gray-200 via-slate-300 to-gray-200 text-gray-900 border-2 border-gray-500"
+                : place === 3
+                ? "bg-gradient-to-r from-[#8a5a2e] via-[#cd8347] to-[#8a5a2e] text-orange-50 border-2 border-[#5c3a1e]"
+                : i % 2 === 0
+                ? "bg-[var(--color-primary)] text-white"
+                : "bg-[var(--color-secondary)] text-white";
+
+            return (
+              <Link
+                key={`${r.eventNum}-${r.bow ?? i}`}
+                href="/regatta"
+                className={`relative overflow-hidden rounded-lg px-4 py-3 text-sm font-medium ${medalStyle}`}
+              >
+                {isMedal && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 flex items-center justify-around text-lg opacity-40"
+                  >
+                    <span>🎉</span>
+                    <span>✨</span>
+                    <span>🎊</span>
+                    <span>✨</span>
+                    <span>🎉</span>
+                  </span>
+                )}
+                <span className="relative flex items-center gap-2">
+                  {isMedal && <Trophy className="w-5 h-5 shrink-0 animate-bounce" />}
+                  <span>
+                    <strong>Race {r.eventNum}</strong> — {r.eventName}: {placeEmoji(place)}{" "}
+                    <strong>{ordinalPlace(place)} place</strong>
+                    {r.time && <> · {r.time}</>}
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {hotcSchedule && hotcSchedule.races.length > 0 && (
+        <Link
+          href="/regatta"
+          className="w-full flex items-center gap-3 border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+        >
+          <Waves className="w-5 h-5 shrink-0 text-[var(--color-primary)]" />
+          <span>
+            <strong>{HOTC.title}</strong>: {hotcSchedule.races.length} race
+            {hotcSchedule.races.length === 1 ? "" : "s"} for {demoClub?.name}
+            {hotcSchedule.races[0].start && <>, first at {hotcSchedule.races[0].start}</>} →
+          </span>
         </Link>
       )}
 
