@@ -477,17 +477,18 @@
       signs everyone in as an admin). Done 2026-09-25: BoatHouseOS runs on
       its own Supabase project and Vercel project (boathouseos), separate
       from W-Crew-app's.
-- [ ] Supabase dashboard settings: stronger password minimum + leaked
-      password check, custom SMTP for auth emails, MFA on admin and
+- [x] Supabase password settings (2026-09-25): stronger minimum and
+      leaked-password check set in the dashboard.
+- [ ] Supabase dashboard settings: custom SMTP for auth emails, MFA on admin and
       Supabase/Vercel/GitHub/registrar accounts, Pro plan for backups.
 - [x] Upload size/type limits on the avatars and photos buckets
       (2026-09-25, 0061_storage_upload_limits.sql): both were unlimited;
       now images only (no SVG), 5MB avatars / 15MB photos.
 - [x] Dependabot version updates: .github/dependabot.yml (weekly npm,
       minor/patch grouped).
-- [ ] GitHub settings (by hand): turn on Dependabot alerts + security
-      updates, and protect main — at least block force-push and deletion;
-      requiring PRs would break committing from the GitHub web editor.
+- [x] GitHub settings (2026-09-25): Dependabot alerts + security updates
+      on, main protected against force-push and deletion (PRs deliberately
+      not required, so web-editor commits still work).
 - [ ] Privacy policy page (collects names, phones, and minors' data).
 - [ ] Advisor leftovers: `latest_messages_for_groups` and
       `demo_baseline.excluded_tables` have no fixed search_path; several
