@@ -775,19 +775,21 @@ export default async function Home() {
         </div>
       )}
 
-      {hotcSchedule && hotcSchedule.races.length > 0 && (
-        <Link
-          href="/regatta"
-          className="w-full flex items-center gap-3 border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
-        >
-          <Waves className="w-5 h-5 shrink-0 text-[var(--color-primary)]" />
-          <span>
-            <strong>{HOTC.title}</strong>: {hotcSchedule.races.length} race
-            {hotcSchedule.races.length === 1 ? "" : "s"} for {demoClub?.name}
-            {hotcSchedule.races[0].start && <>, first at {hotcSchedule.races[0].start}</>} →
-          </span>
-        </Link>
-      )}
+      <Link
+        href="/regatta"
+        className="w-full flex items-center gap-3 border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+      >
+        <Waves className="w-5 h-5 shrink-0 text-[var(--color-primary)]" />
+        <span>
+          <strong>{HOTC.title}</strong>:{" "}
+          {!demoClub
+            ? "pick your club to see its races"
+            : hotcSchedule && hotcSchedule.races.length > 0
+            ? `${hotcSchedule.races.length} race${hotcSchedule.races.length === 1 ? "" : "s"} for ${demoClub.name}${hotcSchedule.races[0].start ? `, first at ${hotcSchedule.races[0].start}` : ""}`
+            : "race schedule and live results"}{" "}
+          →
+        </span>
+      </Link>
 
       <Link
         href="/interest"
