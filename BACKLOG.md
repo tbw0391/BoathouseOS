@@ -470,8 +470,9 @@
       policy doesn't restrict columns; only the server action checks).
       Only admins should be able to change role / approval / board member,
       and only coaches/admins `disabled_at`.
-- [ ] Per-IP rate limit on the public "Interested?" form (/interest), like
-      signup has.
+- [x] Per-IP rate limit on the public "Interested?" form (/interest)
+      (2026-09-25, 0062_interest_rate_limit.sql): 5 per IP per hour, counted
+      from an `ip` column on interest_signups.
 - [x] Keep the public demo and real clubs in separate Supabase projects /
       Vercel deployments (the demo reset wipes data, and "Try the demo"
       signs everyone in as an admin). Done 2026-09-25: BoathouseOS runs on

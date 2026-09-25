@@ -1,7 +1,7 @@
 "use server";
 
-import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getClientIp } from "@/lib/clientIp";
 import type { Team } from "@/lib/database.types";
 
 const SELF_SIGNUP_ROLES = ["rower", "coxswain", "parent"] as const;
@@ -13,13 +13,6 @@ type SelfSignupRole = (typeof SELF_SIGNUP_ROLES)[number];
 // a per-IP cap, and a honeypot field real users never fill in.
 const MAX_SIGNUPS_PER_IP_PER_HOUR = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
-
-async function getClientIp() {
-  const headerList = await headers();
-  const forwardedFor = headerList.get("x-forwarded-for");
-  if (forwardedFor) return forwardedFor.split(",")[0].trim();
-  return headerList.get("x-real-ip") ?? "unknown";
-}
 
 export async function signUp(formData: FormData) {
   // Honeypot: a field named to look real but hidden from sighted users via
