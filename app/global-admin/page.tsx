@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { saveDemoBaseline, resetDemo } from "./actions";
@@ -28,6 +29,13 @@ export default async function GlobalAdminPage() {
   return (
     <div className="min-h-screen p-8 flex flex-col gap-8 max-w-md">
       <h1 className="text-2xl font-bold">Global Admin</h1>
+
+      <Link
+        href="/global-admin/qr"
+        className="border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm font-medium text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+      >
+        QR codes to print or show
+      </Link>
 
       <section className="border rounded-lg p-4">
         <h2 className="text-lg font-semibold mb-1">Set a new default</h2>

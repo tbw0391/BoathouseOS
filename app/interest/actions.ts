@@ -1,15 +1,15 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const MAX_LENGTH = 200;
 
+// Public: reached from the "interested" QR code without signing in, so this
+// writes with the admin client instead of relying on a signed-in session.
 export async function submitInterest(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  // Honeypot: hidden from people (see InterestForm), filled in by bots.
+  // Fail quietly rather than revealing why.
+  if (String(formData.get("website") ?? "").trim() !== "") return;
 
   const field = (name: string) => String(formData.get(name) ?? "").trim().slice(0, MAX_LENGTH) || null;
   const name = field("name");
@@ -24,9 +24,10 @@ export async function submitInterest(formData: FormData) {
     throw new Error("That email address doesn't look right.");
   }
 
-  const { error } = await supabase
+  const admin = createAdminClient();
+  const { error } = await admin
     .from("interest_signups")
     .insert({ name, club_name: clubName, email, phone });
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error("Couldn't save your details. Please try again.");
 }

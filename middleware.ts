@@ -70,7 +70,10 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
     request.nextUrl.pathname.startsWith('/signup') ||
     request.nextUrl.pathname.startsWith('/auth') ||
-    request.nextUrl.pathname.startsWith('/forgot-password');
+    request.nextUrl.pathname.startsWith('/forgot-password') ||
+    // Public so people who scan the "interested" QR code can leave their
+    // details without signing in.
+    request.nextUrl.pathname.startsWith('/interest');
 
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();
