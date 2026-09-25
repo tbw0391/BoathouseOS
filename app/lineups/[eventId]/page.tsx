@@ -17,8 +17,16 @@ import { parseStarredLines } from "@/lib/scheduleStars";
 import type { RaceBoxItem, RaceBoxState } from "../raceBoxTypes";
 import { EventRacesView } from "../EventRacesView";
 
-export default async function EventRacesPage({ params }: { params: Promise<{ eventId: string }> }) {
+export default async function EventRacesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ race?: string }>;
+}) {
   const { eventId } = await params;
+  // Set when arriving from the Regatta page's "Add boat", to open that race.
+  const { race: selectedRaceId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -203,6 +211,7 @@ export default async function EventRacesPage({ params }: { params: Promise<{ eve
       boats={boats}
       canManage={canManage}
       starredCount={canManage ? starredCount : 0}
+      initialSelectedKey={selectedRaceId ? `race:${selectedRaceId}` : null}
     />
   );
 }

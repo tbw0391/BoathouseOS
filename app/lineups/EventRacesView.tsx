@@ -19,6 +19,7 @@ export function EventRacesView({
   boats,
   canManage,
   starredCount,
+  initialSelectedKey = null,
 }: {
   eventId: string;
   eventTitle: string;
@@ -27,8 +28,9 @@ export function EventRacesView({
   boats: Boat[];
   canManage: boolean;
   starredCount: number;
+  initialSelectedKey?: string | null;
 }) {
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(initialSelectedKey);
 
   function renderDetail(item: RaceBoxItem) {
     if (item.lineup) {

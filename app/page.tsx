@@ -93,6 +93,13 @@ type LineupBanner = {
   eventDate: string;
 };
 
+// A coach/admin's view of the lineup banner their rowers now see: one per
+// lineup they created, with who it went to.
+type SentLineupNotice = Omit<LineupBanner, "rowerName"> & {
+  lineupId: string;
+  recipientNames: string[];
+};
+
 type CoachTaskBanner = {
   taskTypeName: string;
   boatName: string | null;
@@ -291,6 +298,67 @@ async function loadLineupBanners(
       };
     })
     .filter((b): b is NonNullable<typeof b> => b !== null);
+}
+
+// Coach/admin: the lineups they created for upcoming events, with the rowers
+// seated in each — so they can see the notification those rowers got
+// without signing in as one of them.
+async function loadSentLineupNotices(
+  supabase: SupabaseServerClient,
+  userId: string
+): Promise<SentLineupNotice[]> {
+  const { data: lineupRows } = await supabase
+    .from("lineups")
+    .select("*")
+    .eq("created_by", userId)
+    .not("event_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const lineupsData = (lineupRows as Lineup[] | null) ?? [];
+  if (lineupsData.length === 0) return [];
+
+  const eventIds = [...new Set(lineupsData.map((l) => l.event_id as string))];
+  const [{ data: eventRows }, { data: seatRows }] = await Promise.all([
+    supabase.from("schedule_events").select("*").in("id", eventIds).gte("starts_at", startOfToday()),
+    supabase
+      .from("lineup_seats")
+      .select("*")
+      .in("lineup_id", lineupsData.map((l) => l.id))
+      .not("rower_id", "is", null),
+  ]);
+  const eventById = new Map(((eventRows as ScheduleEvent[] | null) ?? []).map((e) => [e.id, e]));
+  const seats = ((seatRows as LineupSeat[] | null) ?? []).sort((a, b) => a.seat_number - b.seat_number);
+  if (seats.length === 0) return [];
+
+  const { data: nameRows } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", [...new Set(seats.map((s) => s.rower_id as string))]);
+  const nameById = new Map(
+    ((nameRows as Pick<Profile, "id" | "display_name">[] | null) ?? []).map((p) => [p.id, p.display_name])
+  );
+
+  return lineupsData
+    .map((lineup) => {
+      const event = eventById.get(lineup.event_id as string);
+      const recipientNames = seats
+        .filter((s) => s.lineup_id === lineup.id)
+        .map((s) => nameById.get(s.rower_id as string) ?? "Someone");
+      if (!event || recipientNames.length === 0) return null;
+      return {
+        lineupId: lineup.id,
+        boatName: lineup.boat_name,
+        raceName: lineup.race_name,
+        raceTimeLabel: lineup.race_time
+          ? new Date(lineup.race_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+          : null,
+        eventTitle: event.title,
+        eventDate: new Date(event.starts_at).toLocaleDateString(),
+        recipientNames,
+      };
+    })
+    .filter((n): n is NonNullable<typeof n> => n !== null)
+    .slice(0, 5);
 }
 
 // Coach/admin notification: races that have been collected (e.g. via a heat
@@ -534,6 +602,7 @@ export default async function Home() {
 
   let banners: FoodTentBanner[] = [];
   let lineupBanners: LineupBanner[] = [];
+  let sentLineupNotices: SentLineupNotice[] = [];
   let coachTaskBanners: CoachTaskBanner[] = [];
   let pendingRaceBanners: PendingRaceBanner[] = [];
   let foodPrepBanners: FoodPrepBanner[] = [];
@@ -643,6 +712,7 @@ export default async function Home() {
       signupCallBannerResults,
       forecastResult,
       announcementBannerResults,
+      sentLineupNoticeResults,
     ] = await Promise.all([
       loadFoodTentBanners(supabase, householdUserIds),
       loadLineupBanners(supabase, {
@@ -663,7 +733,9 @@ export default async function Home() {
         : isParent
         ? loadAnnouncementBanners(supabase, ["parents", "both"])
         : Promise.resolve([]),
+      isCoachOrAdmin ? loadSentLineupNotices(supabase, user.id) : Promise.resolve([]),
     ]);
+    sentLineupNotices = sentLineupNoticeResults;
     banners = foodBanners;
     upcomingRegattaForecast = forecastResult;
     lineupBanners = lineupBannerResults;
@@ -970,6 +1042,34 @@ export default async function Home() {
               )}{" "}
               at {b.eventTitle} ({b.eventDate}
               {b.raceTimeLabel && <>, racing at <strong>{b.raceTimeLabel}</strong></>})
+            </div>
+          ))}
+        </div>
+      )}
+
+      {sentLineupNotices.length > 0 && (
+        <div className="w-full flex flex-col gap-2">
+          {sentLineupNotices.map((n) => (
+            <div
+              key={n.lineupId}
+              className="border border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm flex flex-col gap-2"
+            >
+              <p className="font-semibold text-[var(--color-primary)]">
+                📣 Rower notification sent — {n.boatName}
+              </p>
+              <div className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3">
+                🚣 You&apos;re in the boat for <strong>{n.boatName}</strong>
+                {n.raceName && (
+                  <>
+                    {" "}(<strong>{n.raceName}</strong>)
+                  </>
+                )}{" "}
+                at {n.eventTitle} ({n.eventDate}
+                {n.raceTimeLabel && <>, racing at <strong>{n.raceTimeLabel}</strong></>})
+              </div>
+              <p className="text-gray-600">
+                Sent to {n.recipientNames.length}: {n.recipientNames.join(", ")}
+              </p>
             </div>
           ))}
         </div>

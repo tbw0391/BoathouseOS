@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
-import { HOTC, getHotcSchedule } from "@/lib/hotc";
+import { HOTC, getHotcSchedule, hotcRaceName } from "@/lib/hotc";
 import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
+import { createClient } from "@/lib/supabase/server";
+import { addRegattaRaceToLineups } from "./actions";
 
 function formatDate(isoDate: string): string {
   return new Date(`${isoDate}T12:00:00`).toLocaleDateString("en-US", {
@@ -31,6 +33,45 @@ export default async function RegattaPage() {
   }
 
   const schedule = await getHotcSchedule(club);
+
+  // Coaches and admins can send any of these races to the Lineups page to
+  // put a boat in it; a race already sent shows its boat instead.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user?.id ?? "")
+    .maybeSingle();
+  const callerRole = (callerProfile as { role: string } | null)?.role;
+  const canManage = callerRole === "admin" || callerRole === "coach";
+
+  const sentRaceByName = new Map<string, { eventId: string; raceId: string; boatName: string | null }>();
+  if (canManage && schedule?.date) {
+    const { data: eventRows } = await supabase
+      .from("schedule_events")
+      .select("id")
+      .eq("title", HOTC.title)
+      .gte("starts_at", new Date(`${schedule.date}T00:00:00-04:00`).toISOString())
+      .lte("starts_at", new Date(`${schedule.date}T23:59:59-04:00`).toISOString());
+    const eventIds = ((eventRows as { id: string }[] | null) ?? []).map((e) => e.id);
+    if (eventIds.length > 0) {
+      const { data: raceRows } = await supabase
+        .from("races")
+        .select("id, event_id, race_name, lineups:lineup_id (boat_name)")
+        .in("event_id", eventIds);
+      for (const r of (raceRows as unknown as {
+        id: string;
+        event_id: string;
+        race_name: string;
+        lineups: { boat_name: string } | null;
+      }[] | null) ?? []) {
+        sentRaceByName.set(r.race_name, { eventId: r.event_id, raceId: r.id, boatName: r.lineups?.boat_name ?? null });
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen p-8 max-w-2xl mx-auto">
@@ -73,6 +114,28 @@ export default async function RegattaPage() {
                 </p>
                 {race.penalty && <p className="text-xs text-gray-500 mt-0.5">{race.penalty}</p>}
               </div>
+              {canManage && race.place == null && (() => {
+                const sent = sentRaceByName.get(hotcRaceName(race));
+                return sent ? (
+                  <Link
+                    href={`/lineups/${sent.eventId}?race=${sent.raceId}`}
+                    className="shrink-0 text-sm font-medium text-[var(--color-primary)] underline"
+                  >
+                    {sent.boatName ? `🚣 ${sent.boatName}` : "Pick a boat"}
+                  </Link>
+                ) : (
+                  <form action={addRegattaRaceToLineups} className="shrink-0">
+                    <input type="hidden" name="event_num" value={race.eventNum} />
+                    <input type="hidden" name="crew" value={race.crew} />
+                    <button
+                      type="submit"
+                      className="text-xs font-medium text-white bg-[var(--color-secondary)] border-2 border-[var(--color-primary)] rounded px-3 py-1.5"
+                    >
+                      Add boat
+                    </button>
+                  </form>
+                );
+              })()}
               {race.place != null && (
                 <div className="shrink-0 text-right">
                   <p className="font-semibold">

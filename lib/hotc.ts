@@ -1,5 +1,6 @@
 import "server-only";
 import type { DemoClub } from "@/lib/demoClubs";
+import type { LineupCategory } from "@/lib/database.types";
 
 // The real 2026 Head of the Cuyahoga, straight from CrewTimer's public
 // results feed (same feed as lib/crewtimer.ts in the club app). The race
@@ -121,4 +122,43 @@ export async function getHotcSchedule(club: DemoClub): Promise<HotcSchedule | nu
   }
 
   return { date: feed.regattaInfo?.Date ?? null, races };
+}
+
+// What a demo race becomes on the Lineups page. Clubs racing more than one
+// boat in an event get a letter ("Dayton Boat Club B"), which is kept so
+// each boat is its own race there.
+export function hotcRaceName(race: Pick<HotcRace, "eventNum" | "eventName" | "crew">): string {
+  const letter = race.crew.match(/\s([A-Z])$/)?.[1];
+  return `Race ${race.eventNum}: ${race.eventName}${letter ? ` (${letter} boat)` : ""}`;
+}
+
+// CrewTimer start times ("7:45 AM") are local to Cleveland, which is on
+// Eastern Daylight Time for a late-September regatta.
+export function hotcRaceTime(date: string | null, start: string | null): string | null {
+  const match = start?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!date || !match) return null;
+  let hour = Number(match[1]) % 12;
+  if (match[3].toUpperCase() === "PM") hour += 12;
+  return new Date(`${date}T${String(hour).padStart(2, "0")}:${match[2]}:00-04:00`).toISOString();
+}
+
+// Best-guess lineup category from the event name ("Womens Youth 8+"), so the
+// boat picker offers that team's boats and the seat picker its rowers. The
+// A/B/C/D boat letter stands in for depth. Singles, doubles, pairs, and
+// mixed events stay uncategorized, same as on the Lineups page.
+export function hotcRaceCategory(race: Pick<HotcRace, "eventName" | "crew">): LineupCategory | null {
+  const boatSlug = { "8+": "8plus", "4+": "4plus", "4x": "4x", "4-": "4minus" }[
+    race.eventName.match(/(8\+|4\+|4x|4-)/)?.[1] ?? ""
+  ];
+  if (!boatSlug) return null;
+  const letter = race.crew.match(/\s([A-D])$/)?.[1];
+  const depth = letter ? letter.charCodeAt(0) - 64 : 1;
+  const team = /^womens/i.test(race.eventName) ? "womens" : /^mens/i.test(race.eventName) ? "mens" : null;
+  if (!team) return null;
+  if (/masters/i.test(race.eventName)) {
+    return boatSlug === "8plus" || boatSlug === "4plus"
+      ? `masters_${Math.min(depth, 3)}_${boatSlug}`
+      : null;
+  }
+  return `${team}_${depth}_${boatSlug}`;
 }
