@@ -71,7 +71,7 @@ export function ClubPicker({ clubs, current }: { clubs: DemoClub[]; current: str
         disabled={busy}
         className="text-sm text-gray-600 underline self-center mt-2 disabled:opacity-60"
       >
-        {current ? "Go back to the standard BoatHouseOS colors" : "Skip, use the standard BoatHouseOS colors"}
+        {current ? "Go back to the standard BoathouseOS colors" : "Skip, use the standard BoathouseOS colors"}
       </button>
     </div>
   );

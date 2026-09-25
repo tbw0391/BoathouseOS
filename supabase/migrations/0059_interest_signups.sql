@@ -1,4 +1,4 @@
--- "I'm interested" leads from people trying the BoatHouseOS demo.
+-- "I'm interested" leads from people trying the BoathouseOS demo.
 --
 -- Anyone signed in (i.e. demo visitors) can add a lead; only a global admin
 -- can read them. Excluded from the demo reset so leads survive it.

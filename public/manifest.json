@@ -1,6 +1,6 @@
 {
-  "name": "BoatHouseOS",
-  "short_name": "BoatHouseOS",
+  "name": "BoathouseOS",
+  "short_name": "BoathouseOS",
   "description": "Rowing club management — roster, schedule, lineups, volunteers, and messaging.",
   "start_url": "/",
   "display": "standalone",

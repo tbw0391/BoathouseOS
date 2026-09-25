@@ -24,7 +24,7 @@ export function InterestForm() {
   if (submitted) {
     return (
       <div className="max-w-md border rounded-lg p-4 flex flex-col gap-3">
-        <p className="font-medium">Thanks! We&apos;ll be in touch when BoatHouseOS is available.</p>
+        <p className="font-medium">Thanks! We&apos;ll be in touch when BoathouseOS is available.</p>
         <Link href="/" className="text-sm text-[var(--color-primary)] hover:underline">
           Try the demo →
         </Link>

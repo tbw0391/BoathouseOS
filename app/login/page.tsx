@@ -68,7 +68,7 @@ export default function LoginPage() {
       >
         <Image
           src="/branding/logo-full.png"
-          alt="BoatHouseOS"
+          alt="BoathouseOS"
           width={789}
           height={205}
           priority

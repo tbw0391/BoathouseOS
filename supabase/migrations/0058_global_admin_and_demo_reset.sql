@@ -1,7 +1,7 @@
 -- Global admin + demo reset.
 --
 -- A global admin sits above the club "admin" role: it's the person who runs
--- the BoatHouseOS demo, not a club officer. Only a global admin can save the
+-- the BoathouseOS demo, not a club officer. Only a global admin can save the
 -- demo's baseline snapshot and reset the whole database back to it, undoing
 -- everything visitors changed.
 --

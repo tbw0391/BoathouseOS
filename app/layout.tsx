@@ -22,13 +22,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BoatHouseOS",
+  title: "BoathouseOS",
   description: "Rowing club management — roster, schedule, lineups, volunteers, and messaging.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "BoatHouseOS",
+    title: "BoathouseOS",
   },
 };
 

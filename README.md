@@ -1,4 +1,4 @@
-# BoatHouseOS
+# BoathouseOS
 
 PWA for rowing clubs: roster, schedule, lineups, volunteer needs,
 team store link, and messaging.

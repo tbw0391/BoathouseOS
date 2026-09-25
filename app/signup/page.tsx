@@ -48,13 +48,13 @@ export default function SignupPage() {
       >
         <Image
           src="/branding/logo-full.png"
-          alt="BoatHouseOS"
+          alt="BoathouseOS"
           width={789}
           height={205}
           priority
           className="w-64 h-auto mx-auto"
         />
-        <h1 className="text-xl font-bold text-center">Join BoatHouseOS</h1>
+        <h1 className="text-xl font-bold text-center">Join BoathouseOS</h1>
 
         {/* Honeypot: hidden from sighted users, bots often fill every field. */}
         <input

@@ -1,4 +1,4 @@
-# BoatHouseOS Backlog
+# BoathouseOS Backlog
 
 ## Roster
 - [x] Read-only roster list (name, role, boat side, phone, email)
@@ -474,7 +474,7 @@
       signup has.
 - [x] Keep the public demo and real clubs in separate Supabase projects /
       Vercel deployments (the demo reset wipes data, and "Try the demo"
-      signs everyone in as an admin). Done 2026-09-25: BoatHouseOS runs on
+      signs everyone in as an admin). Done 2026-09-25: BoathouseOS runs on
       its own Supabase project and Vercel project (boathouseos), separate
       from W-Crew-app's.
 - [x] Supabase password settings (2026-09-25): stronger minimum and

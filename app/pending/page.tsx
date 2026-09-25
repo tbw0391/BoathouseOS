@@ -20,7 +20,7 @@ export default async function PendingPage() {
       <div className="w-full max-w-sm flex flex-col gap-4 text-center">
         <Image
           src="/branding/logo-full.png"
-          alt="BoatHouseOS"
+          alt="BoathouseOS"
           width={789}
           height={205}
           priority

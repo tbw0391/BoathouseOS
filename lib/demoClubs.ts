@@ -1,8 +1,8 @@
 // Clubs from the 2026 Head of the Cuyahoga entry list (RegattaCentral), so
-// demo visitors can see BoatHouseOS in their own club's colors. Colors were
+// demo visitors can see BoathouseOS in their own club's colors. Colors were
 // pulled from each club's blade image and darkened where needed so white
 // text on them stays readable. `colors: null` means no blade on file, so the
-// default BoatHouseOS colors are used.
+// default BoathouseOS colors are used.
 
 export type DemoClub = {
   slug: string;
