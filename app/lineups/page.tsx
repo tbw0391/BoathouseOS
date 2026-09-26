@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { isPastEvent } from "@/lib/schedule";
 import type {
   Boat,
   Lineup,
@@ -83,15 +84,14 @@ export default async function LineupsPage() {
 
   const eventIdsWithLineups = new Set(lineups.map((l) => l.event_id));
   const eventIdsWithRaces = new Set(races.map((r) => r.event_id));
-  const now = new Date();
   const relevantEvents = events.filter(
     (e) =>
-      new Date(e.starts_at).getTime() >= now.getTime() ||
+      !isPastEvent(e) ||
       eventIdsWithLineups.has(e.id) ||
       eventIdsWithRaces.has(e.id)
   );
   const upcoming = relevantEvents
-    .filter((e) => new Date(e.starts_at).getTime() >= now.getTime())
+    .filter((e) => !isPastEvent(e))
     .sort((a, b) => {
       const aRegatta = a.event_type === "regatta" ? 0 : 1;
       const bRegatta = b.event_type === "regatta" ? 0 : 1;
@@ -99,7 +99,7 @@ export default async function LineupsPage() {
       return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
     });
   const past = relevantEvents
-    .filter((e) => new Date(e.starts_at).getTime() < now.getTime())
+    .filter((e) => isPastEvent(e))
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
 
   function EventButton({ event }: { event: ScheduleEvent }) {

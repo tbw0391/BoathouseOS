@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { EventType, Lineup, Role, ScheduleEvent } from "@/lib/database.types";
 import { createScheduleEvent } from "./actions";
 import { EventCard } from "./EventCard";
+import { isPastEvent } from "@/lib/schedule";
 
 export async function ScheduleTypeView({ eventType, label }: { eventType: EventType; label: string }) {
   const supabase = await createClient();
@@ -45,19 +46,9 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
     if (current === undefined || l.place < current) bestPlaceByEventId.set(l.event_id, l.place);
   }
 
-  // Regattas stay under Upcoming through the two days after race day (so
-  // results and photos are easy to find), then move to Past. Compared as
-  // Eastern calendar dates so it flips at midnight, not at the start time.
-  const now = new Date();
-  const easternDate = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-  const isPast = (e: ScheduleEvent) => {
-    if (eventType !== "regatta") return new Date(e.starts_at).getTime() < now.getTime();
-    const lastUpcomingDay = new Date(new Date(e.starts_at).getTime() + 2 * 24 * 60 * 60 * 1000);
-    return easternDate(now) > easternDate(lastUpcomingDay);
-  };
-  const upcoming = events.filter((e) => !isPast(e));
+  const upcoming = events.filter((e) => !isPastEvent(e));
   const past = events
-    .filter(isPast)
+    .filter((e) => isPastEvent(e))
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
 
   return (
