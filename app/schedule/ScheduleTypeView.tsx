@@ -45,10 +45,19 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
     if (current === undefined || l.place < current) bestPlaceByEventId.set(l.event_id, l.place);
   }
 
+  // Regattas stay under Upcoming through the two days after race day (so
+  // results and photos are easy to find), then move to Past. Compared as
+  // Eastern calendar dates so it flips at midnight, not at the start time.
   const now = new Date();
-  const upcoming = events.filter((e) => new Date(e.starts_at).getTime() >= now.getTime());
+  const easternDate = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const isPast = (e: ScheduleEvent) => {
+    if (eventType !== "regatta") return new Date(e.starts_at).getTime() < now.getTime();
+    const lastUpcomingDay = new Date(new Date(e.starts_at).getTime() + 2 * 24 * 60 * 60 * 1000);
+    return easternDate(now) > easternDate(lastUpcomingDay);
+  };
+  const upcoming = events.filter((e) => !isPast(e));
   const past = events
-    .filter((e) => new Date(e.starts_at).getTime() < now.getTime())
+    .filter(isPast)
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
 
   return (
