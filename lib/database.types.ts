@@ -373,6 +373,9 @@ export interface PracticeAttendance {
 export interface OnWaterSession {
   id: string;
   lineup_id: string | null;
+  boat_id: string | null;
+  // Map color, picked by the database so no two boats on the water match.
+  color: string | null;
   coxswain_id: string;
   started_at: string;
   ended_at: string | null;
