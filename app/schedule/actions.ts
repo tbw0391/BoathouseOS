@@ -116,6 +116,28 @@ export async function deleteScheduleEvent(formData: FormData) {
   revalidatePath("/schedule");
 }
 
+// Sets (or, with an empty url, clears) a regatta's logo. The file itself is
+// uploaded from the browser straight to the regatta-artwork bucket; this only
+// records where it landed, so it only accepts a URL in that bucket.
+export async function setRegattaArtwork(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const eventId = String(formData.get("event_id") ?? "").trim();
+  const url = String(formData.get("artwork_url") ?? "").trim() || null;
+  if (!eventId) throw new Error("Missing event.");
+  if (url && !url.includes("/storage/v1/object/public/regatta-artwork/")) {
+    throw new Error("That image didn't upload correctly.");
+  }
+
+  const { error } = await supabase.from("schedule_events").update({ artwork_url: url }).eq("id", eventId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/schedule/regatta");
+  revalidatePath("/schedule");
+  revalidatePath("/roster", "layout");
+}
+
 export async function markScheduleViewed() {
   const supabase = await createClient();
   const {

@@ -57,6 +57,8 @@ export interface ScheduleEvent {
   starts_at: string;
   ends_at: string | null;
   recurrence: ScheduleRecurrence;
+  // Regatta logo, shown inside the medal badges on rowers' bios.
+  artwork_url: string | null;
   created_by: string | null;
   created_at: string;
 }

@@ -11,6 +11,8 @@ import { setBoardMember, setTentLeader, setRemoved, permanentlyDeleteProfile, re
 import { TEAM_LABELS } from "@/lib/teams";
 import { getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
+import { getMedalsForProfile } from "@/lib/medals";
+import { MedalBadge } from "@/components/MedalBadge";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -80,6 +82,8 @@ export default async function BioPage({
       .order("created_at", { ascending: false });
     taggedPhotos = (photosData as Photo[] | null) ?? [];
   }
+
+  const medals = await getMedalsForProfile(profile.id);
 
   let spouseOptions: Pick<Profile, "id" | "display_name">[] = [];
   let spouseName: string | null = null;
@@ -247,6 +251,17 @@ export default async function BioPage({
             name={profile.display_name}
             onDelete={permanentlyDeleteProfile.bind(null, profile.id)}
           />
+        </div>
+      )}
+
+      {medals.length > 0 && (
+        <div className="mt-6 max-w-2xl">
+          <h2 className="text-sm font-medium text-gray-600 mb-2">Medals</h2>
+          <div className="flex flex-wrap gap-4">
+            {medals.map((medal) => (
+              <MedalBadge key={medal.lineupId} medal={medal} />
+            ))}
+          </div>
         </div>
       )}
 

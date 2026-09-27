@@ -5,6 +5,7 @@ import { deleteScheduleEvent, updateScheduleEvent } from "./actions";
 import type { EventType, ScheduleEvent } from "@/lib/database.types";
 import { EventIcon } from "@/components/EventIcon";
 import { placeEmoji } from "@/lib/raceResults";
+import { RegattaArtworkUpload } from "./RegattaArtworkUpload";
 
 const RECURRENCE_LABEL: Record<ScheduleEvent["recurrence"], string> = {
   none: "",
@@ -193,6 +194,11 @@ export function EventCard({
         </div>
       )}
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {canManage && eventType === "regatta" && (
+        <div className="mt-3 border-t pt-3">
+          <RegattaArtworkUpload eventId={event.id} artworkUrl={event.artwork_url} />
+        </div>
+      )}
       {canManage && (
         <div className="mt-3 flex gap-3 border-t pt-3">
           <button
