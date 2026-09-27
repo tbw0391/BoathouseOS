@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isPastEvent } from "@/lib/schedule";
 import type {
   CoachTask,
   CoachTaskAssignment,
@@ -82,13 +83,10 @@ export default async function CoachTasksPage() {
   const nameById = new Map(roster.map((p) => [p.id, p.display_name]));
 
   const taskIdsWithTasks = new Set(tasks.map((t) => t.event_id));
-  const now = new Date();
-  const relevantEvents = events.filter(
-    (e) => new Date(e.starts_at).getTime() >= now.getTime() || taskIdsWithTasks.has(e.id)
-  );
-  const upcoming = relevantEvents.filter((e) => new Date(e.starts_at).getTime() >= now.getTime());
+  const relevantEvents = events.filter((e) => !isPastEvent(e) || taskIdsWithTasks.has(e.id));
+  const upcoming = relevantEvents.filter((e) => !isPastEvent(e));
   const past = relevantEvents
-    .filter((e) => new Date(e.starts_at).getTime() < now.getTime())
+    .filter((e) => isPastEvent(e))
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
 
   function EventSection({ event }: { event: ScheduleEvent }) {
