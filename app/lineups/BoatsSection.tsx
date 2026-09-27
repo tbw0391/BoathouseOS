@@ -5,6 +5,7 @@ import { createBoat, updateBoat, deleteBoat } from "./actions";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM, FLEET_CATEGORY_GROUPS, CATEGORY_BOAT_CLASS } from "@/lib/lineupCategories";
 import type { Boat, Team } from "@/lib/database.types";
+import { BoatTypePicker } from "@/app/boats/BoatTypePicker";
 
 // Boats with no category (singles/doubles/pairs) aren't tied to a team, so
 // they get no shading — only a men's/women's/masters depth-chart boat does.
@@ -133,13 +134,19 @@ export function BoatsSection({ boats }: { boats: Boat[] }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [pickerKey, setPickerKey] = useState(0);
 
   function handleSubmit(formData: FormData) {
     setError(null);
+    if (!formData.get("boat_type")) {
+      setError("Pick the boat's size (and squad, if it has one).");
+      return;
+    }
     startTransition(async () => {
       try {
         await createBoat(formData);
         formRef.current?.reset();
+        setPickerKey((k) => k + 1);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -166,7 +173,7 @@ export function BoatsSection({ boats }: { boats: Boat[] }) {
 
       <form ref={formRef} action={handleSubmit} className="mt-4 flex flex-col gap-2">
         <input name="name" placeholder="Boat name" required className="border rounded px-3 py-2 text-sm" />
-        <BoatTypeSelect defaultValue="" />
+        <BoatTypePicker key={pickerKey} />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
