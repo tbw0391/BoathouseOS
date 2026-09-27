@@ -610,9 +610,20 @@
       roster size (matches how similar tools like TeamSnap/Spond price, and
       is easy for a volunteer club treasurer to approve) over per-athlete or
       freemium pricing.
-- [ ] Todd wants to review the Global admin vs. Club admin ("team admin")
-      role split in more depth before Phase 1 lands — today there's only a
-      single `admin` role with no club scoping at all.
+- [x] Role decisions (2026-09-27):
+      - Global admin (Todd) sees every club's data, always — no "switch
+        into a club" step. The privacy policy and Terms must say so before
+        other clubs sign up (BoathouseOS staff can access club data for
+        support).
+      - One club per account: someone in two clubs uses two logins.
+      - How new clubs get created: not decided yet — Todd wants more setup
+        and testing done before rolling multi-club out.
+- [ ] Before starting Phase 1: refresh ~/.claude/plans/deep-snuggling-kahn.md,
+      written when the app had ~20 tables; ~40 have been added since
+      (payments, apparel, On the Water, polls, coach tasks, races, push,
+      scheduled alerts, photo likes/comments, erg times, ...), each needing
+      club_id + RLS. Also the demo's existing per-club `club_slug` on
+      races/lineups should fold into the real club_id.
 
 ## Maintenance requests
 - [x] Boat Maintenance: anyone can report an issue with a specific fleet boat
