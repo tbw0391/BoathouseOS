@@ -593,15 +593,20 @@
       windows with a deadline and a size-by-size list for the vendor; mark
       paid (cash/check), picked up, cancelled. External team store link
       stays on /store.
-- [ ] Stripe account: Todd to create at stripe.com, then add
-      STRIPE_SECRET_KEY (sk_test_ first) and STRIPE_WEBHOOK_SECRET to Vercel
-      and .env.local; add a Connect webhook (events on connected accounts)
-      for checkout.session.completed, invoice.paid, charge.refunded,
-      account.updated. Then test end to end in test mode.
-- [ ] Check card-network and state rules before going live: a % convenience
-      fee and payer-covered card fees (surcharging) are both regulated
-      (disclosure, caps, no surcharge on debit, some states restrict).
-- [ ] Terms/refund policy before live payments (see Terms and Conditions).
+- [ ] 1. Create a Stripe account at stripe.com, then add STRIPE_SECRET_KEY
+      (the sk_test_ key first) and STRIPE_WEBHOOK_SECRET to Vercel and
+      .env.local. Nothing charges real money until live keys go in.
+- [ ] 2. In Stripe, add a webhook for "events on connected accounts" pointing
+      at https://boathouseos.app/api/stripe/webhook, sending
+      checkout.session.completed, invoice.paid, charge.refunded and
+      account.updated. Its signing secret is STRIPE_WEBHOOK_SECRET. Then
+      connect the club on Manage payments and test end to end in test mode.
+- [ ] 3. Before going live, check card-network and state rules with Stripe or
+      an advisor: a percentage convenience fee (networks generally expect a
+      flat one) and payer-covered card fees (surcharging: disclosure, caps,
+      not allowed on debit cards, restricted in some states).
+- [ ] 4. Write the Terms and a refund policy before taking real money (see
+      Terms and Conditions).
 - [ ] Payment-plan emails/reminders and a failed-installment alert for the
       treasurer (Stripe retries failed installments on its own).
 - [ ] Clubs pay BoathouseOS: Stripe Billing subscription tiered by roster
