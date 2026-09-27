@@ -3,12 +3,8 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-
-// One shared account everyone lands in from the "Try the demo" button, so
-// visiting clubs can look around without signing up. It's an admin so every
-// screen is visible. Only safe because this project's database holds demo
-// data only — never point this build at a real club's Supabase project.
-const DEMO_EMAIL = "demo@boathouseos.app";
+import { DEMO_EMAIL } from "@/lib/demoAccount";
+import { forgetThisDevicesPush } from "@/lib/push";
 
 export async function signInAsDemo() {
   const admin = createAdminClient();
@@ -63,6 +59,8 @@ export async function signInAsDemo() {
 }
 
 export async function signOut() {
+  // Stop this device getting the signed-out person's alerts.
+  await forgetThisDevicesPush();
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");

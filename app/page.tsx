@@ -23,9 +23,12 @@ import {
   Trophy,
   CreditCard,
   Shirt,
+  Sprout,
   type LucideIcon,
 } from "lucide-react";
 import RacingScull from "@/components/icons/RacingScull";
+import { PushToggle } from "@/components/PushToggle";
+import { DEMO_EMAIL } from "@/lib/demoAccount";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AnnouncementAudience,
@@ -49,6 +52,13 @@ import type {
 } from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
 import { getUnreadChatCount } from "@/lib/chat";
+import {
+  formatErgSeconds,
+  loadBirthdaysToday,
+  loadMyRecentPrs,
+  type BirthdayPerson,
+  type PrBanner,
+} from "@/lib/celebrations";
 import { getUnreadScheduleCount } from "@/lib/schedule";
 import { forecastDayFor, getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
@@ -80,6 +90,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/on-water": Navigation,
   "/workouts": Dumbbell,
   "/food-tent": Tent,
+  "/rookie-parent": Sprout,
   "/payments": CreditCard,
   "/apparel": Shirt,
   "/volunteer": HelpingHand,
@@ -788,6 +799,8 @@ export default async function Home() {
   let foodPrepBanners: FoodPrepBanner[] = [];
   let signupCallBanners: SignupCallBanner[] = [];
   let announcementBanners: AnnouncementBanner[] = [];
+  let birthdaysToday: BirthdayPerson[] = [];
+  let myPrs: PrBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
   let upcomingRegattaForecast: EventForecast | null = null;
   let unreadCount = 0;
@@ -1053,6 +1066,10 @@ export default async function Home() {
     pendingRaceBanners = pendingRaceBannerResults;
     foodPrepBanners = foodPrepBannerResults;
     announcementBanners = announcementBannerResults;
+    [birthdaysToday, myPrs] = await Promise.all([
+      loadBirthdaysToday(supabase),
+      loadMyRecentPrs(supabase, user.id),
+    ]);
     const isGuardian = (familyLinkRows.data ?? []).length > 0;
     signupCallBanners = isParent || isGuardian ? signupCallBannerResults : [];
 
@@ -1260,6 +1277,58 @@ export default async function Home() {
           approval →
         </Link>
       )}
+
+      {birthdaysToday.some((p) => p.id === user?.id) && (
+        <div className="w-full rounded-lg bg-gradient-to-r from-pink-400 via-amber-300 to-sky-400 px-4 py-3 text-center font-semibold text-gray-900">
+          🎂 Happy birthday,{" "}
+          {birthdaysToday.find((p) => p.id === user?.id)?.first_name ||
+            birthdaysToday.find((p) => p.id === user?.id)?.display_name}
+          ! 🎉
+        </div>
+      )}
+
+      {birthdaysToday.some((p) => p.id !== user?.id) && (
+        <div className="w-full flex items-center gap-3 rounded-lg border-2 border-pink-300 bg-pink-50 px-4 py-3 text-sm text-pink-950">
+          <span className="text-lg" aria-hidden>
+            🎂
+          </span>
+          <span>
+            It&apos;s{" "}
+            {birthdaysToday
+              .filter((p) => p.id !== user?.id)
+              .map((p, i, all) => (
+                <span key={p.id}>
+                  {i > 0 && (i === all.length - 1 ? " and " : ", ")}
+                  <Link href={`/roster/${p.id}`} className="font-semibold underline">
+                    {p.display_name}
+                  </Link>
+                </span>
+              ))}
+            &apos;s birthday today!
+          </span>
+        </div>
+      )}
+
+      {myPrs.map((pr) => (
+        <div
+          key={pr.id}
+          className="w-full flex items-center gap-3 rounded-lg border-2 border-yellow-600 bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-300 px-4 py-3 text-sm text-yellow-950"
+        >
+          <Trophy className="w-5 h-5 shrink-0" />
+          <span>
+            <strong>New {pr.distance.toUpperCase()} PR: {pr.time_text}!</strong>
+            {pr.previous_best_seconds != null && (
+              <>
+                {" "}
+                That&apos;s{" "}
+                {(Number(pr.previous_best_seconds) - Number(pr.seconds)).toFixed(1)}s
+                faster than your old best (
+                {formatErgSeconds(Number(pr.previous_best_seconds))}).
+              </>
+            )}
+          </span>
+        </div>
+      ))}
 
       {announcementBanners.length > 0 && (
         <div className="w-full flex flex-col gap-2">
@@ -1543,6 +1612,8 @@ export default async function Home() {
           ))}
         </div>
       )}
+
+      {user && <PushToggle isDemo={user.email === DEMO_EMAIL} />}
 
       <div className="w-full grid grid-cols-3 gap-4">
         {NAV_SECTIONS.filter((s) => s.href !== "/coach" || isCoachOrAdmin)

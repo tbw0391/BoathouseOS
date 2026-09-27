@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 // collects: new profile fields, tables, cookies, or outside services that
 // receive data should be reflected here.
 const CONTACT_EMAIL = "privacy@boathouseos.app";
-const LAST_UPDATED = "September 25, 2026";
+const LAST_UPDATED = "September 27, 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -59,9 +59,18 @@ export default function PrivacyPage() {
             rowers, and spouse links between parents.
           </li>
           <li>
-            <strong>Club activity:</strong> lineups, schedule RSVPs, food tent and volunteer
-            signups, poll votes, suggestions, maintenance reports, messages, and photos (including
-            who is tagged in them).
+            <strong>Club activity:</strong> lineups, practice check-ins and absences, erg time
+            history, food tent and volunteer signups, poll votes, suggestions, maintenance reports,
+            messages, and photos (including who is tagged in them).
+          </li>
+          <li>
+            <strong>Payments:</strong> what your club has billed you, what you&apos;ve paid and
+            how (cash, check, or card), and apparel orders. Card numbers go straight to Stripe;
+            BoathouseOS never sees or stores them.
+          </li>
+          <li>
+            <strong>Agreeing to the terms:</strong> when you agreed to the terms of service and
+            this policy at signup.
           </li>
           <li>
             <strong>On-water location:</strong> only while a coxswain has started on-water
@@ -89,8 +98,10 @@ export default function PrivacyPage() {
           Your information is visible to the approved members of your own club, as the app&apos;s
           screens show it (for example, the roster and bio pages). New signups can&apos;t see
           anything until a club admin approves them. Some things are narrower: on-water locations
-          are visible only to coaches, admins, and the coxswain who recorded them, and &quot;interested&quot; form submissions only
-          to the BoathouseOS team.
+          are visible only to coaches, admins, and the coxswain who recorded them; bills and
+          payments only to the family involved and the club&apos;s treasurer and admins; erg time
+          history and attendance only to the member and their coaches; and &quot;interested&quot;
+          form submissions only to the BoathouseOS team.
         </p>
       </Section>
 
@@ -114,6 +125,12 @@ export default function PrivacyPage() {
             <strong>Vercel</strong> hosts the app and keeps short-lived server logs.
           </li>
           <li>
+            <strong>Stripe</strong> processes card payments for your club. When you pay by card,
+            Stripe receives your card details and the payment amount, and your club&apos;s Stripe
+            account records the payment. Stripe&apos;s own privacy policy covers what it does
+            with them.
+          </li>
+          <li>
             To show race-day weather, the <strong>National Weather Service</strong> and{" "}
             <strong>OpenStreetMap</strong> receive a regatta&apos;s location, never anything about
             a person. Maps load their tiles from OpenStreetMap, which sees your IP address as any
@@ -128,8 +145,11 @@ export default function PrivacyPage() {
 
       <Section title="Cookies and storage on your device">
         <p>
-          The app uses a sign-in cookie to keep you signed in and a cookie to remember which
-          club&apos;s colors to show. When installed on a phone, it also saves copies of pages
+          The app uses a sign-in cookie to keep you signed in, a cookie to remember which
+          club&apos;s colors to show, and, if you turn on alerts, a cookie that lets signing out
+          stop alerts on that device. Turning on alerts saves an address your phone&apos;s push
+          service (Apple, Google, or Mozilla) gives us for sending them; alert text passes
+          through that service. When installed on a phone, it also saves copies of pages
           so it loads quickly; those are cleared when you sign out.
         </p>
       </Section>
@@ -158,6 +178,10 @@ export default function PrivacyPage() {
       <p className="text-gray-500">
         <Link href="/" className="underline">
           Back to BoathouseOS
+        </Link>
+        {" · "}
+        <Link href="/terms" className="underline">
+          Terms of service
         </Link>
       </p>
     </div>

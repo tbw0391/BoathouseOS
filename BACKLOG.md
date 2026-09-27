@@ -78,9 +78,13 @@
 - [x] List upcoming/past events, split into Regattas and Practice
 - [x] Create/delete event (coach/admin), including recurrence (weekly/monthly/yearly)
 - [x] Edit an existing event (title, times, location, description, recurrence)
-- [ ] RSVP (attending / not attending) per event
-- [ ] Calendar view
-- [ ] Calendar on the Schedule page showing standing practice times: Mon-Fri 4:15-6:30pm, Saturday 8-10am
+- [ ] RSVP (attending / not attending) per event (not now — Todd will pick it up later)
+- [x] Calendar view (2026-09-27): month grid on /schedule under the Regattas/
+      Practice tiles. Dots per day by type; tap a day to list what's on it
+      (regattas link to their page). Weekly/monthly/yearly events repeat.
+- [x] Standing practice times on the calendar: Mon-Fri 4:15-6:30pm,
+      Saturday 8-10am (STANDING_PRACTICES in lib/scheduleCalendar.ts),
+      hidden on days that already have a practice or regatta scheduled.
 - [x] Weather forecast banner for a regatta (2026-09-22): shows on the home
       page once the nearest regatta is within 7 days (National Weather
       Service's forecast horizon) — high/low, short forecast, precip
@@ -290,9 +294,11 @@
 - [ ] Content TBD (button/route scaffolded, waiting on requirements)
 
 ## Rookie Parent
-- [ ] Rookie Parent tile/button (home page) as a resource hub for new parents,
-      with more buttons underneath it: FAQ, What to Bring, Food Tent/Parking/
-      Tent location
+- [x] Rookie Parent tile/button (2026-09-27): /rookie-parent with buttons
+      for FAQ, What to Bring, and Food Tent/Parking/Team Tent. Admins write
+      each section on the page (stored in club_settings). Content still
+      needs writing. Note club_settings is readable signed-out, so keep it
+      to non-sensitive info.
 
 ## Food Tent
 - [x] Tent leader flag (admin-assignable, separate from role)
@@ -316,16 +322,13 @@
       alerts parents with a "signups are open" banner
       (food_tent_status table + food_tent_items.published column,
       0047_food_tent_publish_workflow.sql)
-- [ ] Delete a regatta day
-- [ ] Real device push notifications for the tent-leader/parent alerts
-      above — today they're in-app home banners only, which need someone
-      to open the app to see. Blocked on the existing "Real push
-      notifications... (PWA)" backlog item under Infra, which needs the
-      app actually deployed first (see "Deploy (Vercel)" below) plus new
-      push-subscription infra (VAPID keys, service worker push handler,
-      a subscribe flow, and a way to actually send a push on a schedule —
-      e.g. Vercel Cron hitting an API route, since pg_cron can't call
-      external push endpoints on its own).
+- [x] Clear a regatta's food list (2026-09-27): "Clear food list" for
+      admins/coaches/tent leaders removes that regatta's items, signups,
+      and publish status. The regatta itself stays on the schedule (deleting
+      it there also deletes its lineups and races).
+- [x] Push alert to parents/guardians when the tent leader publishes the
+      food list (2026-09-27). The tent leader's "draft ready" alert still
+      needs a scheduled job — see "Scheduled alerts" under Infra.
 
 ## Photos
 - [x] Anyone can post a photo (top-left camera icon on every page, plus a
@@ -355,10 +358,10 @@
       Development, Masters, Alumni, Parent, Coach), kept in sync via a DB
       trigger on profile_teams so it works regardless of which code path
       changes someone's groups
-- [ ] Board Member chat group (not yet wired up — board membership isn't a
-      profile_teams row, it's the separate is_board_member flag)
-- [ ] Delete a message (2026-09-22 request): let someone delete a message
-      they sent, at least, in a group/DM chat thread.
+- [x] Board Member chat group (2026-09-27, 0074): a "Board" chat kept in
+      sync with the is_board_member flag by a trigger on profiles.
+- [x] Delete a message (2026-09-27, 0073_delete_own_messages.sql): a
+      "Delete" link under your own messages removes it for everyone, live.
 - [x] Coach announcements (2026-09-22): a one-way broadcast (not a group
       chat) a coach/admin sends from `/announcements`, targeted to all
       Rowers, all Parents, or Both — cuts across team boundaries, unlike the
@@ -369,13 +372,14 @@
       (0051_coach_announcements.sql), audience-scoped via RLS.
 
 ## Banners
-- [ ] Birthday banner (show on a member's birthday)
-- [ ] New PR banner: when a rower enters a 2K/5K erg time that's faster than
-      their previous best for that distance, it counts as a new personal
-      record and that person sees a congrats banner on their own home page
-      (note: erg times are currently a single overwritable field per profile
-      with no history, so this needs an erg-time-log table to detect "faster
-      than previous" rather than just "changed")
+- [x] Birthday banner (2026-09-27): the birthday person gets a "Happy
+      birthday" banner; everyone else sees "It's X's birthday today!"
+      linking to their bio. Eastern date; Feb 29 shows on Feb 28 otherwise.
+- [x] New PR banner (2026-09-27, 0074_erg_prs_and_board_chat.sql): an
+      `erg_times` log filled by a trigger on profiles (any save path) marks a
+      2K/5K faster than the previous best as a PR; the rower sees a gold
+      banner for 7 days. Existing times were seeded as the baseline. Only
+      m:ss(.s) times are tracked.
 - [ ] Regatta-week popup banners, starting the week before a regatta:
       food tent request reminder, lineups reminder, coaches' messages reminder
 - [ ] Race-time notification for the existing rower/parent lineup banner
@@ -385,9 +389,6 @@
       (PWA) being built first, plus a scheduled job to fire at T-20min per
       race. Also: the banner should stop showing once the race has passed,
       not just once it's not "upcoming" by date.
-- [ ] Role-changed banner: when an admin changes someone's role (e.g. rower
-      -> admin), that person sees a one-time banner on their own home page
-      telling them their role changed.
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
@@ -404,12 +405,28 @@
       existing home-page button grid (not a replacement). Also enables
       `viewport-fit: cover` so its safe-area padding actually applies on
       notched phones.
-- [ ] Role-based UI (hide admin-only actions from rowers/parents)
+- [x] Role-based UI (hide admin-only actions from rowers/parents): checked
+      2026-09-27, every page already gates its admin controls by role.
 - [x] In-app unread indicators: home page badges for unread messages and for
       new schedule events since you last checked (step 1 toward real push
       notifications)
-- [ ] Real push notifications (phone alert even when the app is closed) for
-      new messages / schedule changes (PWA) — step 2, once ready
+- [x] Real push notifications (2026-09-27, 0076_push_subscriptions.sql):
+      home-page "Turn on alerts" prompt (then a small on/off line), per
+      device. Alerts for chat messages (other members of the chat), new
+      schedule events and time/place changes (everyone), coach
+      announcements (same audience as the banner), and food list published
+      (parents/guardians). Sent after the response via next/server after()
+      from lib/push.ts; dead subscriptions are dropped automatically.
+      Signing out removes that device's subscription (push_endpoint
+      cookie). Off in the shared demo account. iPhone needs the app added
+      to the Home Screen first (the prompt says so).
+- [ ] Push setup: generate VAPID keys (`npx web-push generate-vapid-keys`),
+      add NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to Vercel
+      (Production) and .env.local, redeploy. Until then the prompt stays
+      hidden and nothing is sent.
+- [ ] Scheduled alerts (need a Vercel Cron hitting an API route): the
+      tent leader's "draft food list ready" alert from the 7-days-out
+      pg_cron job, and race-time alerts 20 min before a race.
 - [x] Deploy (Vercel) (2026-09-23): live at https://w-crew-app.vercel.app. The
       Vercel project + its Supabase integration (env vars: POSTGRES_*,
       SUPABASE_*, NEXT_PUBLIC_SUPABASE_*) already existed from ~2026-09-18,
@@ -503,10 +520,12 @@
 - [x] Fixed (2026-09-25): the Permissions-Policy header (geolocation=())
       added 2026-09-22 blocked GPS for the whole site, so the On-Water
       tracker couldn't work in production. Now geolocation=(self).
-- [ ] Advisor leftovers: `latest_messages_for_groups` and
-      `demo_baseline.excluded_tables` have no fixed search_path; several
-      SECURITY DEFINER helpers (poll/chat/trigger functions) are still
-      executable by anon — revoke where not needed.
+- [x] Advisor leftovers (2026-09-27, 0072_advisor_cleanup.sql): fixed
+      search_path on the last three functions; trigger functions and the
+      regatta prep job no longer callable over the API; RLS helpers no
+      longer callable by signed-out visitors. Remaining advisor warnings
+      are intentional (signed-in helpers used by RLS) plus the
+      leaked-password setting.
 - [ ] Ongoing: new tables need `select public.apply_approval_gate();` at the
       end of their migration. Review RLS on every new table, run /security-review before
       big releases, check Supabase Advisors → Security.
@@ -566,14 +585,22 @@
       picker needed
 
 ## Terms and Conditions
-- [ ] Write the Terms and Conditions (Terms of Service) for BoathouseOS:
-      acceptable use, accounts and member approval, content clubs and
-      members post (photos, messages), minors on the roster, liability,
-      and ending an account. Have a lawyer review before public launch.
-- [ ] Public /terms page styled like /privacy, linked from the same places
-      (landing page, signup, the interest form) and from /privacy itself
-- [ ] Ask new members to agree to the Terms (and Privacy Policy) at signup,
-      and record when each person agreed
+- [x] Terms of Service draft (2026-09-27): public /terms — clubs and
+      members, accounts, under-18s, acceptable use, content, payments and
+      refunds, On the Water isn't a safety system, the demo, liability,
+      leaving, changes. Have a lawyer review before public launch.
+- [ ] Decide the refund rule for the 1% convenience fee. The Terms say it
+      isn't refunded unless the club or BoathouseOS chooses to, which matches
+      Stripe's default (a club refunding from its dashboard keeps the fee
+      with BoathouseOS). Also no governing-law/venue clause yet — lawyer.
+- [x] Linked from the landing page, signup, the interest form, and /privacy.
+      Privacy policy updated the same day: payments/Stripe, erg history,
+      check-ins; removed "schedule RSVPs" (not built).
+- [x] Signup requires ticking "I agree to the Terms of Service and Privacy
+      Policy"; profiles.terms_accepted_at + terms_version record it
+      (0075_terms_acceptance.sql, lib/terms.ts TERMS_VERSION). Members an
+      admin adds, or who joined earlier, have no record yet — add a
+      one-time "please agree" screen if that's needed.
 
 ## Payments
 - [x] Payments (2026-09-27, 0067_payments.sql): Treasurer flag (admins set
@@ -605,8 +632,9 @@
       an advisor: a percentage convenience fee (networks generally expect a
       flat one) and payer-covered card fees (surcharging: disclosure, caps,
       not allowed on debit cards, restricted in some states).
-- [ ] 4. Write the Terms and a refund policy before taking real money (see
-      Terms and Conditions).
+- [x] 4. Terms and refund policy drafted 2026-09-27 (see Terms and
+      Conditions) — lawyer review and the convenience-fee refund decision
+      still open.
 - [ ] Payment-plan emails/reminders and a failed-installment alert for the
       treasurer (Stripe retries failed installments on its own).
 - [ ] Clubs pay BoathouseOS: Stripe Billing subscription tiered by roster

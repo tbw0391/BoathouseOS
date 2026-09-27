@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { activeMemberIds, formatAlertTime, sendPush } from "@/lib/push";
 import type { EventType, Role, ScheduleRecurrence } from "@/lib/database.types";
 
 const EVENT_TYPES: EventType[] = ["practice", "regatta", "meeting", "other"];
@@ -47,12 +49,13 @@ export async function createScheduleEvent(formData: FormData) {
 
   if (!title || !startsAtRaw) throw new Error("Title and start date/time are required.");
 
+  const startsAt = new Date(startsAtRaw).toISOString();
   const { error } = await supabase.from("schedule_events").insert({
     title,
     description,
     location,
     event_type,
-    starts_at: new Date(startsAtRaw).toISOString(),
+    starts_at: startsAt,
     ends_at: endsAtRaw ? new Date(endsAtRaw).toISOString() : null,
     recurrence,
     created_by: user.id,
@@ -62,11 +65,22 @@ export async function createScheduleEvent(formData: FormData) {
 
   revalidatePath(`/schedule/${event_type}`);
   revalidatePath("/schedule");
+  after(async () =>
+    sendPush((await activeMemberIds()).filter((id) => id !== user.id), {
+      title: `New on the schedule: ${title}`,
+      body: [formatAlertTime(startsAt), location].filter(Boolean).join(" · "),
+      url: scheduleUrl(event_type),
+    })
+  );
+}
+
+function scheduleUrl(eventType: string) {
+  return eventType === "practice" || eventType === "regatta" ? `/schedule/${eventType}` : "/schedule";
 }
 
 export async function updateScheduleEvent(formData: FormData) {
   const supabase = await createClient();
-  await requireManager(supabase);
+  const { user } = await requireManager(supabase);
 
   const eventId = String(formData.get("event_id") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
@@ -83,13 +97,20 @@ export async function updateScheduleEvent(formData: FormData) {
   if (!eventId) throw new Error("Missing event.");
   if (!title || !startsAtRaw) throw new Error("Title and start date/time are required.");
 
+  const { data: before } = await supabase
+    .from("schedule_events")
+    .select("starts_at, location")
+    .eq("id", eventId)
+    .single();
+  const startsAt = new Date(startsAtRaw).toISOString();
+
   const { error } = await supabase
     .from("schedule_events")
     .update({
       title,
       description,
       location,
-      starts_at: new Date(startsAtRaw).toISOString(),
+      starts_at: startsAt,
       ends_at: endsAtRaw ? new Date(endsAtRaw).toISOString() : null,
       recurrence,
     })
@@ -99,6 +120,26 @@ export async function updateScheduleEvent(formData: FormData) {
 
   if (eventType) revalidatePath(`/schedule/${eventType}`);
   revalidatePath("/schedule");
+
+  // Only a new time or place is worth an alert, not a reworded description.
+  const old = before as { starts_at: string; location: string | null } | null;
+  const timeChanged = old && new Date(old.starts_at).getTime() !== new Date(startsAt).getTime();
+  const placeChanged = old && (old.location ?? null) !== location;
+  if (timeChanged || placeChanged) {
+    after(async () =>
+      sendPush((await activeMemberIds()).filter((id) => id !== user.id), {
+        title: `Schedule change: ${title}`,
+        body: [
+          timeChanged ? `Now ${formatAlertTime(startsAt)}` : null,
+          placeChanged ? (location ? `At ${location}` : "Location removed") : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        url: scheduleUrl(eventType),
+        tag: `event-${eventId}`,
+      })
+    );
+  }
 }
 
 export async function deleteScheduleEvent(formData: FormData) {

@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { familyMemberIds, sendPush } from "@/lib/push";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -75,6 +77,47 @@ export async function publishFoodList(eventId: string) {
     },
     { onConflict: "event_id" }
   );
+  if (statusError) throw new Error(statusError.message);
+
+  revalidatePath("/food-tent");
+  revalidatePath("/");
+
+  after(async () => {
+    const { data: event } = await supabase
+      .from("schedule_events")
+      .select("title")
+      .eq("id", eventId)
+      .single();
+    await sendPush(
+      (await familyMemberIds()).filter((id) => id !== user.id),
+      {
+        title: "Food tent signups are open",
+        body: `${(event as { title: string } | null)?.title ?? "The next regatta"}: pick something to bring.`,
+        url: "/food-tent",
+        tag: `food-${eventId}`,
+      }
+    );
+  });
+}
+
+// Wipes one regatta's food list (items, their signups, and its publish
+// status). The regatta itself stays on the schedule.
+export async function clearFoodList(eventId: string) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  if (!eventId) throw new Error("Missing event.");
+
+  const { error: itemsError } = await supabase
+    .from("food_tent_items")
+    .delete()
+    .eq("event_id", eventId);
+  if (itemsError) throw new Error(itemsError.message);
+
+  const { error: statusError } = await supabase
+    .from("food_tent_status")
+    .delete()
+    .eq("event_id", eventId);
   if (statusError) throw new Error(statusError.message);
 
   revalidatePath("/food-tent");

@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { activeMemberIds, sendPush } from "@/lib/push";
 import type { AnnouncementAudience } from "@/lib/database.types";
 
 const VALID_AUDIENCES: AnnouncementAudience[] = ["rowers", "parents", "both"];
@@ -46,6 +48,26 @@ export async function sendAnnouncement(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/announcements");
+
+  // Same people who get the home-page banner.
+  const roles =
+    audience === "rowers"
+      ? ["rower", "coxswain"]
+      : audience === "parents"
+        ? ["parent"]
+        : ["rower", "coxswain", "parent"];
+  after(async () => {
+    const { data: sender } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single();
+    await sendPush(await activeMemberIds(roles), {
+      title: `Announcement from ${(sender as { display_name: string } | null)?.display_name ?? "your coach"}`,
+      body: message.length > 140 ? `${message.slice(0, 139)}…` : message,
+      url: "/",
+    });
+  });
 }
 
 export async function deleteAnnouncement(announcementId: string) {

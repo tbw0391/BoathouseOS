@@ -33,6 +33,8 @@ export interface Profile {
   us_rowing_number: string | null;
   spouse_id: string | null;
   walk_up_song: string | null;
+  terms_accepted_at: string | null;
+  terms_version: string | null;
 }
 
 export interface ProfileTeam {
@@ -217,8 +219,20 @@ export interface ChatGroup {
   name: string;
   is_direct: boolean;
   team: Team | null;
+  is_board: boolean;
   created_by: string | null;
   created_at: string;
+}
+
+export interface ErgTime {
+  id: string;
+  profile_id: string;
+  distance: "2k" | "5k";
+  time_text: string;
+  seconds: number;
+  previous_best_seconds: number | null;
+  is_pr: boolean;
+  recorded_at: string;
 }
 
 export interface ChatGroupMember {
