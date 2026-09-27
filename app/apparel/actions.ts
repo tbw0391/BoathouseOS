@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, siteOrigin } from "@/lib/stripe";
-import { getPaymentSettings, startOrderCheckout } from "@/lib/billing";
+import { getPaymentSettings, markOrderPaid, startOrderCheckout } from "@/lib/billing";
 import { parseMoney } from "@/lib/payments";
 import type { Order, OrderItem, OrderWindow, Product, ProductStock, Profile } from "@/lib/database.types";
 
@@ -119,6 +119,11 @@ export async function closeOrderWindow(windowId: string) {
 
 export async function setOrderStatus(orderId: string, status: "picked_up" | "cancelled" | "paid") {
   const { supabase } = await requireTreasurer();
+  if (status === "paid") {
+    await markOrderPaid(createAdminClient(), orderId);
+    revalidateApparel();
+    return;
+  }
   const { error } = await supabase
     .from("orders")
     .update({ status, picked_up_at: status === "picked_up" ? new Date().toISOString() : null })

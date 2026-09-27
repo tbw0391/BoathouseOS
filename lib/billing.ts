@@ -272,7 +272,9 @@ export async function startOrderCheckout(
 
 // --- What Stripe reports back (webhook) ---
 
-async function markOrderPaid(admin: Admin, orderId: string) {
+// Paid by card (webhook) or marked paid by the treasurer; in-stock items
+// come off the shelf.
+export async function markOrderPaid(admin: Admin, orderId: string) {
   const { data } = await admin.from("orders").select("*").eq("id", orderId).single();
   const order = data as Order | null;
   if (!order || order.status !== "pending") return;
