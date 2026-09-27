@@ -254,18 +254,22 @@ export async function insertRaces(
 
 // A race whose category (e.g. Masters 1V8) matches exactly one fleet boat
 // gets that boat, and its saved crew, straight away — no choice to make.
-// Races with no category, or with several matching boats, stay pending for
-// a coach to pick. Best-effort: a failure here leaves the race pending
-// rather than failing the import.
+// Left pending for a coach instead when there's no category, several boats
+// match, or the boat would be in two races at once (two crews in the same
+// category at the same time, or the boat already racing then). Best-effort:
+// a failure here leaves the race pending rather than failing the import.
 async function autoAssignBoats(
   supabase: SupabaseServerClient,
   { raceIds, userId }: { raceIds: string[]; userId: string }
 ) {
   if (raceIds.length === 0) return;
-  const { data: raceRows } = await supabase.from("races").select("id, category").in("id", raceIds);
-  const races = ((raceRows as { id: string; category: string | null }[] | null) ?? []).filter(
-    (r) => r.category && r.category in CATEGORY_BOAT_CLASS
-  );
+  const { data: raceRows } = await supabase
+    .from("races")
+    .select("id, event_id, category, race_time")
+    .in("id", raceIds);
+  const races = (
+    (raceRows as { id: string; event_id: string; category: string | null; race_time: string | null }[] | null) ?? []
+  ).filter((r) => r.category && r.category in CATEGORY_BOAT_CLASS);
   if (races.length === 0) return;
 
   const { data: boatRows } = await supabase
@@ -277,11 +281,29 @@ async function autoAssignBoats(
     boatIdsByCategory.set(b.category, [...(boatIdsByCategory.get(b.category) ?? []), b.id]);
   }
 
+  // When each boat is already racing at these regattas.
+  const { data: busyRows } = await supabase
+    .from("lineups")
+    .select("boat_id, race_time")
+    .in("event_id", [...new Set(races.map((r) => r.event_id))])
+    .not("race_time", "is", null);
+  const busy = new Set(
+    ((busyRows as { boat_id: string | null; race_time: string }[] | null) ?? []).map(
+      (l) => `${l.boat_id}@${new Date(l.race_time).getTime()}`
+    )
+  );
+  const slotKey = (r: { category: string | null; race_time: string | null }) =>
+    `${r.category}@${r.race_time ? new Date(r.race_time).getTime() : "any"}`;
+  const racesPerSlot = new Map<string, number>();
+  for (const r of races) racesPerSlot.set(slotKey(r), (racesPerSlot.get(slotKey(r)) ?? 0) + 1);
+
   for (const race of races) {
     const boatIds = boatIdsByCategory.get(race.category as string) ?? [];
-    if (boatIds.length !== 1) continue;
+    if (boatIds.length !== 1 || (racesPerSlot.get(slotKey(race)) ?? 0) > 1) continue;
+    if (race.race_time && busy.has(`${boatIds[0]}@${new Date(race.race_time).getTime()}`)) continue;
     try {
       await buildLineupForRace(supabase, { raceId: race.id, boatId: boatIds[0], userId });
+      if (race.race_time) busy.add(`${boatIds[0]}@${new Date(race.race_time).getTime()}`);
     } catch (e) {
       console.error("Couldn't auto-assign a boat to race", race.id, e);
     }
