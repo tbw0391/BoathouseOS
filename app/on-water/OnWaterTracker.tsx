@@ -2,10 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Lineup, OnWaterSession } from "@/lib/database.types";
+import type { Boat, OnWaterSession } from "@/lib/database.types";
+import { ON_WATER_COLORS } from "@/lib/onWaterColors";
 import { startSession, endSession } from "./actions";
 
 const PING_INTERVAL_MS = 7000;
+
+// This phone remembers which boat it's in and its color, so the coxswain
+// only has to pick them once.
+const BOAT_KEY = "onWater.boatId";
+const COLOR_KEY = "onWater.color";
+
+function readSaved(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function save(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {}
+}
 
 function LocationSwitch({ permission, onEnable }: { permission: PermissionState; onEnable: () => void }) {
   const isOn = permission === "granted";
@@ -44,14 +64,21 @@ function LocationSwitch({ permission, onEnable }: { permission: PermissionState;
 }
 
 export function OnWaterTracker({
-  lineups,
+  boats,
+  suggestedBoatId,
+  colorsInUse,
   activeSession,
 }: {
-  lineups: Lineup[];
+  boats: Pick<Boat, "id" | "name">[];
+  suggestedBoatId: string | null;
+  colorsInUse: string[];
   activeSession: OnWaterSession | null;
 }) {
   const [sessionId, setSessionId] = useState<string | null>(activeSession?.id ?? null);
-  const [lineupId, setLineupId] = useState<string>("");
+  const [boatId, setBoatId] = useState<string | null>(activeSession?.boat_id ?? suggestedBoatId);
+  const [pickingBoat, setPickingBoat] = useState(false);
+  const [color, setColor] = useState<string | null>(activeSession?.color ?? null);
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wakeLockSupported, setWakeLockSupported] = useState(true);
   const [wakeLockActive, setWakeLockActive] = useState(false);
@@ -69,6 +96,18 @@ export function OnWaterTracker({
 
   useEffect(() => {
     setWakeLockSupported(typeof navigator !== "undefined" && "wakeLock" in navigator);
+  }, []);
+
+  useEffect(() => {
+    if (activeSession) return;
+    const savedBoat = readSaved(BOAT_KEY);
+    if (!suggestedBoatId && savedBoat && boats.some((b) => b.id === savedBoat)) setBoatId(savedBoat);
+    const savedColor = readSaved(COLOR_KEY);
+    const free = ON_WATER_COLORS.filter((c) => !colorsInUse.includes(c.hex));
+    setColor(
+      savedColor && free.some((c) => c.hex === savedColor) ? savedColor : (free[0]?.hex ?? ON_WATER_COLORS[0].hex)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reflects the browser's real geolocation permission — once denied, no
@@ -190,9 +229,13 @@ export function OnWaterTracker({
   }, []);
 
   async function handleStart() {
+    if (!boatId || !color) return;
     setError(null);
+    setStarting(true);
     try {
-      const id = await startSession(lineupId || null);
+      const id = await startSession(boatId, color);
+      save(BOAT_KEY, boatId);
+      save(COLOR_KEY, color);
       setSessionId(id);
       setStartedAt(new Date());
       startWatch(id);
@@ -200,6 +243,7 @@ export function OnWaterTracker({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start tracking.");
     }
+    setStarting(false);
   }
 
   async function handleEnd() {
@@ -218,33 +262,86 @@ export function OnWaterTracker({
     setLastPingAt(null);
   }
 
+  const boatName = boats.find((b) => b.id === boatId)?.name ?? null;
+  const colorName = ON_WATER_COLORS.find((c) => c.hex === color)?.name ?? null;
+
   if (!sessionId) {
     return (
-      <div className="flex flex-col gap-3 max-w-sm">
+      <div className="flex flex-col gap-5 max-w-sm">
         <LocationSwitch permission={permission} onEnable={requestLocation} />
-        {lineups.length > 0 && (
-          <label className="flex flex-col gap-1 text-sm">
-            Today&apos;s lineup (optional)
-            <select
-              value={lineupId}
-              onChange={(e) => setLineupId(e.target.value)}
-              className="border rounded px-3 py-2"
-            >
-              <option value="">No lineup — freeform outing</option>
-              {lineups.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.boat_name}
-                </option>
+
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Which boat is this phone in?</p>
+          {boatName && !pickingBoat ? (
+            <div className="flex items-center justify-between rounded-lg border-2 border-[var(--color-primary)] px-4 py-3">
+              <span className="font-bold">{boatName}</span>
+              <button onClick={() => setPickingBoat(true)} className="text-sm underline text-gray-600">
+                Change
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {boats.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={b.id === boatId}
+                  onClick={() => {
+                    setBoatId(b.id);
+                    setPickingBoat(false);
+                  }}
+                  className={`rounded-lg border-2 px-3 py-3 text-sm font-medium ${
+                    b.id === boatId
+                      ? "border-[var(--color-primary)] bg-[var(--color-secondary)] text-white"
+                      : "border-gray-300 hover:border-[var(--color-primary)]"
+                  }`}
+                >
+                  {b.name}
+                </button>
               ))}
-            </select>
-          </label>
-        )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            Your color on the coaches&apos; map{colorName ? `: ${colorName}` : ""}
+          </p>
+          <div className="grid grid-cols-5 gap-2">
+            {ON_WATER_COLORS.map((c) => {
+              const taken = colorsInUse.includes(c.hex);
+              const selected = c.hex === color;
+              return (
+                <button
+                  key={c.hex}
+                  type="button"
+                  onClick={() => setColor(c.hex)}
+                  disabled={taken}
+                  aria-pressed={selected}
+                  aria-label={taken ? `${c.name} (another boat has it)` : c.name}
+                  title={taken ? `${c.name} — another boat on the water has it` : c.name}
+                  className={`relative aspect-square rounded-full disabled:opacity-25 disabled:cursor-not-allowed ${
+                    selected ? "ring-4 ring-offset-2 ring-[var(--color-primary)]" : ""
+                  }`}
+                  style={{ backgroundColor: c.hex }}
+                >
+                  {taken && (
+                    <span className="absolute inset-0 flex items-center justify-center text-white text-lg font-bold">
+                      ✕
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button
           onClick={handleStart}
-          disabled={permission === "denied"}
+          disabled={permission === "denied" || !boatId || !color || starting}
           className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors disabled:opacity-50"
         >
-          Start Outing
+          {starting ? "Starting..." : !boatId ? "Pick your boat to start" : "Start Outing"}
         </button>
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
@@ -257,8 +354,11 @@ export function OnWaterTracker({
 
   return (
     <div className="flex flex-col gap-3 max-w-sm">
-      <div className="border-2 border-[var(--color-primary)] rounded-lg p-4">
-        <p className="text-sm text-gray-500">Tracking</p>
+      <div className="border-2 rounded-lg p-4" style={{ borderColor: color ?? undefined }}>
+        <p className="flex items-center gap-2 text-sm text-gray-500">
+          {color && <span className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} aria-hidden />}
+          Tracking{boatName ? ` ${boatName}` : ""}
+        </p>
         <p className="text-2xl font-bold tabular-nums">
           {elapsedMin}:{String(elapsedSec).padStart(2, "0")}
         </p>
