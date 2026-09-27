@@ -17,6 +17,7 @@ import { WishlistItemForm } from "./WishlistItemForm";
 import { WishlistItemRow } from "./WishlistItemRow";
 import { WishlistSignupControl } from "./WishlistSignupControl";
 import { PublishControl } from "./PublishControl";
+import { ClearFoodListButton } from "./ClearFoodListButton";
 import { EventIcon } from "@/components/EventIcon";
 
 const STATUS_LABEL: Record<FoodTentStatus["status"], string> = {
@@ -165,6 +166,13 @@ export default async function FoodTentPage() {
               {canPublish && (
                 <div className="mt-2">
                   <PublishControl eventId={event.id} />
+                </div>
+              )}
+              {isManager && (eventItems.length > 0 || status) && (
+                <div className="mt-2">
+                  <ClearFoodListButton eventId={event.id} signupCount={
+                    signups.filter((s) => eventItems.some((i) => i.id === s.item_id)).length
+                  } />
                 </div>
               )}
 
