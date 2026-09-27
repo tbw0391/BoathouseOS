@@ -778,9 +778,12 @@ export default async function Home() {
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
   const hotcSchedule = demoClub ? await getHotcSchedule(demoClub) : null;
   if (isCoachOrAdmin) await syncHotcResults(supabase, hotcSchedule);
-  const hotcResults = (hotcSchedule?.races ?? [])
-    .filter((r) => r.place != null)
-    .sort((a, b) => (a.place as number) - (b.place as number));
+  const hotcOver = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }) > HOTC.lastDay;
+  const hotcResults = hotcOver
+    ? []
+    : (hotcSchedule?.races ?? [])
+        .filter((r) => r.place != null)
+        .sort((a, b) => (a.place as number) - (b.place as number));
 
   return (
     <div className="min-h-screen p-8 flex flex-col items-center gap-8">
@@ -859,6 +862,7 @@ export default async function Home() {
         </div>
       )}
 
+      {!hotcOver && (
       <Link
         href="/regatta"
         className="w-full flex items-center gap-3 border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
@@ -874,6 +878,7 @@ export default async function Home() {
           →
         </span>
       </Link>
+      )}
 
       <Link
         href="/interest"

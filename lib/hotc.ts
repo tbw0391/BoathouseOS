@@ -9,6 +9,10 @@ import type { LineupCategory } from "@/lib/database.types";
 // visitor picks a different club.
 export const HOTC = {
   title: "Head of the Cuyahoga",
+  // Race day (Eastern). The home page's results banner and regatta tile come
+  // down at midnight after it, to make room for the next regatta; the results
+  // themselves stay on /regatta, the regatta's page and rowers' medals.
+  lastDay: "2026-09-26",
   crewTimerUrl: "https://www.crewtimer.com/regatta/r16268",
   feedUrl: "https://crewtimer-results.firebaseio.com/results/r16268.json",
 };
