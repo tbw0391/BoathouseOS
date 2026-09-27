@@ -5,16 +5,18 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
-import { HOTC, getHotcSchedule, hotcRaceCategory, hotcRaceName, hotcRaceTime } from "@/lib/hotc";
-import { categoryForRace } from "@/lib/lineupCategories";
-import type { LineupCategory } from "@/lib/database.types";
+import {
+  HOTC,
+  getHotcSchedule,
+  hotcRaceCategory,
+  hotcRaceName,
+  hotcRaceTime,
+  type HotcRace,
+  type HotcSchedule,
+} from "@/lib/hotc";
+import { insertRaces, type SupabaseServerClient } from "@/lib/raceWorkflow";
 
-// Turns one of the picked club's Head of the Cuyahoga races into a race on
-// the Lineups page (creating the regatta on the schedule the first time), then
-// opens it there so the coach can pick a boat. The race is looked up again in
-// the live feed rather than trusting the form, and clicking twice reuses it.
-export async function addRegattaRaceToLineups(formData: FormData) {
-  const supabase = await createClient();
+async function requireManager(supabase: SupabaseServerClient) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -25,17 +27,25 @@ export async function addRegattaRaceToLineups(formData: FormData) {
   if (callerRole !== "admin" && callerRole !== "coach") {
     throw new Error("Only coaches and admins can manage lineups.");
   }
+  return { user };
+}
 
+// The picked club's live Head of the Cuyahoga schedule. Races are always
+// looked up again here rather than trusting the form.
+async function loadSchedule(): Promise<HotcSchedule & { date: string }> {
   const club = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
   if (!club) throw new Error("Pick your club first.");
   const schedule = await getHotcSchedule(club);
   if (!schedule?.date) throw new Error("Couldn't reach CrewTimer right now. Try again.");
+  return schedule as HotcSchedule & { date: string };
+}
 
-  const eventNum = String(formData.get("event_num") ?? "");
-  const crew = String(formData.get("crew") ?? "");
-  const race = schedule.races.find((r) => r.eventNum === eventNum && r.crew === crew);
-  if (!race) throw new Error("That race isn't in the schedule anymore.");
-
+// The regatta on the schedule for race day, created the first time.
+async function findOrCreateEvent(
+  supabase: SupabaseServerClient,
+  schedule: HotcSchedule & { date: string },
+  userId: string
+): Promise<string> {
   const dayStart = new Date(`${schedule.date}T00:00:00-04:00`).toISOString();
   const dayEnd = new Date(`${schedule.date}T23:59:59-04:00`).toISOString();
   const { data: existingEvent } = await supabase
@@ -45,50 +55,69 @@ export async function addRegattaRaceToLineups(formData: FormData) {
     .gte("starts_at", dayStart)
     .lte("starts_at", dayEnd)
     .maybeSingle();
+  if (existingEvent) return (existingEvent as { id: string }).id;
 
-  let eventId = (existingEvent as { id: string } | null)?.id;
-  if (!eventId) {
-    const { data: newEvent, error } = await supabase
-      .from("schedule_events")
-      .insert({
-        title: HOTC.title,
-        event_type: "regatta",
-        location: "Cuyahoga River, Cleveland, OH",
-        starts_at: hotcRaceTime(schedule.date, schedule.races[0]?.start ?? "7:00 AM") ?? dayStart,
-        created_by: user.id,
-      })
-      .select("id")
-      .single();
-    if (error || !newEvent) throw new Error(error?.message ?? "Couldn't add the regatta to the schedule.");
-    eventId = newEvent.id as string;
-  }
-
-  const raceName = hotcRaceName(race);
-  const { data: existingRace } = await supabase
-    .from("races")
+  const { data: newEvent, error } = await supabase
+    .from("schedule_events")
+    .insert({
+      title: HOTC.title,
+      event_type: "regatta",
+      location: "Cuyahoga River, Cleveland, OH",
+      starts_at: hotcRaceTime(schedule.date, schedule.races[0]?.start ?? "7:00 AM") ?? dayStart,
+      created_by: userId,
+    })
     .select("id")
-    .eq("event_id", eventId)
-    .eq("race_name", raceName)
-    .maybeSingle();
+    .single();
+  if (error || !newEvent) throw new Error(error?.message ?? "Couldn't add the regatta to the schedule.");
+  return newEvent.id as string;
+}
 
-  let raceId = (existingRace as { id: string } | null)?.id;
-  if (!raceId) {
-    const { data: newRace, error } = await supabase
-      .from("races")
-      .insert({
-        event_id: eventId,
-        race_name: raceName,
-        race_time: hotcRaceTime(schedule.date, race.start),
-        category: categoryForRace(raceName, hotcRaceCategory(race)) as LineupCategory | null,
-        created_by: user.id,
-      })
-      .select("id")
-      .single();
-    if (error || !newRace) throw new Error(error?.message ?? "Couldn't add the race.");
-    raceId = newRace.id as string;
-  }
+function toNewRace(date: string, race: HotcRace) {
+  return {
+    race_name: hotcRaceName(race),
+    race_time: hotcRaceTime(date, race.start),
+    category: hotcRaceCategory(race),
+  };
+}
 
-  revalidatePath("/lineups");
+function revalidate() {
+  revalidatePath("/lineups", "layout");
   revalidatePath("/regatta");
-  redirect(`/lineups/${eventId}?race=${raceId}`);
+  revalidatePath("/coach/tasks");
+  revalidatePath("/");
+}
+
+// One race onto the Lineups page. Stays on this page afterwards; the race's
+// row then links to it.
+export async function addRegattaRaceToLineups(formData: FormData) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+  const schedule = await loadSchedule();
+
+  const eventNum = String(formData.get("event_num") ?? "");
+  const crew = String(formData.get("crew") ?? "");
+  const race = schedule.races.find((r) => r.eventNum === eventNum && r.crew === crew);
+  if (!race) throw new Error("That race isn't in the schedule anymore.");
+
+  const eventId = await findOrCreateEvent(supabase, schedule, user.id);
+  await insertRaces(supabase, { eventId, userId: user.id, races: [toNewRace(schedule.date, race)] });
+  revalidate();
+}
+
+// Every one of the club's races that hasn't finished yet, in one tap, then
+// on to the regatta's Lineups page to put boats in them. Races already added
+// are skipped, so tapping again only picks up new entries.
+export async function addAllRegattaRaces() {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+  const schedule = await loadSchedule();
+
+  const eventId = await findOrCreateEvent(supabase, schedule, user.id);
+  await insertRaces(supabase, {
+    eventId,
+    userId: user.id,
+    races: schedule.races.filter((r) => r.place == null).map((r) => toNewRace(schedule.date, r)),
+  });
+  revalidate();
+  redirect(`/lineups/${eventId}`);
 }

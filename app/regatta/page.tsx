@@ -4,7 +4,7 @@ import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule, hotcRaceName } from "@/lib/hotc";
 import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
 import { createClient } from "@/lib/supabase/server";
-import { addRegattaRaceToLineups } from "./actions";
+import { addAllRegattaRaces, addRegattaRaceToLineups } from "./actions";
 
 function formatDate(isoDate: string): string {
   return new Date(`${isoDate}T12:00:00`).toLocaleDateString("en-US", {
@@ -93,6 +93,20 @@ export default async function RegattaPage() {
         </p>
       )}
 
+      {canManage && schedule && (() => {
+        const toAdd = schedule.races.filter((r) => r.place == null && !sentRaceByName.has(hotcRaceName(r))).length;
+        return toAdd > 0 ? (
+          <form action={addAllRegattaRaces} className="mb-4">
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] px-4 py-3 font-medium"
+            >
+              Add all {toAdd} race{toAdd === 1 ? "" : "s"} to Lineups
+            </button>
+          </form>
+        ) : null;
+      })()}
+
       {schedule && schedule.races.length > 0 && (
         <div className="flex flex-col gap-3">
           {schedule.races.map((race, i) => (
@@ -131,7 +145,7 @@ export default async function RegattaPage() {
                       type="submit"
                       className="text-xs font-medium text-white bg-[var(--color-secondary)] border-2 border-[var(--color-primary)] rounded px-3 py-1.5"
                     >
-                      Add boat
+                      Add race
                     </button>
                   </form>
                 );
