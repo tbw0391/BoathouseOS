@@ -55,6 +55,7 @@ import { DEMO_CLUB_COOKIE, findDemoClub, getSelectedClubSlug, visibleToClub } fr
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
+import { formatMoney } from "@/lib/payments";
 import { getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
 
@@ -629,6 +630,7 @@ export default async function Home() {
   let isGlobalAdmin = false;
   let pendingApprovalCount = 0;
   let checkInLabel: string | null = null;
+  let paymentsBanner: { owedCents: number; bills: number; openSignups: number } | null = null;
 
   let householdUserIds: string[] = [];
 
@@ -685,6 +687,45 @@ export default async function Home() {
     isFoodTentManager = isCoachOrAdmin || Boolean(caller?.is_tent_leader);
 
     if (isCoachOrAdmin) checkInLabel = await getTodaysCheckInLabel(user.id);
+
+    // What this household owes for its own rowers (a treasurer or admin can
+    // read every bill, so this filters to the family's rowers explicitly),
+    // and any season open for sign-up.
+    const { data: myLinks } = await supabase
+      .from("family_links")
+      .select("rower_id")
+      .in("guardian_id", [user.id, ...(caller?.spouse_id ? [caller.spouse_id] : [])]);
+    const myRowerIds = [
+      ...(isRowerOrCoxswain ? [user.id] : []),
+      ...((myLinks as { rower_id: string }[] | null) ?? []).map((l) => l.rower_id),
+    ];
+    const [{ data: owedBills }, { count: openSignups }] = await Promise.all([
+      myRowerIds.length
+        ? supabase.from("bills").select("id, amount_cents, discount_cents").eq("status", "owed").in("rower_id", myRowerIds)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("charges")
+        .select("id", { count: "exact", head: true })
+        .eq("signup_open", true)
+        .is("archived_at", null),
+    ]);
+    const owed = (owedBills as { id: string; amount_cents: number; discount_cents: number }[] | null) ?? [];
+    let owedCents = 0;
+    if (owed.length) {
+      const { data: paidRows } = await supabase
+        .from("payments")
+        .select("bill_id, amount_cents")
+        .eq("status", "succeeded")
+        .in(
+          "bill_id",
+          owed.map((b) => b.id)
+        );
+      const paidCents = ((paidRows as { amount_cents: number }[] | null) ?? []).reduce((t, p) => t + p.amount_cents, 0);
+      owedCents = owed.reduce((t, b) => t + b.amount_cents - b.discount_cents, 0) - paidCents;
+    }
+    if (owedCents > 0 || ((openSignups ?? 0) > 0 && myRowerIds.length > 0)) {
+      paymentsBanner = { owedCents: Math.max(0, owedCents), bills: owed.length, openSignups: openSignups ?? 0 };
+    }
 
     if ((coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id) {
       coachChatHref = `/messages/${(coachGroupResult.data as Pick<ChatGroup, "id">).id}`;
@@ -819,6 +860,25 @@ export default async function Home() {
       )}
 
       {user && isCoachOrAdmin && <CheckInButton checkedInAt={checkInLabel} />}
+
+      {paymentsBanner && (
+        <Link
+          href="/payments"
+          className="w-full flex items-center gap-3 rounded-lg border-2 border-green-600 bg-green-50 px-4 py-3 text-sm text-green-900"
+        >
+          <CreditCard className="w-5 h-5 shrink-0" />
+          <span>
+            {paymentsBanner.owedCents > 0 && (
+              <>
+                You owe <strong>{formatMoney(paymentsBanner.owedCents)}</strong>
+                {paymentsBanner.bills > 1 && ` on ${paymentsBanner.bills} bills`}.{" "}
+              </>
+            )}
+            {paymentsBanner.openSignups > 0 && "Season sign-up is open. "}
+            <span className="underline">Go to Payments →</span>
+          </span>
+        </Link>
+      )}
 
       {hotcResults.length > 0 && (
         <div className="w-full flex flex-col gap-2">
