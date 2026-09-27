@@ -1,128 +1,73 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { createClient } from "@/lib/supabase/client";
-import type { LocationPing, OnWaterSession } from "@/lib/database.types";
-import type { ActiveSessionView } from "./page";
+import type { ActiveSessionView } from "@/lib/onWater";
+import { ageLabel, boatColor, STALE_AFTER_MS } from "./boatDisplay";
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "/leaflet/marker-icon-2x.png",
-  iconUrl: "/leaflet/marker-icon.png",
-  shadowUrl: "/leaflet/marker-shadow.png",
-});
+const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-const STALE_AFTER_MS = 60000;
+// A dot in the boat's color with the boat name beside it.
+function boatIcon(color: string, label: string, stale: boolean) {
+  return L.divIcon({
+    className: "",
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -10],
+    html: `<div style="position:relative;width:18px;height:18px">
+      <div style="width:18px;height:18px;border-radius:9999px;background:${color};border:3px solid white;box-shadow:0 0 0 1px rgba(0,0,0,.4);opacity:${stale ? 0.45 : 1}"></div>
+      <div style="position:absolute;left:22px;top:-2px;white-space:nowrap;font:600 12px system-ui,sans-serif;color:white;background:${color};padding:1px 6px;border-radius:4px">${escapeHtml(label)}</div>
+    </div>`,
+  });
+}
 
-export default function LeafletMap({ initialSessions }: { initialSessions: ActiveSessionView[] }) {
-  const [sessions, setSessions] = useState(initialSessions);
-  const [, setTick] = useState(0);
-
+// Zooms to fit every boat the first time boats appear, then leaves the
+// coach's panning and zooming alone.
+function FitToBoats({ points }: { points: [number, number][] }) {
+  const map = useMap();
+  const hasPoints = points.length > 0;
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 5000);
-    return () => clearInterval(id);
-  }, []);
+    if (!hasPoints) return;
+    if (points.length === 1) map.setView(points[0], 15);
+    else map.fitBounds(points, { padding: [40, 40], maxZoom: 16 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPoints, map]);
+  return null;
+}
 
-  useEffect(() => {
-    const supabase = createClient();
-    let cancelled = false;
-
-    const channel = supabase
-      .channel("coach-tracking")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "location_pings" },
-        (payload) => {
-          const ping = payload.new as LocationPing;
-          setSessions((prev) =>
-            prev.map((view) =>
-              view.session.id === ping.session_id ? { ...view, lastPing: ping } : view
-            )
-          );
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "on_water_sessions" },
-        (payload) => {
-          const updated = payload.new as OnWaterSession;
-          if (updated.ended_at) {
-            setSessions((prev) => prev.filter((view) => view.session.id !== updated.id));
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "on_water_sessions" },
-        async (payload) => {
-          const inserted = payload.new as OnWaterSession;
-          const [{ data: profile }, lineupResult] = await Promise.all([
-            supabase.from("profiles").select("display_name").eq("id", inserted.coxswain_id).single(),
-            inserted.lineup_id
-              ? supabase.from("lineups").select("boat_name").eq("id", inserted.lineup_id).single()
-              : Promise.resolve({ data: null }),
-          ]);
-          if (cancelled) return;
-          setSessions((prev) => [
-            ...prev,
-            {
-              session: inserted,
-              coxswainName: (profile as { display_name: string } | null)?.display_name ?? "Unknown",
-              boatName: (lineupResult.data as { boat_name: string } | null)?.boat_name ?? null,
-              lastPing: null,
-            },
-          ]);
-        }
-      );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (cancelled) return;
-      if (session) supabase.realtime.setAuth(session.access_token);
-      channel.subscribe();
-    });
-
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const pinned = sessions.filter((v) => v.lastPing);
-  const center: [number, number] = pinned[0]?.lastPing
-    ? [pinned[0].lastPing.lat, pinned[0].lastPing.lng]
-    : [39.9, -82.9];
+export default function LeafletMap({ sessions }: { sessions: ActiveSessionView[] }) {
+  const points = sessions.map((v) => [v.lastPing!.lat, v.lastPing!.lng] as [number, number]);
 
   return (
-    <div className="flex flex-col gap-3">
-      {sessions.length > pinned.length && (
-        <p className="text-sm text-gray-500">
-          {sessions.length - pinned.length} outing(s) started, waiting for a first GPS fix…
-        </p>
-      )}
-      <MapContainer center={center} zoom={13} style={{ height: "70vh", width: "100%" }}>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {pinned.map((view) => {
-          const ping = view.lastPing!;
-          const ageSec = Math.floor((Date.now() - new Date(ping.recorded_at).getTime()) / 1000);
-          const stale = Date.now() - new Date(ping.recorded_at).getTime() > STALE_AFTER_MS;
-          return (
-            <Marker key={view.session.id} position={[ping.lat, ping.lng]}>
-              <Popup>
-                <strong>{view.coxswainName}</strong>
-                {view.boatName && <div>{view.boatName}</div>}
-                <div style={{ color: stale ? "#b91c1c" : "#4b5563" }}>
-                  Last ping {ageSec}s ago{stale ? " — may have stopped tracking" : ""}
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
-    </div>
+    <MapContainer center={points[0] ?? [39.9, -82.9]} zoom={14} style={{ height: "70vh", width: "100%" }}>
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <FitToBoats points={points} />
+      {sessions.map((view) => {
+        const ping = view.lastPing!;
+        const stale = Date.now() - new Date(ping.recorded_at).getTime() > STALE_AFTER_MS;
+        const color = boatColor(view.session.color);
+        return (
+          <Marker
+            key={view.session.id}
+            position={[ping.lat, ping.lng]}
+            icon={boatIcon(color, view.boatName ?? view.coxswainName, stale)}
+          >
+            <Popup>
+              <strong>{view.boatName ?? "Boat not set"}</strong>
+              <div>Cox: {view.coxswainName}</div>
+              <div style={{ color: stale ? "#b91c1c" : "#4b5563" }}>
+                Last GPS {ageLabel(ping.recorded_at)} ago{stale ? " — may have stopped tracking" : ""}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </MapContainer>
   );
 }
