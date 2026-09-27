@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { guardianIdsFor, sendPush } from "@/lib/push";
 import type { Profile } from "@/lib/database.types";
 import { isOnWaterColor } from "@/lib/onWaterColors";
 
@@ -44,7 +47,66 @@ export async function startSession(boatId: string, color: string) {
 
   revalidatePath("/on-water");
   revalidatePath("/coach/tracking");
-  return data.id as string;
+  const sessionId = data.id as string;
+  after(() => alertCrewFamilies(sessionId, boatId, user.id));
+  return sessionId;
+}
+
+// Tells the crew's parents their boat is out: everyone seated in today's
+// lineup for this boat, if there is one, plus the coxswain.
+async function alertCrewFamilies(sessionId: string, boatId: string, coxswainId: string) {
+  const admin = createAdminClient();
+
+  // Restarting tracking shouldn't alert everyone twice.
+  const { count: recentStarts } = await admin
+    .from("on_water_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("boat_id", boatId)
+    .neq("id", sessionId)
+    .gte("started_at", new Date(Date.now() - 30 * 60 * 1000).toISOString());
+  if ((recentStarts ?? 0) > 0) return;
+
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const [{ data: boat }, { data: coxswain }, { data: lineupsData }] = await Promise.all([
+    admin.from("boats").select("name").eq("id", boatId).single(),
+    admin.from("profiles").select("display_name").eq("id", coxswainId).single(),
+    admin.from("lineups").select("id, schedule_events(starts_at)").eq("boat_id", boatId),
+  ]);
+  const todaysLineupIds = ((lineupsData as unknown as
+    | { id: string; schedule_events: { starts_at: string } | null }[]
+    | null) ?? [])
+    .filter(
+      (l) =>
+        l.schedule_events &&
+        new Date(l.schedule_events.starts_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" }) ===
+          today
+    )
+    .map((l) => l.id);
+
+  const { data: seats } = todaysLineupIds.length
+    ? await admin.from("lineup_seats").select("rower_id").in("lineup_id", todaysLineupIds)
+    : { data: [] };
+  const crew = [
+    ...new Set([
+      coxswainId,
+      ...((seats as { rower_id: string | null }[] | null) ?? [])
+        .map((s) => s.rower_id)
+        .filter((id): id is string => Boolean(id)),
+    ]),
+  ];
+
+  const boatName = (boat as { name: string } | null)?.name ?? "A boat";
+  const coxName = (coxswain as { display_name: string } | null)?.display_name;
+  await sendPush(
+    (await guardianIdsFor(crew)).filter((id) => id !== coxswainId),
+    {
+      kind: "boat_on_water",
+      title: `${boatName} is on the water`,
+      body: `${coxName ? `Coxed by ${coxName}. ` : ""}Tap to watch live.`,
+      url: "/on-water",
+      tag: `water-${sessionId}`,
+    }
+  );
 }
 
 export async function endSession(sessionId: string) {

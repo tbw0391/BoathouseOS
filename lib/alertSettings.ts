@@ -13,6 +13,11 @@ export const ALERT_TYPES = [
   { kind: "food_published", label: "Food list published", detail: "Phone alert to parents and guardians." },
   { kind: "photo_comment", label: "Photo comments", detail: "Phone alert to whoever posted the photo." },
   {
+    kind: "boat_on_water",
+    label: "Boat on the water",
+    detail: "Phone alert to the crew's parents when their boat starts tracking.",
+  },
+  {
     kind: "regatta_week_popup",
     label: "Regatta-week pop-up",
     detail: "Once-a-day reminder on the home page the week before a regatta.",

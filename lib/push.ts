@@ -131,3 +131,24 @@ export function formatAlertTime(iso: string) {
     minute: "2-digit",
   });
 }
+
+// Parents/guardians of these rowers, plus the guardians' spouses.
+export async function guardianIdsFor(rowerIds: string[]): Promise<string[]> {
+  if (rowerIds.length === 0) return [];
+  const admin = createAdminClient();
+  const { data: links } = await admin.from("family_links").select("guardian_id").in("rower_id", rowerIds);
+  const guardians = [...new Set(((links as { guardian_id: string }[] | null) ?? []).map((l) => l.guardian_id))];
+  if (guardians.length === 0) return [];
+
+  const [{ data: theirSpouses }, { data: spousesOfThem }] = await Promise.all([
+    admin.from("profiles").select("spouse_id").in("id", guardians).not("spouse_id", "is", null),
+    admin.from("profiles").select("id").in("spouse_id", guardians),
+  ]);
+  return [
+    ...new Set([
+      ...guardians,
+      ...((theirSpouses as { spouse_id: string }[] | null) ?? []).map((p) => p.spouse_id),
+      ...((spousesOfThem as { id: string }[] | null) ?? []).map((p) => p.id),
+    ]),
+  ];
+}

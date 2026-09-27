@@ -430,6 +430,13 @@
       announcements, food list published, photo comments, regatta-week
       pop-up). Stored in club_settings "alert_settings"; missing = on.
       Checked in lib/push.ts sendPush before anything is sent.
+- [x] "Boat on the water" alert (2026-09-27): when a coxswain starts
+      tracking, the parents/guardians (and their spouses) of the crew get
+      an alert — crew = everyone seated in today's lineup for that boat, if
+      there is one, plus the coxswain. Skipped if the same boat started in
+      the last 30 min. Admin switch: "Boat on the water". Practices without
+      a lineup only reach the coxswain's family; a per-boat "follow"
+      option for parents could come later.
 - [ ] Push setup: generate VAPID keys (`npx web-push generate-vapid-keys`),
       add NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to Vercel
       (Production) and .env.local, redeploy. Until then the prompt stays
