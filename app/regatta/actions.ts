@@ -32,12 +32,12 @@ async function requireManager(supabase: SupabaseServerClient) {
 
 // The picked club's live Head of the Cuyahoga schedule. Races are always
 // looked up again here rather than trusting the form.
-async function loadSchedule(): Promise<HotcSchedule & { date: string }> {
+async function loadSchedule(): Promise<HotcSchedule & { date: string; clubSlug: string }> {
   const club = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
   if (!club) throw new Error("Pick your club first.");
   const schedule = await getHotcSchedule(club);
   if (!schedule?.date) throw new Error("Couldn't reach CrewTimer right now. Try again.");
-  return schedule as HotcSchedule & { date: string };
+  return { ...(schedule as HotcSchedule & { date: string }), clubSlug: club.slug };
 }
 
 // The regatta on the schedule for race day, created the first time.
@@ -100,7 +100,12 @@ export async function addRegattaRaceToLineups(formData: FormData) {
   if (!race) throw new Error("That race isn't in the schedule anymore.");
 
   const eventId = await findOrCreateEvent(supabase, schedule, user.id);
-  await insertRaces(supabase, { eventId, userId: user.id, races: [toNewRace(schedule.date, race)] });
+  await insertRaces(supabase, {
+    eventId,
+    userId: user.id,
+    races: [toNewRace(schedule.date, race)],
+    clubSlug: schedule.clubSlug,
+  });
   revalidate();
 }
 
@@ -117,6 +122,7 @@ export async function addAllRegattaRaces() {
     eventId,
     userId: user.id,
     races: schedule.races.filter((r) => r.place == null).map((r) => toNewRace(schedule.date, r)),
+    clubSlug: schedule.clubSlug,
   });
   revalidate();
   redirect(`/lineups/${eventId}`);

@@ -10,6 +10,7 @@ import {
 } from "@/lib/lineupCategories";
 import { HULL_COLOR_OPTIONS, RIG_OPTIONS } from "@/lib/boatOptions";
 import type { LineupCategory } from "@/lib/database.types";
+import { getSelectedClubSlug } from "@/lib/demoClubs";
 import {
   boatLineupDefaults,
   buildLineupForRace,
@@ -237,6 +238,7 @@ export async function createLineup(formData: FormData) {
     notes,
     race_name: raceName,
     race_time: raceTime,
+    club_slug: await getSelectedClubSlug(),
     created_by: user.id,
   });
 
@@ -303,7 +305,12 @@ export async function importRaces(eventId: string, rows: RaceImportRow[]) {
     return { imported: 0, errors: rowErrors.length ? rowErrors : ["No valid rows found."] };
   }
 
-  const { raceIds } = await insertRaces(supabase, { eventId, userId: user.id, races: toInsert });
+  const { raceIds } = await insertRaces(supabase, {
+    eventId,
+    userId: user.id,
+    races: toInsert,
+    clubSlug: await getSelectedClubSlug(),
+  });
 
   revalidatePath("/lineups");
   revalidatePath("/");
@@ -347,7 +354,12 @@ export async function addPastedRaces(eventId: string, text: string) {
     });
   if (races.length === 0) throw new Error("Type or paste at least one race.");
 
-  const { raceIds } = await insertRaces(supabase, { eventId, userId: user.id, races });
+  const { raceIds } = await insertRaces(supabase, {
+    eventId,
+    userId: user.id,
+    races,
+    clubSlug: await getSelectedClubSlug(),
+  });
 
   revalidatePath("/lineups", "layout");
   revalidatePath("/");
