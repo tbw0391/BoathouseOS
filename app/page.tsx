@@ -40,6 +40,7 @@ import type {
   FoodTentStatus,
   Lineup,
   LineupSeat,
+  PracticeAttendance,
   Profile,
   Race,
   ScheduleEvent,
@@ -59,6 +60,13 @@ import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
 import { formatMoney } from "@/lib/payments";
 import { getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
+import { PracticeCheckIn } from "@/components/PracticeCheckIn";
+import {
+  ABSENCE_REASONS,
+  formatAttendanceTime,
+  getMyAttendanceToday,
+  isPracticeDay,
+} from "@/lib/practiceAttendance";
 
 const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/roster": Users,
@@ -632,6 +640,8 @@ export default async function Home() {
   let isGlobalAdmin = false;
   let pendingApprovalCount = 0;
   let checkInLabel: string | null = null;
+  let myAttendance: PracticeAttendance | null = null;
+  let showPracticeCheckIn = false;
   let paymentsBanner: { owedCents: number; bills: number; openSignups: number } | null = null;
 
   let householdUserIds: string[] = [];
@@ -689,6 +699,10 @@ export default async function Home() {
     isFoodTentManager = isCoachOrAdmin || Boolean(caller?.is_tent_leader);
 
     if (isCoachOrAdmin) checkInLabel = await getTodaysCheckInLabel(user.id);
+    if (isRowerOrCoxswain) {
+      showPracticeCheckIn = await isPracticeDay();
+      if (showPracticeCheckIn) myAttendance = await getMyAttendanceToday(user.id);
+    }
 
     // What this household owes for its own rowers (a treasurer or admin can
     // read every bill, so this filters to the family's rowers explicitly),
@@ -862,6 +876,14 @@ export default async function Home() {
       )}
 
       {user && isCoachOrAdmin && <CheckInButton checkedInAt={checkInLabel} />}
+      {user && showPracticeCheckIn && (
+        <PracticeCheckIn
+          status={myAttendance?.status ?? null}
+          reason={myAttendance?.reason ?? null}
+          time={myAttendance ? formatAttendanceTime(myAttendance.responded_at) : null}
+          reasons={ABSENCE_REASONS}
+        />
+      )}
 
       {paymentsBanner && (
         <Link

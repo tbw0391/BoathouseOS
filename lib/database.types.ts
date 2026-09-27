@@ -360,6 +360,16 @@ export interface CoachCheckIn {
   checked_in_at: string;
 }
 
+export type AttendanceStatus = 'checked_in' | 'absent';
+
+export interface PracticeAttendance {
+  profile_id: string;
+  practice_date: string;
+  status: AttendanceStatus;
+  reason: string | null;
+  responded_at: string;
+}
+
 export interface OnWaterSession {
   id: string;
   lineup_id: string | null;
