@@ -350,3 +350,15 @@ export function findDemoClub(slug: string | null | undefined): DemoClub | null {
   if (!slug) return null;
   return DEMO_CLUBS.find((c) => c.slug === slug) ?? null;
 }
+
+// The picked demo club (from /choose-club), or null when none is picked.
+export async function getSelectedClubSlug(): Promise<string | null> {
+  const { cookies } = await import("next/headers");
+  return findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value)?.slug ?? null;
+}
+
+// Whether a race or lineup tagged with `rowClubSlug` belongs on screen for
+// the picked club: its own, plus untagged ones. No club picked shows all.
+export function visibleToClub(rowClubSlug: string | null | undefined, selectedClubSlug: string | null): boolean {
+  return !selectedClubSlug || !rowClubSlug || rowClubSlug === selectedClubSlug;
+}
