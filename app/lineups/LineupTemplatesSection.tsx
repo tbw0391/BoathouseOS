@@ -9,14 +9,8 @@ import {
 } from "./actions";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_GROUPS } from "@/lib/lineupCategories";
-import { SeatAssign } from "./SeatAssign";
+import { SeatFiller } from "./SeatFiller";
 import type { Boat, LineupTemplate, LineupTemplateSeat, Profile } from "@/lib/database.types";
-
-const SEAT_ROLE_LABEL: Record<LineupTemplateSeat["seat_role"], string> = {
-  rower: "Seat",
-  coxswain: "Coxswain",
-  coach: "Coach",
-};
 
 function TemplateCard({
   template,
@@ -104,23 +98,9 @@ function TemplateCard({
       )}
       {boatError && <p className="text-xs text-red-600 mt-1">{boatError}</p>}
 
-      <ul className="mt-2 flex flex-col gap-1.5">
-        {seats.map((seat) => (
-          <li key={seat.id} className="flex items-center justify-between gap-2 text-sm">
-            <span className="text-gray-500">
-              {seat.seat_role === "rower"
-                ? `${SEAT_ROLE_LABEL[seat.seat_role]} ${seat.seat_number}`
-                : SEAT_ROLE_LABEL[seat.seat_role]}
-            </span>
-            <SeatAssign
-              seatId={seat.id}
-              currentRowerId={seat.rower_id}
-              roster={roster}
-              onAssign={assignTemplateSeat}
-            />
-          </li>
-        ))}
-      </ul>
+      <div className="mt-2">
+        <SeatFiller seats={seats} roster={roster} onAssign={assignTemplateSeat} />
+      </div>
     </div>
   );
 }
