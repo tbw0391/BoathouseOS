@@ -115,5 +115,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|icons|branding|sw.js|workbox-.*).*)'],
+  // api/stripe/webhook is skipped: Stripe calls it signed out, and it checks
+  // Stripe's signature itself.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|icons|branding|sw.js|workbox-.*|api/stripe/webhook).*)'],
 };
