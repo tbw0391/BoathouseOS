@@ -213,15 +213,24 @@ export interface NewRace {
   race_time?: string | null;
 }
 
-// Adds races to a regatta in one go: skips any whose name is already on it
-// (so re-running an import or re-tapping "Add all" only adds what's new),
+// Adds races to a regatta in one go, for the given club (null = any club):
+// skips any whose name that club already has on it (so re-running an import
+// or re-tapping "Add all" only adds what's new),
 // applies the Masters rule, gives each one its Launch/Recovery tasks, and
 // puts a boat in any race only one fleet boat fits.
 export async function insertRaces(
   supabase: SupabaseServerClient,
-  { eventId, userId, races }: { eventId: string; userId: string; races: NewRace[] }
+  {
+    eventId,
+    userId,
+    races,
+    clubSlug = null,
+  }: { eventId: string; userId: string; races: NewRace[]; clubSlug?: string | null }
 ): Promise<{ raceIds: string[] }> {
-  const { data: existingData } = await supabase.from("races").select("race_name").eq("event_id", eventId);
+  const existingQuery = supabase.from("races").select("race_name").eq("event_id", eventId);
+  const { data: existingData } = await (clubSlug
+    ? existingQuery.eq("club_slug", clubSlug)
+    : existingQuery.is("club_slug", null));
   const existingNames = new Set(((existingData as { race_name: string }[] | null) ?? []).map((r) => r.race_name));
 
   const seen = new Set<string>();
@@ -240,6 +249,7 @@ export async function insertRaces(
         race_name: r.race_name,
         category: categoryForRace(r.race_name, r.category ?? null) as LineupCategory | null,
         race_time: r.race_time ?? null,
+        club_slug: clubSlug,
         created_by: userId,
       }))
     )
@@ -320,7 +330,7 @@ export async function buildLineupForRace(
 ): Promise<string> {
   const { data: race, error: raceError } = await supabase
     .from("races")
-    .select("event_id, category, race_name, race_time, lineup_id")
+    .select("event_id, category, race_name, race_time, lineup_id, club_slug")
     .eq("id", raceId)
     .single();
   if (raceError || !race) throw new Error("That race couldn't be found.");
@@ -350,6 +360,7 @@ export async function buildLineupForRace(
     notes: templateNotes,
     race_name: race.race_name,
     race_time: race.race_time,
+    club_slug: race.club_slug,
     created_by: userId,
   });
   if (error) throw new Error(error.message);

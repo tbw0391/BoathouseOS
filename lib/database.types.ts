@@ -113,6 +113,8 @@ export interface Lineup {
   created_by: string | null;
   created_at: string;
   chat_group_id: string | null;
+  // lib/demoClubs.ts slug of the club this lineup is for; null = any club.
+  club_slug: string | null;
 }
 
 export interface Boat {
@@ -144,6 +146,8 @@ export interface Race {
   race_name: string;
   race_time: string | null;
   lineup_id: string | null;
+  // lib/demoClubs.ts slug of the club this race is for; null = any club.
+  club_slug: string | null;
   created_by: string | null;
   created_at: string;
 }
