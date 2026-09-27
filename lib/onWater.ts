@@ -7,6 +7,9 @@ export interface ActiveSessionView {
   coxswainName: string;
   boatName: string | null;
   lastPing: LocationPing | null;
+  // The fix before lastPing, to work out speed and heading when the phone
+  // doesn't report them.
+  prevPing: LocationPing | null;
 }
 
 // Every outing on the water right now, with its boat, coxswain and latest
@@ -45,16 +48,15 @@ export async function getActiveBoats(): Promise<ActiveSessionView[]> {
     ((lineupsData as Pick<Lineup, "id" | "boat_name">[] | null) ?? []).map((l) => [l.id, l.boat_name])
   );
 
-  const lastPings = await Promise.all(
+  const recentPings = await Promise.all(
     sessions.map(async (session) => {
       const { data } = await supabase
         .from("location_pings")
         .select("*")
         .eq("session_id", session.id)
         .order("recorded_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data as LocationPing | null;
+        .limit(2);
+      return (data as LocationPing[] | null) ?? [];
     })
   );
 
@@ -65,6 +67,7 @@ export async function getActiveBoats(): Promise<ActiveSessionView[]> {
       (session.boat_id && boatNameById.get(session.boat_id)) ||
       (session.lineup_id && lineupBoatNameById.get(session.lineup_id)) ||
       null,
-    lastPing: lastPings[i],
+    lastPing: recentPings[i][0] ?? null,
+    prevPing: recentPings[i][1] ?? null,
   }));
 }

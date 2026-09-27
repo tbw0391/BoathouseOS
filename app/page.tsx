@@ -53,7 +53,12 @@ import { getUnreadScheduleCount } from "@/lib/schedule";
 import { forecastDayFor, getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
 import { QrCodes } from "@/app/global-admin/qr/QrCodes";
-import { DEMO_CLUB_COOKIE, findDemoClub, getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
+import {
+  DEMO_CLUB_COOKIE,
+  findDemoClub,
+  getSelectedClubSlug,
+  visibleToClub,
+} from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
@@ -65,7 +70,6 @@ import {
   ABSENCE_REASONS,
   formatAttendanceTime,
   getMyAttendanceToday,
-  isPracticeDay,
 } from "@/lib/practiceAttendance";
 
 const ICONS_BY_HREF: Record<string, LucideIcon> = {
@@ -123,11 +127,24 @@ type CoachTaskBanner = {
   eventTitle: string;
 };
 
-type PendingRaceBanner = { eventTitle: string; eventDate: string; count: number };
+type PendingRaceBanner = {
+  eventTitle: string;
+  eventDate: string;
+  count: number;
+};
 
-type AnnouncementBanner = { id: string; message: string; senderName: string; createdAt: string };
+type AnnouncementBanner = {
+  id: string;
+  message: string;
+  senderName: string;
+  createdAt: string;
+};
 
-type FoodPrepBanner = { eventId: string; eventTitle: string; eventDate: string };
+type FoodPrepBanner = {
+  eventId: string;
+  eventTitle: string;
+  eventDate: string;
+};
 
 type SignupCallBanner = {
   eventId: string;
@@ -169,7 +186,18 @@ const FOOD_EMOJI_RULES: { keywords: string[]; emoji: string }[] = [
   { keywords: ["sandwich", "sub", "wrap"], emoji: "🥪" },
   { keywords: ["bread", "bun", "roll"], emoji: "🍞" },
   { keywords: ["egg"], emoji: "🥚" },
-  { keywords: ["napkin", "plate", "cup", "utensil", "fork", "spoon", "supplies"], emoji: "🧻" },
+  {
+    keywords: [
+      "napkin",
+      "plate",
+      "cup",
+      "utensil",
+      "fork",
+      "spoon",
+      "supplies",
+    ],
+    emoji: "🧻",
+  },
   { keywords: ["ice"], emoji: "🧊" },
 ];
 
@@ -193,7 +221,7 @@ function startOfToday(): string {
 
 async function loadFoodTentBanners(
   supabase: SupabaseServerClient,
-  householdUserIds: string[]
+  householdUserIds: string[],
 ): Promise<FoodTentBanner[]> {
   const { data: signupsData } = await supabase
     .from("food_tent_signups")
@@ -203,7 +231,10 @@ async function loadFoodTentBanners(
   if (signups.length === 0) return [];
 
   const itemIds = signups.map((s) => s.item_id);
-  const { data: itemsData } = await supabase.from("food_tent_items").select("*").in("id", itemIds);
+  const { data: itemsData } = await supabase
+    .from("food_tent_items")
+    .select("*")
+    .in("id", itemIds);
   const items = (itemsData as FoodTentItem[] | null) ?? [];
 
   const eventIds = [...new Set(items.map((i) => i.event_id))];
@@ -223,13 +254,21 @@ async function loadFoodTentBanners(
 
     const existing = bannersByEvent.get(event.id);
     if (existing) {
-      existing.items.push({ emoji: foodItemEmoji(item.title), label: `${s.quantity}x ${item.title}` });
+      existing.items.push({
+        emoji: foodItemEmoji(item.title),
+        label: `${s.quantity}x ${item.title}`,
+      });
     } else {
       bannersByEvent.set(event.id, {
         eventId: event.id,
         eventTitle: event.title,
         eventDate: new Date(event.starts_at).toLocaleDateString(),
-        items: [{ emoji: foodItemEmoji(item.title), label: `${s.quantity}x ${item.title}` }],
+        items: [
+          {
+            emoji: foodItemEmoji(item.title),
+            label: `${s.quantity}x ${item.title}`,
+          },
+        ],
       });
     }
   }
@@ -245,9 +284,15 @@ async function loadLineupBanners(
     isParent: boolean;
     isCoachOrAdmin: boolean;
     householdUserIds: string[];
-  }
+  },
 ): Promise<LineupBanner[]> {
-  const { userId, isRowerOrCoxswain, isParent, isCoachOrAdmin, householdUserIds } = opts;
+  const {
+    userId,
+    isRowerOrCoxswain,
+    isParent,
+    isCoachOrAdmin,
+    householdUserIds,
+  } = opts;
 
   // Whose lineup assignments this viewer should hear about: their own if
   // they're a rower/coxswain, or their linked rower/coxswain kid(s)' if
@@ -262,21 +307,35 @@ async function loadLineupBanners(
       .select("rower_id")
       .in("guardian_id", householdUserIds);
     lineupRowerIds = [
-      ...new Set(((familyLinkRows as Pick<FamilyLink, "rower_id">[] | null) ?? []).map((l) => l.rower_id)),
+      ...new Set(
+        ((familyLinkRows as Pick<FamilyLink, "rower_id">[] | null) ?? []).map(
+          (l) => l.rower_id,
+        ),
+      ),
     ];
   }
   if (lineupRowerIds.length === 0) return [];
 
-  const { data: seatRows } = await supabase.from("lineup_seats").select("*").in("rower_id", lineupRowerIds);
+  const { data: seatRows } = await supabase
+    .from("lineup_seats")
+    .select("*")
+    .in("rower_id", lineupRowerIds);
   const seats = (seatRows as LineupSeat[] | null) ?? [];
   if (seats.length === 0) return [];
 
   const lineupIds = [...new Set(seats.map((s) => s.lineup_id))];
-  const { data: lineupRows } = await supabase.from("lineups").select("*").in("id", lineupIds);
+  const { data: lineupRows } = await supabase
+    .from("lineups")
+    .select("*")
+    .in("id", lineupIds);
   const lineupsData = (lineupRows as Lineup[] | null) ?? [];
   const lineupById = new Map(lineupsData.map((l) => [l.id, l]));
 
-  const eventIds = [...new Set(lineupsData.map((l) => l.event_id).filter((id): id is string => !!id))];
+  const eventIds = [
+    ...new Set(
+      lineupsData.map((l) => l.event_id).filter((id): id is string => !!id),
+    ),
+  ];
 
   const [{ data: eventRows }, rowerNameRows] = await Promise.all([
     supabase
@@ -285,14 +344,18 @@ async function loadLineupBanners(
       .in("id", eventIds)
       .gte("starts_at", startOfToday()),
     isParent || isCoachOrAdmin
-      ? supabase.from("profiles").select("id, display_name").in("id", lineupRowerIds)
+      ? supabase
+          .from("profiles")
+          .select("id, display_name")
+          .in("id", lineupRowerIds)
       : Promise.resolve({ data: null }),
   ]);
   const eventsData = (eventRows as ScheduleEvent[] | null) ?? [];
   const eventById = new Map(eventsData.map((e) => [e.id, e]));
 
   const rowerNameById = new Map<string, string>();
-  for (const p of (rowerNameRows.data as Pick<Profile, "id" | "display_name">[] | null) ?? []) {
+  for (const p of (rowerNameRows.data as
+    Pick<Profile, "id" | "display_name">[] | null) ?? []) {
     rowerNameById.set(p.id, p.display_name);
   }
 
@@ -300,14 +363,22 @@ async function loadLineupBanners(
     .map((seat) => {
       if (!seat.rower_id) return null;
       const lineup = lineupById.get(seat.lineup_id);
-      const event = lineup?.event_id ? eventById.get(lineup.event_id) : undefined;
+      const event = lineup?.event_id
+        ? eventById.get(lineup.event_id)
+        : undefined;
       if (!lineup || !event) return null;
       return {
-        rowerName: isParent || isCoachOrAdmin ? rowerNameById.get(seat.rower_id) ?? "Someone" : null,
+        rowerName:
+          isParent || isCoachOrAdmin
+            ? (rowerNameById.get(seat.rower_id) ?? "Someone")
+            : null,
         boatName: lineup.boat_name,
         raceName: lineup.race_name,
         raceTimeLabel: lineup.race_time
-          ? new Date(lineup.race_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+          ? new Date(lineup.race_time).toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            })
           : null,
         eventTitle: event.title,
         eventDate: new Date(event.starts_at).toLocaleDateString(),
@@ -321,7 +392,7 @@ async function loadLineupBanners(
 // without signing in as one of them.
 async function loadSentLineupNotices(
   supabase: SupabaseServerClient,
-  userId: string
+  userId: string,
 ): Promise<SentLineupNotice[]> {
   const { data: lineupRows } = await supabase
     .from("lineups")
@@ -335,15 +406,26 @@ async function loadSentLineupNotices(
 
   const eventIds = [...new Set(lineupsData.map((l) => l.event_id as string))];
   const [{ data: eventRows }, { data: seatRows }] = await Promise.all([
-    supabase.from("schedule_events").select("*").in("id", eventIds).gte("starts_at", startOfToday()),
+    supabase
+      .from("schedule_events")
+      .select("*")
+      .in("id", eventIds)
+      .gte("starts_at", startOfToday()),
     supabase
       .from("lineup_seats")
       .select("*")
-      .in("lineup_id", lineupsData.map((l) => l.id))
+      .in(
+        "lineup_id",
+        lineupsData.map((l) => l.id),
+      )
       .not("rower_id", "is", null),
   ]);
-  const eventById = new Map(((eventRows as ScheduleEvent[] | null) ?? []).map((e) => [e.id, e]));
-  const seats = ((seatRows as LineupSeat[] | null) ?? []).sort((a, b) => a.seat_number - b.seat_number);
+  const eventById = new Map(
+    ((eventRows as ScheduleEvent[] | null) ?? []).map((e) => [e.id, e]),
+  );
+  const seats = ((seatRows as LineupSeat[] | null) ?? []).sort(
+    (a, b) => a.seat_number - b.seat_number,
+  );
   if (seats.length === 0) return [];
 
   const { data: nameRows } = await supabase
@@ -351,7 +433,9 @@ async function loadSentLineupNotices(
     .select("id, display_name")
     .in("id", [...new Set(seats.map((s) => s.rower_id as string))]);
   const nameById = new Map(
-    ((nameRows as Pick<Profile, "id" | "display_name">[] | null) ?? []).map((p) => [p.id, p.display_name])
+    ((nameRows as Pick<Profile, "id" | "display_name">[] | null) ?? []).map(
+      (p) => [p.id, p.display_name],
+    ),
   );
 
   return lineupsData
@@ -366,7 +450,10 @@ async function loadSentLineupNotices(
         boatName: lineup.boat_name,
         raceName: lineup.race_name,
         raceTimeLabel: lineup.race_time
-          ? new Date(lineup.race_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+          ? new Date(lineup.race_time).toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            })
           : null,
         eventTitle: event.title,
         eventDate: new Date(event.starts_at).toLocaleDateString(),
@@ -379,11 +466,16 @@ async function loadSentLineupNotices(
 
 // Coach/admin notification: races that have been collected (e.g. via a heat
 // sheet import) but don't have a boat/crew assigned yet.
-async function loadPendingRaceBanners(supabase: SupabaseServerClient): Promise<PendingRaceBanner[]> {
-  const { data: pendingRaceRows } = await supabase.from("races").select("*").is("lineup_id", null);
+async function loadPendingRaceBanners(
+  supabase: SupabaseServerClient,
+): Promise<PendingRaceBanner[]> {
+  const { data: pendingRaceRows } = await supabase
+    .from("races")
+    .select("*")
+    .is("lineup_id", null);
   const selectedClubSlug = await getSelectedClubSlug();
-  const pendingRacesData = ((pendingRaceRows as Race[] | null) ?? []).filter((r) =>
-    visibleToClub(r.club_slug, selectedClubSlug)
+  const pendingRacesData = ((pendingRaceRows as Race[] | null) ?? []).filter(
+    (r) => visibleToClub(r.club_slug, selectedClubSlug),
   );
   if (pendingRacesData.length === 0) return [];
 
@@ -407,7 +499,9 @@ async function loadPendingRaceBanners(supabase: SupabaseServerClient): Promise<P
 // Tent-leader/manager notification: the 7-days-out cron (see
 // 0048_regatta_prep_cron.sql) auto-filled a draft food list from the last
 // regatta and is waiting on someone to review/edit it, then publish.
-async function loadFoodPrepBanners(supabase: SupabaseServerClient): Promise<FoodPrepBanner[]> {
+async function loadFoodPrepBanners(
+  supabase: SupabaseServerClient,
+): Promise<FoodPrepBanner[]> {
   const { data: statusRows } = await supabase
     .from("food_tent_status")
     .select("*")
@@ -416,7 +510,10 @@ async function loadFoodPrepBanners(supabase: SupabaseServerClient): Promise<Food
   if (pending.length === 0) return [];
 
   const eventIds = pending.map((s) => s.event_id);
-  const { data: eventRows } = await supabase.from("schedule_events").select("*").in("id", eventIds);
+  const { data: eventRows } = await supabase
+    .from("schedule_events")
+    .select("*")
+    .in("id", eventIds);
   const events = (eventRows as ScheduleEvent[] | null) ?? [];
 
   return events.map((event) => ({
@@ -430,7 +527,7 @@ async function loadFoodPrepBanners(supabase: SupabaseServerClient): Promise<Food
 // time to sign up for food items and (if any are posted) volunteer slots.
 async function loadSignupCallBanners(
   supabase: SupabaseServerClient,
-  householdUserIds: string[]
+  householdUserIds: string[],
 ): Promise<SignupCallBanner[]> {
   const { data: statusRows } = await supabase
     .from("food_tent_status")
@@ -440,50 +537,66 @@ async function loadSignupCallBanners(
   if (published.length === 0) return [];
 
   const eventIds = published.map((s) => s.event_id);
-  const [{ data: eventRows }, { data: needRows }, { data: itemRows }] = await Promise.all([
-    supabase.from("schedule_events").select("*").in("id", eventIds).gte("starts_at", startOfToday()),
-    supabase.from("volunteer_needs").select("id, event_id").in("event_id", eventIds),
-    supabase.from("food_tent_items").select("id, event_id").in("event_id", eventIds),
-  ]);
+  const [{ data: eventRows }, { data: needRows }, { data: itemRows }] =
+    await Promise.all([
+      supabase
+        .from("schedule_events")
+        .select("*")
+        .in("id", eventIds)
+        .gte("starts_at", startOfToday()),
+      supabase
+        .from("volunteer_needs")
+        .select("id, event_id")
+        .in("event_id", eventIds),
+      supabase
+        .from("food_tent_items")
+        .select("id, event_id")
+        .in("event_id", eventIds),
+    ]);
   const events = (eventRows as ScheduleEvent[] | null) ?? [];
-  const needs = (needRows as Pick<VolunteerNeed, "id" | "event_id">[] | null) ?? [];
-  const items = (itemRows as Pick<FoodTentItem, "id" | "event_id">[] | null) ?? [];
-  const eventIdsWithNeeds = new Set(needs.map((n) => n.event_id).filter((id): id is string => !!id));
+  const needs =
+    (needRows as Pick<VolunteerNeed, "id" | "event_id">[] | null) ?? [];
+  const items =
+    (itemRows as Pick<FoodTentItem, "id" | "event_id">[] | null) ?? [];
+  const eventIdsWithNeeds = new Set(
+    needs.map((n) => n.event_id).filter((id): id is string => !!id),
+  );
 
   // A household that's already signed up for a food item OR claimed a
   // volunteer slot for an event has done what this banner is asking —
   // stop nagging them about it, even if their crewmates haven't.
-  const [{ data: foodSignupRows }, { data: volunteerSignupRows }] = await Promise.all([
-    items.length > 0
-      ? supabase
-          .from("food_tent_signups")
-          .select("item_id")
-          .in("user_id", householdUserIds)
-          .in(
-            "item_id",
-            items.map((i) => i.id)
-          )
-      : Promise.resolve({ data: [] }),
-    needs.length > 0
-      ? supabase
-          .from("volunteer_signups")
-          .select("need_id")
-          .in("user_id", householdUserIds)
-          .in(
-            "need_id",
-            needs.map((n) => n.id)
-          )
-      : Promise.resolve({ data: [] }),
-  ]);
+  const [{ data: foodSignupRows }, { data: volunteerSignupRows }] =
+    await Promise.all([
+      items.length > 0
+        ? supabase
+            .from("food_tent_signups")
+            .select("item_id")
+            .in("user_id", householdUserIds)
+            .in(
+              "item_id",
+              items.map((i) => i.id),
+            )
+        : Promise.resolve({ data: [] }),
+      needs.length > 0
+        ? supabase
+            .from("volunteer_signups")
+            .select("need_id")
+            .in("user_id", householdUserIds)
+            .in(
+              "need_id",
+              needs.map((n) => n.id),
+            )
+        : Promise.resolve({ data: [] }),
+    ]);
   const itemEventById = new Map(items.map((i) => [i.id, i.event_id]));
   const needEventById = new Map(needs.map((n) => [n.id, n.event_id]));
   const alreadyActedEventIds = new Set([
-    ...(((foodSignupRows as { item_id: string }[] | null) ?? [])
+    ...((foodSignupRows as { item_id: string }[] | null) ?? [])
       .map((s) => itemEventById.get(s.item_id))
-      .filter((id): id is string => !!id)),
-    ...(((volunteerSignupRows as { need_id: string }[] | null) ?? [])
+      .filter((id): id is string => !!id),
+    ...((volunteerSignupRows as { need_id: string }[] | null) ?? [])
       .map((s) => needEventById.get(s.need_id))
-      .filter((id): id is string => !!id)),
+      .filter((id): id is string => !!id),
   ]);
 
   return events
@@ -502,7 +615,7 @@ async function loadSignupCallBanners(
 // track on their behalf.
 async function loadCoachTaskBanners(
   supabase: SupabaseServerClient,
-  opts: { userId: string; isRowerOrCoxswain: boolean }
+  opts: { userId: string; isRowerOrCoxswain: boolean },
 ): Promise<CoachTaskBanner[]> {
   const { userId, isRowerOrCoxswain } = opts;
   if (!isRowerOrCoxswain) return [];
@@ -515,23 +628,42 @@ async function loadCoachTaskBanners(
   if (assignments.length === 0) return [];
 
   const taskIds = [...new Set(assignments.map((a) => a.task_id))];
-  const { data: taskRows } = await supabase.from("coach_tasks").select("*").in("id", taskIds);
+  const { data: taskRows } = await supabase
+    .from("coach_tasks")
+    .select("*")
+    .in("id", taskIds);
   const tasks = (taskRows as CoachTask[] | null) ?? [];
 
   const eventIds = [...new Set(tasks.map((t) => t.event_id))];
-  const lineupIds = [...new Set(tasks.map((t) => t.lineup_id).filter((id): id is string => !!id))];
-  const raceIds = [...new Set(tasks.map((t) => t.race_id).filter((id): id is string => !!id))];
+  const lineupIds = [
+    ...new Set(
+      tasks.map((t) => t.lineup_id).filter((id): id is string => !!id),
+    ),
+  ];
+  const raceIds = [
+    ...new Set(tasks.map((t) => t.race_id).filter((id): id is string => !!id)),
+  ];
   const taskTypeIds = [...new Set(tasks.map((t) => t.task_type_id))];
 
-  const [{ data: eventRows }, { data: lineupRows }, { data: raceRows }, { data: taskTypeRows }] = await Promise.all([
+  const [
+    { data: eventRows },
+    { data: lineupRows },
+    { data: raceRows },
+    { data: taskTypeRows },
+  ] = await Promise.all([
     supabase
       .from("schedule_events")
       .select("*")
       .in("id", eventIds)
       .gte("starts_at", startOfToday()),
     lineupIds.length
-      ? supabase.from("lineups").select("id, boat_name, race_name").in("id", lineupIds)
-      : Promise.resolve({ data: [] as Pick<Lineup, "id" | "boat_name" | "race_name">[] }),
+      ? supabase
+          .from("lineups")
+          .select("id, boat_name, race_name")
+          .in("id", lineupIds)
+      : Promise.resolve({
+          data: [] as Pick<Lineup, "id" | "boat_name" | "race_name">[],
+        }),
     // A task auto-created straight off a race import (see importRaces)
     // doesn't have a boat yet — fall back to the race's own name.
     raceIds.length
@@ -539,25 +671,39 @@ async function loadCoachTaskBanners(
       : Promise.resolve({ data: [] as Pick<Race, "id" | "race_name">[] }),
     supabase.from("task_types").select("*").in("id", taskTypeIds),
   ]);
-  const eventById = new Map(((eventRows as ScheduleEvent[] | null) ?? []).map((e) => [e.id, e]));
+  const eventById = new Map(
+    ((eventRows as ScheduleEvent[] | null) ?? []).map((e) => [e.id, e]),
+  );
   const lineupById = new Map(
-    ((lineupRows as Pick<Lineup, "id" | "boat_name" | "race_name">[] | null) ?? []).map((l) => [l.id, l])
+    (
+      (lineupRows as Pick<Lineup, "id" | "boat_name" | "race_name">[] | null) ??
+      []
+    ).map((l) => [l.id, l]),
   );
   const raceNameByRaceId = new Map(
-    ((raceRows as Pick<Race, "id" | "race_name">[] | null) ?? []).map((r) => [r.id, r.race_name])
+    ((raceRows as Pick<Race, "id" | "race_name">[] | null) ?? []).map((r) => [
+      r.id,
+      r.race_name,
+    ]),
   );
-  const taskTypeNameById = new Map(((taskTypeRows as TaskType[] | null) ?? []).map((t) => [t.id, t.name]));
+  const taskTypeNameById = new Map(
+    ((taskTypeRows as TaskType[] | null) ?? []).map((t) => [t.id, t.name]),
+  );
 
   return tasks
     .filter((task) => assignments.some((a) => a.task_id === task.id))
     .map((task) => {
       const event = eventById.get(task.event_id);
       if (!event) return null;
-      const lineup = task.lineup_id ? lineupById.get(task.lineup_id) : undefined;
+      const lineup = task.lineup_id
+        ? lineupById.get(task.lineup_id)
+        : undefined;
       return {
         taskTypeName: taskTypeNameById.get(task.task_type_id) ?? "a task",
         boatName: lineup?.boat_name ?? null,
-        raceName: lineup?.race_name ?? (task.race_id ? raceNameByRaceId.get(task.race_id) ?? null : null),
+        raceName:
+          lineup?.race_name ??
+          (task.race_id ? (raceNameByRaceId.get(task.race_id) ?? null) : null),
         eventTitle: event.title,
       };
     })
@@ -569,7 +715,7 @@ async function loadCoachTaskBanners(
 // /announcements page instead, not as a banner on their own home page.
 async function loadAnnouncementBanners(
   supabase: SupabaseServerClient,
-  audience: AnnouncementAudience[]
+  audience: AnnouncementAudience[],
 ): Promise<AnnouncementBanner[]> {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data } = await supabase
@@ -581,19 +727,25 @@ async function loadAnnouncementBanners(
   const announcements = (data as CoachAnnouncement[] | null) ?? [];
   if (announcements.length === 0) return [];
 
-  const senderIds = [...new Set(announcements.map((a) => a.sender_id).filter((id): id is string => !!id))];
+  const senderIds = [
+    ...new Set(
+      announcements.map((a) => a.sender_id).filter((id): id is string => !!id),
+    ),
+  ];
   const { data: sendersData } = await supabase
     .from("profiles")
     .select("id, display_name")
     .in("id", senderIds.length > 0 ? senderIds : [""]);
   const nameById = new Map(
-    ((sendersData as Pick<Profile, "id" | "display_name">[] | null) ?? []).map((p) => [p.id, p.display_name])
+    ((sendersData as Pick<Profile, "id" | "display_name">[] | null) ?? []).map(
+      (p) => [p.id, p.display_name],
+    ),
   );
 
   return announcements.map((a) => ({
     id: a.id,
     message: a.message,
-    senderName: a.sender_id ? nameById.get(a.sender_id) ?? "Coach" : "Coach",
+    senderName: a.sender_id ? (nameById.get(a.sender_id) ?? "Coach") : "Coach",
     createdAt: new Date(a.created_at).toLocaleDateString(),
   }));
 }
@@ -610,13 +762,22 @@ export default async function Home() {
     supabase
       .from("club_settings")
       .select("key, value")
-      .in("key", ["team_store_url", "team_store_featured_items", "nav_visibility", "nav_disabled_hrefs"]),
+      .in("key", [
+        "team_store_url",
+        "team_store_featured_items",
+        "nav_visibility",
+        "nav_disabled_hrefs",
+      ]),
   ]);
   const settingsByKey = new Map(
-    ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
+    (
+      (settingsData as { key: string; value: string | null }[] | null) ?? []
+    ).map((s) => [s.key, s.value]),
   );
   const storeUrl = settingsByKey.get("team_store_url") ?? null;
-  const featuredItems = parseStoreItems(settingsByKey.get("team_store_featured_items") ?? null);
+  const featuredItems = parseStoreItems(
+    settingsByKey.get("team_store_featured_items") ?? null,
+  );
   const navVisibilityByHref = resolveNavVisibility(settingsByKey);
 
   let banners: FoodTentBanner[] = [];
@@ -641,8 +802,12 @@ export default async function Home() {
   let pendingApprovalCount = 0;
   let checkInLabel: string | null = null;
   let myAttendance: PracticeAttendance | null = null;
-  let showPracticeCheckIn = false;
-  let paymentsBanner: { owedCents: number; bills: number; openSignups: number } | null = null;
+  let onWaterBanner: { label: string; color: string | null } | null = null;
+  let paymentsBanner: {
+    owedCents: number;
+    bills: number;
+    openSignups: number;
+  } | null = null;
 
   let householdUserIds: string[] = [];
 
@@ -663,14 +828,25 @@ export default async function Home() {
     ] = await Promise.all([
       getUnreadChatCount(user.id),
       getUnreadScheduleCount(user.id),
-      supabase.from("profiles").select("role, spouse_id, is_tent_leader").eq("id", user.id).single(),
-      supabase.from("chat_groups").select("id").eq("team", "coach").maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("role, spouse_id, is_tent_leader")
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("chat_groups")
+        .select("id")
+        .eq("team", "coach")
+        .maybeSingle(),
       // Recent and upcoming regattas; the next one is picked below.
       supabase
         .from("schedule_events")
         .select("*")
         .eq("event_type", "regatta")
-        .gte("starts_at", new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString())
+        .gte(
+          "starts_at",
+          new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        )
         .lte("starts_at", weekOut.toISOString())
         .order("starts_at", { ascending: true }),
       supabase.rpc("is_global_admin"),
@@ -690,7 +866,10 @@ export default async function Home() {
     unreadCount = unreadCountResult;
     unreadScheduleCount = unreadScheduleCountResult;
 
-    const caller = callerResult.data as Pick<Profile, "role" | "spouse_id" | "is_tent_leader"> | null;
+    const caller = callerResult.data as Pick<
+      Profile,
+      "role" | "spouse_id" | "is_tent_leader"
+    > | null;
     const callerRole = caller?.role;
     isAdmin = callerRole === "admin";
     isCoachOrAdmin = callerRole === "admin" || callerRole === "coach";
@@ -699,9 +878,37 @@ export default async function Home() {
     isFoodTentManager = isCoachOrAdmin || Boolean(caller?.is_tent_leader);
 
     if (isCoachOrAdmin) checkInLabel = await getTodaysCheckInLabel(user.id);
-    if (isRowerOrCoxswain) {
-      showPracticeCheckIn = await isPracticeDay();
-      if (showPracticeCheckIn) myAttendance = await getMyAttendanceToday(user.id);
+    if (isRowerOrCoxswain) myAttendance = await getMyAttendanceToday(user.id);
+
+    // Boats out right now. RLS scopes this: coaches and admins see every
+    // outing, a coxswain only their own.
+    if (isCoachOrAdmin || callerRole === "coxswain") {
+      const { data: outingsData } = await supabase
+        .from("on_water_sessions")
+        .select("coxswain_id, color, boats(name)")
+        .is("ended_at", null)
+        .order("started_at", { ascending: true });
+      const outings =
+        (outingsData as unknown as
+          | {
+              coxswain_id: string;
+              color: string | null;
+              boats: { name: string } | null;
+            }[]
+          | null) ?? [];
+      const mine = outings.find((o) => o.coxswain_id === user.id);
+      if (callerRole === "coxswain" && mine) {
+        onWaterBanner = {
+          label: `You're tracking ${mine.boats?.name ?? "your boat"} — tap to open`,
+          color: mine.color,
+        };
+      } else if (isCoachOrAdmin && outings.length > 0) {
+        const names = outings.map((o) => o.boats?.name ?? "a boat").join(", ");
+        onWaterBanner = {
+          label: `🚣 ${outings.length} ${outings.length === 1 ? "boat" : "boats"} on the water: ${names}`,
+          color: null,
+        };
+      }
     }
 
     // What this household owes for its own rowers (a treasurer or admin can
@@ -710,14 +917,23 @@ export default async function Home() {
     const { data: myLinks } = await supabase
       .from("family_links")
       .select("rower_id")
-      .in("guardian_id", [user.id, ...(caller?.spouse_id ? [caller.spouse_id] : [])]);
+      .in("guardian_id", [
+        user.id,
+        ...(caller?.spouse_id ? [caller.spouse_id] : []),
+      ]);
     const myRowerIds = [
       ...(isRowerOrCoxswain ? [user.id] : []),
-      ...((myLinks as { rower_id: string }[] | null) ?? []).map((l) => l.rower_id),
+      ...((myLinks as { rower_id: string }[] | null) ?? []).map(
+        (l) => l.rower_id,
+      ),
     ];
     const [{ data: owedBills }, { count: openSignups }] = await Promise.all([
       myRowerIds.length
-        ? supabase.from("bills").select("id, amount_cents, discount_cents").eq("status", "owed").in("rower_id", myRowerIds)
+        ? supabase
+            .from("bills")
+            .select("id, amount_cents, discount_cents")
+            .eq("status", "owed")
+            .in("rower_id", myRowerIds)
         : Promise.resolve({ data: [] }),
       supabase
         .from("charges")
@@ -725,7 +941,10 @@ export default async function Home() {
         .eq("signup_open", true)
         .is("archived_at", null),
     ]);
-    const owed = (owedBills as { id: string; amount_cents: number; discount_cents: number }[] | null) ?? [];
+    const owed =
+      (owedBills as
+        | { id: string; amount_cents: number; discount_cents: number }[]
+        | null) ?? [];
     let owedCents = 0;
     if (owed.length) {
       const { data: paidRows } = await supabase
@@ -734,13 +953,21 @@ export default async function Home() {
         .eq("status", "succeeded")
         .in(
           "bill_id",
-          owed.map((b) => b.id)
+          owed.map((b) => b.id),
         );
-      const paidCents = ((paidRows as { amount_cents: number }[] | null) ?? []).reduce((t, p) => t + p.amount_cents, 0);
-      owedCents = owed.reduce((t, b) => t + b.amount_cents - b.discount_cents, 0) - paidCents;
+      const paidCents = (
+        (paidRows as { amount_cents: number }[] | null) ?? []
+      ).reduce((t, p) => t + p.amount_cents, 0);
+      owedCents =
+        owed.reduce((t, b) => t + b.amount_cents - b.discount_cents, 0) -
+        paidCents;
     }
     if (owedCents > 0 || ((openSignups ?? 0) > 0 && myRowerIds.length > 0)) {
-      paymentsBanner = { owedCents: Math.max(0, owedCents), bills: owed.length, openSignups: openSignups ?? 0 };
+      paymentsBanner = {
+        owedCents: Math.max(0, owedCents),
+        bills: owed.length,
+        openSignups: openSignups ?? 0,
+      };
     }
 
     if ((coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id) {
@@ -751,7 +978,9 @@ export default async function Home() {
     // (Eastern) after its last day, then the following one takes over, along
     // with its weather.
     upcomingRegatta =
-      ((regattaResult.data as ScheduleEvent[] | null) ?? []).find((e) => forecastDayFor(e) !== null) ?? null;
+      ((regattaResult.data as ScheduleEvent[] | null) ?? []).find(
+        (e) => forecastDayFor(e) !== null,
+      ) ?? null;
 
     householdUserIds = [user.id];
     if (isParent) {
@@ -762,7 +991,9 @@ export default async function Home() {
         .select("id")
         .eq("spouse_id", user.id);
       const spouseIds = new Set<string>(
-        ((reverseSpouses as Pick<Profile, "id">[] | null) ?? []).map((p) => p.id)
+        ((reverseSpouses as Pick<Profile, "id">[] | null) ?? []).map(
+          (p) => p.id,
+        ),
       );
       if (caller?.spouse_id) spouseIds.add(caller.spouse_id);
       householdUserIds.push(...spouseIds);
@@ -796,16 +1027,23 @@ export default async function Home() {
       }),
       loadCoachTaskBanners(supabase, { userId: user.id, isRowerOrCoxswain }),
       isCoachOrAdmin ? loadPendingRaceBanners(supabase) : Promise.resolve([]),
-      supabase.from("family_links").select("rower_id").in("guardian_id", householdUserIds),
+      supabase
+        .from("family_links")
+        .select("rower_id")
+        .in("guardian_id", householdUserIds),
       isFoodTentManager ? loadFoodPrepBanners(supabase) : Promise.resolve([]),
       loadSignupCallBanners(supabase, householdUserIds),
-      upcomingRegatta ? getOrRefreshEventForecast(supabase, upcomingRegatta) : Promise.resolve(null),
+      upcomingRegatta
+        ? getOrRefreshEventForecast(supabase, upcomingRegatta)
+        : Promise.resolve(null),
       isRowerOrCoxswain
         ? loadAnnouncementBanners(supabase, ["rowers", "both"])
         : isParent
-        ? loadAnnouncementBanners(supabase, ["parents", "both"])
+          ? loadAnnouncementBanners(supabase, ["parents", "both"])
+          : Promise.resolve([]),
+      isCoachOrAdmin
+        ? loadSentLineupNotices(supabase, user.id)
         : Promise.resolve([]),
-      isCoachOrAdmin ? loadSentLineupNotices(supabase, user.id) : Promise.resolve([]),
     ]);
     sentLineupNotices = sentLineupNoticeResults;
     banners = foodBanners;
@@ -827,7 +1065,10 @@ export default async function Home() {
         ...b,
         items: [...b.items, { emoji: "💧", label: "2 gal of water" }],
       }));
-      if (upcomingRegatta && !banners.some((b) => b.eventId === upcomingRegatta!.id)) {
+      if (
+        upcomingRegatta &&
+        !banners.some((b) => b.eventId === upcomingRegatta!.id)
+      ) {
         banners.push({
           eventId: upcomingRegatta.id,
           eventTitle: upcomingRegatta.title,
@@ -841,7 +1082,9 @@ export default async function Home() {
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
   const hotcSchedule = demoClub ? await getHotcSchedule(demoClub) : null;
   if (isCoachOrAdmin) await syncHotcResults(supabase, hotcSchedule);
-  const hotcOver = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }) > HOTC.lastDay;
+  const hotcOver =
+    new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }) >
+    HOTC.lastDay;
   const hotcResults = hotcOver
     ? []
     : (hotcSchedule?.races ?? [])
@@ -876,13 +1119,37 @@ export default async function Home() {
       )}
 
       {user && isCoachOrAdmin && <CheckInButton checkedInAt={checkInLabel} />}
-      {user && showPracticeCheckIn && (
+      {user && isRowerOrCoxswain && (
         <PracticeCheckIn
           status={myAttendance?.status ?? null}
           reason={myAttendance?.reason ?? null}
-          time={myAttendance ? formatAttendanceTime(myAttendance.responded_at) : null}
+          time={
+            myAttendance
+              ? formatAttendanceTime(myAttendance.responded_at)
+              : null
+          }
           reasons={ABSENCE_REASONS}
         />
+      )}
+
+      {onWaterBanner && (
+        <Link
+          href="/on-water"
+          className="w-full flex items-center gap-3 rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+        >
+          {onWaterBanner.color &&
+          /^#[0-9a-f]{6}$/i.test(onWaterBanner.color) ? (
+            <span
+              className="w-5 h-5 shrink-0 rounded-full"
+              style={{ backgroundColor: onWaterBanner.color }}
+              aria-hidden
+            />
+          ) : (
+            <Navigation className="w-5 h-5 shrink-0" aria-hidden />
+          )}
+          <span className="flex-1">{onWaterBanner.label}</span>
+          <span aria-hidden>→</span>
+        </Link>
       )}
 
       {paymentsBanner && (
@@ -895,7 +1162,9 @@ export default async function Home() {
             {paymentsBanner.owedCents > 0 && (
               <>
                 You owe <strong>{formatMoney(paymentsBanner.owedCents)}</strong>
-                {paymentsBanner.bills > 1 && ` on ${paymentsBanner.bills} bills`}.{" "}
+                {paymentsBanner.bills > 1 &&
+                  ` on ${paymentsBanner.bills} bills`}
+                .{" "}
               </>
             )}
             {paymentsBanner.openSignups > 0 && "Season sign-up is open. "}
@@ -913,12 +1182,12 @@ export default async function Home() {
               place === 1
                 ? "bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-300 text-yellow-950 border-2 border-yellow-600"
                 : place === 2
-                ? "bg-gradient-to-r from-gray-200 via-slate-300 to-gray-200 text-gray-900 border-2 border-gray-500"
-                : place === 3
-                ? "bg-gradient-to-r from-[#8a5a2e] via-[#cd8347] to-[#8a5a2e] text-orange-50 border-2 border-[#5c3a1e]"
-                : i % 2 === 0
-                ? "bg-[var(--color-primary)] text-white"
-                : "bg-[var(--color-secondary)] text-white";
+                  ? "bg-gradient-to-r from-gray-200 via-slate-300 to-gray-200 text-gray-900 border-2 border-gray-500"
+                  : place === 3
+                    ? "bg-gradient-to-r from-[#8a5a2e] via-[#cd8347] to-[#8a5a2e] text-orange-50 border-2 border-[#5c3a1e]"
+                    : i % 2 === 0
+                      ? "bg-[var(--color-primary)] text-white"
+                      : "bg-[var(--color-secondary)] text-white";
 
             return (
               <Link
@@ -939,9 +1208,12 @@ export default async function Home() {
                   </span>
                 )}
                 <span className="relative flex items-center gap-2">
-                  {isMedal && <Trophy className="w-5 h-5 shrink-0 animate-bounce" />}
+                  {isMedal && (
+                    <Trophy className="w-5 h-5 shrink-0 animate-bounce" />
+                  )}
                   <span>
-                    <strong>Race {r.eventNum}</strong> — {r.eventName}: {placeEmoji(place)}{" "}
+                    <strong>Race {r.eventNum}</strong> — {r.eventName}:{" "}
+                    {placeEmoji(place)}{" "}
                     <strong>{ordinalPlace(place)} place</strong>
                     {r.time && <> · {r.time}</>}
                   </span>
@@ -953,28 +1225,29 @@ export default async function Home() {
       )}
 
       {!hotcOver && (
-      <Link
-        href="/regatta"
-        className="w-full flex items-center gap-3 border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
-      >
-        <Waves className="w-5 h-5 shrink-0 text-[var(--color-primary)]" />
-        <span>
-          <strong>{HOTC.title}</strong>:{" "}
-          {!demoClub
-            ? "pick your club to see its races"
-            : hotcSchedule && hotcSchedule.races.length > 0
-            ? `${hotcSchedule.races.length} race${hotcSchedule.races.length === 1 ? "" : "s"} for ${demoClub.name}${hotcSchedule.races[0].start ? `, first at ${hotcSchedule.races[0].start}` : ""}`
-            : "race schedule and live results"}{" "}
-          →
-        </span>
-      </Link>
+        <Link
+          href="/regatta"
+          className="w-full flex items-center gap-3 border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+        >
+          <Waves className="w-5 h-5 shrink-0 text-[var(--color-primary)]" />
+          <span>
+            <strong>{HOTC.title}</strong>:{" "}
+            {!demoClub
+              ? "pick your club to see its races"
+              : hotcSchedule && hotcSchedule.races.length > 0
+                ? `${hotcSchedule.races.length} race${hotcSchedule.races.length === 1 ? "" : "s"} for ${demoClub.name}${hotcSchedule.races[0].start ? `, first at ${hotcSchedule.races[0].start}` : ""}`
+                : "race schedule and live results"}{" "}
+            →
+          </span>
+        </Link>
       )}
 
       <Link
         href="/interest"
         className="w-full block text-center bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 font-medium hover:bg-[var(--color-accent)] transition-colors"
       >
-        🙋 Yes, I&apos;m interested in this software. Please let me know when it&apos;s available!
+        🙋 Yes, I&apos;m interested in this software. Please let me know when
+        it&apos;s available!
       </Link>
 
       {pendingApprovalCount > 0 && (
@@ -982,7 +1255,8 @@ export default async function Home() {
           href="/roster"
           className="w-full block text-center bg-amber-100 border-2 border-amber-400 rounded-lg px-4 py-3 text-sm font-medium hover:bg-amber-200 transition-colors"
         >
-          {pendingApprovalCount} {pendingApprovalCount === 1 ? "person is" : "people are"} waiting for
+          {pendingApprovalCount}{" "}
+          {pendingApprovalCount === 1 ? "person is" : "people are"} waiting for
           approval →
         </Link>
       )}
@@ -1017,7 +1291,8 @@ export default async function Home() {
                 <strong>
                   {b.count} race{b.count === 1 ? "" : "s"}
                 </strong>{" "}
-                still need{b.count === 1 ? "s" : ""} a lineup for {b.eventTitle} ({b.eventDate})
+                still need{b.count === 1 ? "s" : ""} a lineup for {b.eventTitle}{" "}
+                ({b.eventDate})
               </span>
             </Link>
           ))}
@@ -1034,8 +1309,9 @@ export default async function Home() {
             >
               <Tent className="w-5 h-5 shrink-0" />
               <span>
-                The food list for <strong>{b.eventTitle}</strong> ({b.eventDate}) was auto-filled
-                from the last regatta — review, edit if needed, and publish it.
+                The food list for <strong>{b.eventTitle}</strong> ({b.eventDate}
+                ) was auto-filled from the last regatta — review, edit if
+                needed, and publish it.
               </span>
             </Link>
           ))}
@@ -1045,10 +1321,14 @@ export default async function Home() {
       {signupCallBanners.length > 0 && (
         <div className="w-full flex flex-col gap-2">
           {signupCallBanners.map((b, i) => (
-            <div key={i} className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm flex flex-col gap-2">
+            <div
+              key={i}
+              className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm flex flex-col gap-2"
+            >
               <p>
-                📋 Signups are open for <strong>{b.eventTitle}</strong> ({b.eventDate}) — pick a food
-                tent item{b.hasVolunteerNeeds ? " and a volunteer slot" : ""}.
+                📋 Signups are open for <strong>{b.eventTitle}</strong> (
+                {b.eventDate}) — pick a food tent item
+                {b.hasVolunteerNeeds ? " and a volunteer slot" : ""}.
               </p>
               <div className="flex gap-2">
                 <Link
@@ -1075,22 +1355,36 @@ export default async function Home() {
         <div className="w-full flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm">
           {upcomingRegattaForecast.icon_url && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={upcomingRegattaForecast.icon_url} alt="" className="w-10 h-10 shrink-0" />
+            <img
+              src={upcomingRegattaForecast.icon_url}
+              alt=""
+              className="w-10 h-10 shrink-0"
+            />
           )}
           <span>
             Forecast for <strong>{upcomingRegatta.title}</strong> (
             {upcomingRegattaForecast.forecast_date
-              ? new Date(`${upcomingRegattaForecast.forecast_date}T12:00:00`).toLocaleDateString()
+              ? new Date(
+                  `${upcomingRegattaForecast.forecast_date}T12:00:00`,
+                ).toLocaleDateString()
               : new Date(upcomingRegatta.starts_at).toLocaleDateString()}
-            ):{" "}
-            <strong>{upcomingRegattaForecast.short_forecast}</strong>
-            {upcomingRegattaForecast.high_f !== null && <>, high {upcomingRegattaForecast.high_f}°F</>}
-            {upcomingRegattaForecast.low_f !== null && <>, low {upcomingRegattaForecast.low_f}°F</>}
+            ): <strong>{upcomingRegattaForecast.short_forecast}</strong>
+            {upcomingRegattaForecast.high_f !== null && (
+              <>, high {upcomingRegattaForecast.high_f}°F</>
+            )}
+            {upcomingRegattaForecast.low_f !== null && (
+              <>, low {upcomingRegattaForecast.low_f}°F</>
+            )}
             {upcomingRegattaForecast.precipitation_chance !== null &&
               upcomingRegattaForecast.precipitation_chance > 0 && (
-                <>, {upcomingRegattaForecast.precipitation_chance}% chance of rain</>
+                <>
+                  , {upcomingRegattaForecast.precipitation_chance}% chance of
+                  rain
+                </>
               )}
-            {upcomingRegattaForecast.wind && <>, wind {upcomingRegattaForecast.wind}</>}
+            {upcomingRegattaForecast.wind && (
+              <>, wind {upcomingRegattaForecast.wind}</>
+            )}
           </span>
         </div>
       )}
@@ -1099,7 +1393,8 @@ export default async function Home() {
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm font-medium text-gray-600">
             {upcomingRegatta.title} is coming up on{" "}
-            {new Date(upcomingRegatta.starts_at).toLocaleDateString()} — get ready:
+            {new Date(upcomingRegatta.starts_at).toLocaleDateString()} — get
+            ready:
           </p>
           <Link
             href="/food-tent"
@@ -1135,7 +1430,10 @@ export default async function Home() {
       {lineupBanners.length > 0 && (
         <div className="w-full flex flex-col gap-2">
           {lineupBanners.map((b, i) => (
-            <div key={i} className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm">
+            <div
+              key={i}
+              className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm"
+            >
               🚣{" "}
               {b.rowerName ? (
                 <>
@@ -1147,11 +1445,17 @@ export default async function Home() {
               in the boat for <strong>{b.boatName}</strong>
               {b.raceName && (
                 <>
-                  {" "}(<strong>{b.raceName}</strong>)
+                  {" "}
+                  (<strong>{b.raceName}</strong>)
                 </>
               )}{" "}
               at {b.eventTitle} ({b.eventDate}
-              {b.raceTimeLabel && <>, racing at <strong>{b.raceTimeLabel}</strong></>})
+              {b.raceTimeLabel && (
+                <>
+                  , racing at <strong>{b.raceTimeLabel}</strong>
+                </>
+              )}
+              )
             </div>
           ))}
         </div>
@@ -1171,11 +1475,17 @@ export default async function Home() {
                 🚣 You&apos;re in the boat for <strong>{n.boatName}</strong>
                 {n.raceName && (
                   <>
-                    {" "}(<strong>{n.raceName}</strong>)
+                    {" "}
+                    (<strong>{n.raceName}</strong>)
                   </>
                 )}{" "}
                 at {n.eventTitle} ({n.eventDate}
-                {n.raceTimeLabel && <>, racing at <strong>{n.raceTimeLabel}</strong></>})
+                {n.raceTimeLabel && (
+                  <>
+                    , racing at <strong>{n.raceTimeLabel}</strong>
+                  </>
+                )}
+                )
               </div>
               <p className="text-gray-600">
                 Sent to {n.recipientNames.length}: {n.recipientNames.join(", ")}
@@ -1188,17 +1498,22 @@ export default async function Home() {
       {coachTaskBanners.length > 0 && (
         <div className="w-full flex flex-col gap-2">
           {coachTaskBanners.map((b, i) => (
-            <div key={i} className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm">
+            <div
+              key={i}
+              className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm"
+            >
               📋 You&apos;re on <strong>{b.taskTypeName}</strong>
               {b.boatName && (
                 <>
-                  {" "}for <strong>{b.boatName}</strong>
+                  {" "}
+                  for <strong>{b.boatName}</strong>
                 </>
               )}{" "}
               at {b.eventTitle}
               {b.raceName && (
                 <>
-                  {" "}(<strong>{b.raceName}</strong>)
+                  {" "}
+                  (<strong>{b.raceName}</strong>)
                 </>
               )}
             </div>
@@ -1214,7 +1529,8 @@ export default async function Home() {
               className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm"
             >
               <p>
-                You&apos;re bringing to <strong>{b.eventTitle}</strong> ({b.eventDate}):
+                You&apos;re bringing to <strong>{b.eventTitle}</strong> (
+                {b.eventDate}):
               </p>
               <ul className="mt-1 flex flex-col gap-0.5">
                 {b.items.map((item, j) => (
@@ -1236,12 +1552,27 @@ export default async function Home() {
             if (visibility === "coaches") return isCoachOrAdmin;
             return visibility === "everyone";
           })
-          .concat(isAdmin ? [{ href: "/todo", label: "To-do List" }, { href: "/admin", label: "Admin Settings" }] : [])
-          .concat(isGlobalAdmin ? [{ href: "/global-admin", label: "Global Admin" }] : [])
+          .concat(
+            isAdmin
+              ? [
+                  { href: "/todo", label: "To-do List" },
+                  { href: "/admin", label: "Admin Settings" },
+                ]
+              : [],
+          )
+          .concat(
+            isGlobalAdmin
+              ? [{ href: "/global-admin", label: "Global Admin" }]
+              : [],
+          )
           .map((s) => {
             const Icon = ICONS_BY_HREF[s.href];
             const badgeCount =
-              s.href === "/messages" ? unreadCount : s.href === "/schedule" ? unreadScheduleCount : 0;
+              s.href === "/messages"
+                ? unreadCount
+                : s.href === "/schedule"
+                  ? unreadScheduleCount
+                  : 0;
             const visibility = navVisibilityByHref[s.href] ?? "everyone";
 
             if (visibility === "off") {
@@ -1314,8 +1645,12 @@ export default async function Home() {
                       className="w-full h-20 object-cover rounded mb-2"
                     />
                   )}
-                  <p className="text-sm font-medium leading-tight">{item.title}</p>
-                  {item.price && <p className="text-xs text-gray-500 mt-0.5">{item.price}</p>}
+                  <p className="text-sm font-medium leading-tight">
+                    {item.title}
+                  </p>
+                  {item.price && (
+                    <p className="text-xs text-gray-500 mt-0.5">{item.price}</p>
+                  )}
                 </a>
               ))}
             </div>

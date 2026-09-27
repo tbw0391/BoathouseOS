@@ -5,21 +5,29 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { ActiveSessionView } from "@/lib/onWater";
-import { ageLabel, boatColor, STALE_AFTER_MS } from "./boatDisplay";
+import { ageLabel, boatColor, boatMotion, compass, mph, split500, STALE_AFTER_MS } from "./boatDisplay";
 
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-// A dot in the boat's color with the boat name beside it.
-function boatIcon(color: string, label: string, stale: boolean) {
+// The boat's color as an arrow pointing where it's heading (a dot while
+// stopped or before a heading is known), with a label beside it.
+function boatIcon(color: string, label: string, stale: boolean, headingDeg: number | null) {
+  const marker =
+    headingDeg == null
+      ? `<div style="width:18px;height:18px;border-radius:9999px;background:${color};border:3px solid white;box-shadow:0 0 0 1px rgba(0,0,0,.4)"></div>`
+      : `<svg width="26" height="26" viewBox="0 0 24 24" style="transform:rotate(${Math.round(headingDeg)}deg);filter:drop-shadow(0 0 1px rgba(0,0,0,.6))">
+          <path d="M12 2 L20 21 L12 17 L4 21 Z" fill="${color}" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+        </svg>`;
+  const size = headingDeg == null ? 18 : 26;
   return L.divIcon({
     className: "",
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-    popupAnchor: [0, -10],
-    html: `<div style="position:relative;width:18px;height:18px">
-      <div style="width:18px;height:18px;border-radius:9999px;background:${color};border:3px solid white;box-shadow:0 0 0 1px rgba(0,0,0,.4);opacity:${stale ? 0.45 : 1}"></div>
-      <div style="position:absolute;left:22px;top:-2px;white-space:nowrap;font:600 12px system-ui,sans-serif;color:white;background:${color};padding:1px 6px;border-radius:4px">${escapeHtml(label)}</div>
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2 - 2],
+    html: `<div style="position:relative;width:${size}px;height:${size}px;opacity:${stale ? 0.45 : 1}">
+      ${marker}
+      <div style="position:absolute;left:${size + 4}px;top:${size / 2 - 11}px;white-space:nowrap;font:600 12px system-ui,sans-serif;color:white;background:${color};padding:1px 6px;border-radius:4px">${escapeHtml(label)}</div>
     </div>`,
   });
 }
@@ -52,15 +60,27 @@ export default function LeafletMap({ sessions }: { sessions: ActiveSessionView[]
         const ping = view.lastPing!;
         const stale = Date.now() - new Date(ping.recorded_at).getTime() > STALE_AFTER_MS;
         const color = boatColor(view.session.color);
+        const motion = boatMotion(ping, view.prevPing);
+        const name = view.boatName ?? view.coxswainName;
+        const label = !stale && motion.moving && motion.speedMps != null ? `${name} · ${split500(motion.speedMps)}` : name;
         return (
           <Marker
             key={view.session.id}
             position={[ping.lat, ping.lng]}
-            icon={boatIcon(color, view.boatName ?? view.coxswainName, stale)}
+            icon={boatIcon(color, label, stale, stale ? null : motion.headingDeg)}
           >
             <Popup>
               <strong>{view.boatName ?? "Boat not set"}</strong>
               <div>Cox: {view.coxswainName}</div>
+              {!stale && motion.speedMps != null && (
+                <div>
+                  {motion.moving
+                    ? `${split500(motion.speedMps)} /500m (${mph(motion.speedMps)} mph)${
+                        motion.headingDeg != null ? `, heading ${compass(motion.headingDeg)}` : ""
+                      }`
+                    : "Stopped"}
+                </div>
+              )}
               <div style={{ color: stale ? "#b91c1c" : "#4b5563" }}>
                 Last GPS {ageLabel(ping.recorded_at)} ago{stale ? " — may have stopped tracking" : ""}
               </div>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { AttendanceStatus, Profile } from "@/lib/database.types";
-import { ABSENCE_REASONS, isPracticeDay, todaysPracticeDate } from "@/lib/practiceAttendance";
+import { ABSENCE_REASONS, todaysPracticeDate } from "@/lib/practiceAttendance";
 
 export async function checkIn() {
   const supabase = await createClient();
@@ -44,9 +44,6 @@ async function setPracticeAttendance(status: AttendanceStatus | null, reason: st
   const callerRole = (callerProfile as Pick<Profile, "role"> | null)?.role;
   if (callerRole !== "rower" && callerRole !== "coxswain") {
     throw new Error("Only rowers and coxswains can check in to practice.");
-  }
-  if (!(await isPracticeDay())) {
-    throw new Error("Practice check-in is only open Monday through Saturday, not on regatta days.");
   }
 
   const practiceDate = todaysPracticeDate();

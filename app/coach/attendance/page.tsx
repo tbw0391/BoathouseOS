@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { PracticeAttendance, Profile } from "@/lib/database.types";
-import { formatAttendanceTime, isPracticeDay, todaysPracticeDate } from "@/lib/practiceAttendance";
+import { formatAttendanceTime, todaysPracticeDate } from "@/lib/practiceAttendance";
 
 type Member = Pick<Profile, "id" | "display_name" | "role">;
 
@@ -27,7 +27,7 @@ export default async function CoachAttendancePage() {
     );
   }
 
-  const [{ data: memberData }, { data: attendanceData }, practiceDay] = await Promise.all([
+  const [{ data: memberData }, { data: attendanceData }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, display_name, role")
@@ -36,7 +36,6 @@ export default async function CoachAttendancePage() {
       .not("approved_at", "is", null)
       .order("display_name", { ascending: true }),
     supabase.from("practice_attendance").select("*").eq("practice_date", todaysPracticeDate()),
-    isPracticeDay(),
   ]);
   const members = (memberData as Member[] | null) ?? [];
   const byProfile = new Map(
@@ -58,11 +57,6 @@ export default async function CoachAttendancePage() {
     <div className="min-h-screen p-8 max-w-lg">
       <h1 className="text-2xl font-bold mb-1">Practice Attendance</h1>
       <p className="text-sm text-gray-500 mb-6">{today}</p>
-      {!practiceDay && (
-        <p className="mb-6 rounded-lg border-2 border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-          No practice check-in today (Sundays and regatta days are off).
-        </p>
-      )}
 
       <section className="mb-6">
         <h2 className="font-semibold text-green-800 mb-2">Checked in ({checkedIn.length})</h2>

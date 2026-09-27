@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Map as MapIcon } from "lucide-react";
+import { Map as MapIcon, Navigation2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { LocationPing, OnWaterSession } from "@/lib/database.types";
 import type { ActiveSessionView } from "@/lib/onWater";
-import { ageLabel, boatColor, STALE_AFTER_MS } from "./boatDisplay";
+import { ageLabel, boatColor, boatMotion, compass, mph, split500, STALE_AFTER_MS } from "./boatDisplay";
 
 const LeafletMap = dynamic(() => import("./LeafletMap"), { ssr: false });
 
@@ -40,7 +40,9 @@ export function LiveBoats({
         (payload) => {
           const ping = payload.new as LocationPing;
           setSessions((prev) =>
-            prev.map((view) => (view.session.id === ping.session_id ? { ...view, lastPing: ping } : view))
+            prev.map((view) =>
+              view.session.id === ping.session_id ? { ...view, prevPing: view.lastPing, lastPing: ping } : view
+            )
           );
         }
       )
@@ -73,6 +75,7 @@ export function LiveBoats({
               coxswainName: (profile as { display_name: string } | null)?.display_name ?? "Unknown",
               boatName: (boat as { name: string } | null)?.name ?? null,
               lastPing: null,
+              prevPing: null,
             },
           ]);
         }
@@ -103,6 +106,7 @@ export function LiveBoats({
           const color = boatColor(view.session.color);
           const stale =
             view.lastPing && Date.now() - new Date(view.lastPing.recorded_at).getTime() > STALE_AFTER_MS;
+          const motion = boatMotion(view.lastPing, view.prevPing);
           return (
             <li
               key={view.session.id}
@@ -119,6 +123,28 @@ export function LiveBoats({
                     minute: "2-digit",
                   })}
                 </p>
+                {view.lastPing && !stale && motion.speedMps != null && (
+                  <p className="flex items-center gap-1.5 text-sm font-medium mt-0.5">
+                    {motion.moving ? (
+                      <>
+                        <span className="tabular-nums">{split500(motion.speedMps)} /500m</span>
+                        <span className="text-gray-500 tabular-nums">({mph(motion.speedMps)} mph)</span>
+                        {motion.headingDeg != null && (
+                          <>
+                            <Navigation2
+                              className="w-4 h-4 shrink-0"
+                              style={{ transform: `rotate(${Math.round(motion.headingDeg)}deg)`, color }}
+                              aria-hidden
+                            />
+                            <span>heading {compass(motion.headingDeg)}</span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-gray-500">Stopped</span>
+                    )}
+                  </p>
+                )}
               </div>
               <span className={`text-xs shrink-0 ${stale ? "text-red-600" : "text-gray-500"}`}>
                 {view.lastPing
