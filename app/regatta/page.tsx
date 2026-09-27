@@ -4,6 +4,7 @@ import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule, hotcRaceName } from "@/lib/hotc";
 import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
 import { createClient } from "@/lib/supabase/server";
+import { syncHotcResults } from "@/lib/hotcResults";
 import { addAllRegattaRaces, addRegattaRaceToLineups } from "./actions";
 
 function formatDate(isoDate: string): string {
@@ -47,6 +48,7 @@ export default async function RegattaPage() {
     .maybeSingle();
   const callerRole = (callerProfile as { role: string } | null)?.role;
   const canManage = callerRole === "admin" || callerRole === "coach";
+  if (canManage) await syncHotcResults(supabase, schedule);
 
   const sentRaceByName = new Map<string, { eventId: string; raceId: string; boatName: string | null }>();
   if (canManage && schedule?.date) {

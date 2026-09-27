@@ -1,4 +1,8 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
+import { HOTC, getHotcSchedule } from "@/lib/hotc";
+import { syncHotcResults } from "@/lib/hotcResults";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Boat,
@@ -48,6 +52,13 @@ export default async function EventRacesPage({
     .single();
   if (!event) notFound();
   const typedEvent = event as ScheduleEvent;
+
+  // Head of the Cuyahoga places come in live from CrewTimer; pick up any new
+  // ones before reading this regatta's lineups.
+  if (canManage && typedEvent.title === HOTC.title) {
+    const club = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
+    if (club) await syncHotcResults(supabase, await getHotcSchedule(club));
+  }
 
   const { data: settingsData } = await supabase
     .from("club_settings")

@@ -52,6 +52,7 @@ import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
 import { QrCodes } from "@/app/global-admin/qr/QrCodes";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
+import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
 import { getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
@@ -773,6 +774,7 @@ export default async function Home() {
 
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
   const hotcSchedule = demoClub ? await getHotcSchedule(demoClub) : null;
+  if (isCoachOrAdmin) await syncHotcResults(supabase, hotcSchedule);
   const hotcResults = (hotcSchedule?.races ?? [])
     .filter((r) => r.place != null)
     .sort((a, b) => (a.place as number) - (b.place as number));
