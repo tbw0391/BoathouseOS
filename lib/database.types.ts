@@ -347,6 +347,12 @@ export interface CoachAnnouncement {
   created_at: string;
 }
 
+export interface CoachCheckIn {
+  id: string;
+  profile_id: string;
+  checked_in_at: string;
+}
+
 export interface OnWaterSession {
   id: string;
   lineup_id: string | null;

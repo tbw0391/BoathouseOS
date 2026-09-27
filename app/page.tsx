@@ -53,6 +53,8 @@ import { QrCodes } from "@/app/global-admin/qr/QrCodes";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
+import { getTodaysCheckInLabel } from "@/lib/checkIns";
+import { CheckInButton } from "@/components/CheckInButton";
 
 const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/roster": Users,
@@ -620,6 +622,7 @@ export default async function Home() {
   let isFoodTentManager = false;
   let isGlobalAdmin = false;
   let pendingApprovalCount = 0;
+  let checkInLabel: string | null = null;
 
   let householdUserIds: string[] = [];
 
@@ -674,6 +677,8 @@ export default async function Home() {
     isParent = callerRole === "parent";
     isRowerOrCoxswain = callerRole === "rower" || callerRole === "coxswain";
     isFoodTentManager = isCoachOrAdmin || Boolean(caller?.is_tent_leader);
+
+    if (isCoachOrAdmin) checkInLabel = await getTodaysCheckInLabel(user.id);
 
     if ((coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id) {
       coachChatHref = `/messages/${(coachGroupResult.data as Pick<ChatGroup, "id">).id}`;
@@ -798,6 +803,8 @@ export default async function Home() {
           See it in your club&apos;s colors →
         </Link>
       )}
+
+      {user && isCoachOrAdmin && <CheckInButton checkedInAt={checkInLabel} />}
 
       {hotcResults.length > 0 && (
         <div className="w-full flex flex-col gap-2">

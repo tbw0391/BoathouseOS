@@ -9,6 +9,8 @@ import { PermanentlyDeleteButton } from "./PermanentlyDeleteButton";
 import { ResetPasswordButton } from "./ResetPasswordButton";
 import { setBoardMember, setTentLeader, setRemoved, permanentlyDeleteProfile, resetMemberPassword } from "./actions";
 import { TEAM_LABELS } from "@/lib/teams";
+import { getTodaysCheckInLabel } from "@/lib/checkIns";
+import { CheckInButton } from "@/components/CheckInButton";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -60,6 +62,8 @@ export default async function BioPage({
   const canEdit = isSelf || callerRole === "admin" || callerRole === "coach";
   const isCallerAdmin = callerRole === "admin";
   const canRemove = !isSelf && (callerRole === "admin" || callerRole === "coach");
+  const showCheckIn = isSelf && (callerRole === "admin" || callerRole === "coach");
+  const checkInLabel = showCheckIn ? await getTodaysCheckInLabel(profile.id) : null;
 
   const { data: tagRows } = await supabase
     .from("photo_tags")
@@ -223,6 +227,12 @@ export default async function BioPage({
           )}
         </div>
       </div>
+
+      {showCheckIn && (
+        <div className="mt-4 max-w-md">
+          <CheckInButton checkedInAt={checkInLabel} />
+        </div>
+      )}
 
       {profile.disabled_at && (
         <p className="mt-4 text-sm text-red-600">
