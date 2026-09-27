@@ -79,14 +79,21 @@ export async function signUp(formData: FormData) {
     role,
     // Pending until an admin approves them (see 0060_member_approval.sql).
     approved_at: null,
-    terms_accepted_at: new Date().toISOString(),
-    terms_version: TERMS_VERSION,
   });
 
   if (profileError) {
     await admin.auth.admin.deleteUser(created.user.id);
     throw new Error(profileError.message);
   }
+
+  // Record the Terms agreement separately, so a database without the terms
+  // columns yet (0075) still lets people sign up; they'll get the agree
+  // pop-up later instead.
+  const { error: termsError } = await admin
+    .from("profiles")
+    .update({ terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION })
+    .eq("id", created.user.id);
+  if (termsError) console.error("Couldn't record terms agreement", termsError.message);
 
   if (teams.length > 0) {
     const { error: teamsError } = await admin
