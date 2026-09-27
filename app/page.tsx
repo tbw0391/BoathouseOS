@@ -380,6 +380,15 @@ async function loadLineupBanners(
         ? eventById.get(lineup.event_id)
         : undefined;
       if (!lineup || !event) return null;
+      // Race's done: a result's in, or it's 2 hours past the scheduled time
+      // (regattas run late, so not right at the start time).
+      if (lineup.place != null) return null;
+      if (
+        lineup.race_time &&
+        new Date(lineup.race_time).getTime() + 2 * 60 * 60 * 1000 < Date.now()
+      ) {
+        return null;
+      }
       return {
         rowerName:
           isParent || isCoachOrAdmin

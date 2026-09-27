@@ -388,9 +388,9 @@
 - [ ] Race-time alerts: dropped for now (2026-09-27) because regattas
       usually run late and a fixed "20 minutes before" would fire at the
       wrong time. If revisited: a coach sets a "running late by N min"
-      delay on race day, or taps "send 20-minute alert" manually. Separate
-      small fix still open: the lineup banner should stop showing once the
-      race has passed, not just once it's no longer "upcoming" by date.
+      delay on race day, or taps "send 20-minute alert" manually. The lineup
+      banner now drops off once a result is recorded or 2 hours after the
+      race's scheduled time (2026-09-27).
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
