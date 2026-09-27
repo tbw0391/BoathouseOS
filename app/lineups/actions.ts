@@ -6,8 +6,6 @@ import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 import {
   LINEUP_CATEGORIES,
   LINEUP_CATEGORY_OPTIONS,
-  FLEET_CATEGORY_OPTIONS,
-  CATEGORY_BOAT_CLASS,
   categoryForRace,
 } from "@/lib/lineupCategories";
 import { HULL_COLOR_OPTIONS, RIG_OPTIONS } from "@/lib/boatOptions";
@@ -21,6 +19,7 @@ import {
   insertRaces,
   isUniqueViolation,
   resolveBoatType,
+  seatsForBoatClass,
 } from "@/lib/raceWorkflow";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
