@@ -910,7 +910,7 @@ export default async function Home() {
             }[]
           | null) ?? [];
       const mine = outings.find((o) => o.coxswain_id === user.id);
-      if (callerRole === "coxswain" && mine) {
+      if (mine) {
         onWaterBanner = {
           label: `You're tracking ${mine.boats?.name ?? "your boat"} — tap to open`,
           color: mine.color,

@@ -18,8 +18,9 @@ export default async function OnWaterPage() {
     .single();
   const callerRole = (callerProfile as Pick<Profile, "role"> | null)?.role;
 
-  // Coaches and admins watch: which boats are out, and a map of them.
-  if (callerRole === "coach" || callerRole === "admin") {
+  // Coaches watch: which boats are out, and a map of them. Admins get the
+  // map too, plus the tracker below in case they're coxing.
+  if (callerRole === "coach") {
     const activeBoats = await getActiveBoats();
     return (
       <div className="min-h-screen p-8">
@@ -29,7 +30,7 @@ export default async function OnWaterPage() {
     );
   }
 
-  if (callerRole !== "coxswain") {
+  if (callerRole !== "coxswain" && callerRole !== "admin") {
     return (
       <div className="min-h-screen p-8">
         <h1 className="text-2xl font-bold mb-6">On the Water</h1>
@@ -83,9 +84,17 @@ export default async function OnWaterPage() {
     suggestedBoatId = todays?.boat_id ?? null;
   }
 
+  const liveBoats = callerRole === "admin" ? await getActiveBoats() : null;
+
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">On the Water</h1>
+      {liveBoats && (
+        <>
+          <LiveBoats initialSessions={liveBoats} />
+          <h2 className="text-lg font-semibold mt-8 mb-4">Track my boat</h2>
+        </>
+      )}
       {boats.length === 0 ? (
         <p className="text-sm text-gray-500">
           There are no boats set up yet. A coach can add them on the{" "}

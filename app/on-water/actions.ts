@@ -17,7 +17,9 @@ export async function startSession(boatId: string, color: string) {
     .select("role")
     .eq("id", user.id)
     .single();
-  if ((callerProfile as Pick<Profile, "role"> | null)?.role !== "coxswain") {
+  const role = (callerProfile as Pick<Profile, "role"> | null)?.role;
+  // Admins can cox too.
+  if (role !== "coxswain" && role !== "admin") {
     throw new Error("Only coxswains can turn on GPS tracking.");
   }
 
