@@ -5,6 +5,7 @@ import {
   LINEUP_CATEGORIES,
   FLEET_CATEGORY_OPTIONS,
   CATEGORY_BOAT_CLASS,
+  categoryForRace,
 } from "@/lib/lineupCategories";
 import type { LineupCategory } from "@/lib/database.types";
 
@@ -205,3 +206,107 @@ export async function linkOrCreateLaunchRecoveryTasksForLineup(
   await createLaunchRecoveryTasks(supabase, { eventId, userId, lineupId });
 }
 
+
+export interface NewRace {
+  race_name: string;
+  category?: string | null;
+  race_time?: string | null;
+}
+
+// Adds races to a regatta in one go: skips any whose name is already on it
+// (so re-running an import or re-tapping "Add all" only adds what's new),
+// applies the Masters rule, and gives each one its Launch/Recovery tasks.
+export async function insertRaces(
+  supabase: SupabaseServerClient,
+  { eventId, userId, races }: { eventId: string; userId: string; races: NewRace[] }
+): Promise<{ raceIds: string[] }> {
+  const { data: existingData } = await supabase.from("races").select("race_name").eq("event_id", eventId);
+  const existingNames = new Set(((existingData as { race_name: string }[] | null) ?? []).map((r) => r.race_name));
+
+  const seen = new Set<string>();
+  const toInsert = races.filter((r) => {
+    if (existingNames.has(r.race_name) || seen.has(r.race_name)) return false;
+    seen.add(r.race_name);
+    return true;
+  });
+  if (toInsert.length === 0) return { raceIds: [] };
+
+  const { data, error } = await supabase
+    .from("races")
+    .insert(
+      toInsert.map((r) => ({
+        event_id: eventId,
+        race_name: r.race_name,
+        category: categoryForRace(r.race_name, r.category ?? null) as LineupCategory | null,
+        race_time: r.race_time ?? null,
+        created_by: userId,
+      }))
+    )
+    .select("id");
+  if (error) throw new Error(error.message);
+
+  const raceIds = ((data as { id: string }[] | null) ?? []).map((r) => r.id);
+  await createLaunchRecoveryTasksForRaces(supabase, { eventId, userId, raceIds });
+  return { raceIds };
+}
+
+// Builds a lineup for a pending race from a fleet boat: race name/time from
+// the race, category/notes/crew from the boat's saved crew when it has one
+// (else the race's own category and an empty roster), then marks the race
+// as no longer pending and points its Launch/Recovery tasks at the boat.
+export async function buildLineupForRace(
+  supabase: SupabaseServerClient,
+  { raceId, boatId, userId }: { raceId: string; boatId: string; userId: string }
+): Promise<string> {
+  const { data: race, error: raceError } = await supabase
+    .from("races")
+    .select("event_id, category, race_name, race_time, lineup_id")
+    .eq("id", raceId)
+    .single();
+  if (raceError || !race) throw new Error("That race couldn't be found.");
+  if (race.lineup_id) throw new Error("This race already has a lineup.");
+
+  const { data: boat, error: boatError } = await supabase
+    .from("boats")
+    .select("name, boat_class")
+    .eq("id", boatId)
+    .single();
+  if (boatError || !boat) throw new Error("That boat couldn't be found.");
+
+  const { category: templateCategory, notes: templateNotes, seats } = await boatLineupDefaults(
+    supabase,
+    boatId,
+    boat.boat_class
+  );
+
+  const lineupId = crypto.randomUUID();
+  const { error } = await supabase.from("lineups").insert({
+    id: lineupId,
+    event_id: race.event_id,
+    boat_id: boatId,
+    boat_name: boat.name,
+    boat_class: boat.boat_class,
+    category: categoryForRace(race.race_name, templateCategory ?? race.category) as LineupCategory | null,
+    notes: templateNotes,
+    race_name: race.race_name,
+    race_time: race.race_time,
+    created_by: userId,
+  });
+  if (error) throw new Error(error.message);
+
+  const { error: seatsError } = await supabase
+    .from("lineup_seats")
+    .insert(seats.map((s) => ({ ...s, lineup_id: lineupId })));
+  if (seatsError) throw new Error(seatsError.message);
+
+  const { error: raceUpdateError } = await supabase.from("races").update({ lineup_id: lineupId }).eq("id", raceId);
+  if (raceUpdateError) throw new Error(raceUpdateError.message);
+
+  await linkOrCreateLaunchRecoveryTasksForLineup(supabase, {
+    raceId,
+    lineupId,
+    eventId: race.event_id,
+    userId,
+  });
+  return lineupId;
+}

@@ -13,6 +13,15 @@ import {
 import { HULL_COLOR_OPTIONS, RIG_OPTIONS } from "@/lib/boatOptions";
 import { parseStarredLines } from "@/lib/scheduleStars";
 import type { LineupCategory } from "@/lib/database.types";
+import {
+  boatLineupDefaults,
+  buildLineupForRace,
+  createLaunchRecoveryTasks,
+  createLinkedTemplate,
+  insertRaces,
+  isUniqueViolation,
+  resolveBoatType,
+} from "@/lib/raceWorkflow";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -259,13 +268,7 @@ export async function importRaces(eventId: string, rows: RaceImportRow[]) {
 
   if (!eventId) throw new Error("Missing event.");
 
-  const toInsert: {
-    event_id: string;
-    race_name: string;
-    category: LineupCategory | null;
-    race_time: string | null;
-    created_by: string;
-  }[] = [];
+  const toInsert: { race_name: string; category: LineupCategory | null; race_time: string | null }[] = [];
   const rowErrors: string[] = [];
 
   rows.forEach((row, i) => {
@@ -295,32 +298,19 @@ export async function importRaces(eventId: string, rows: RaceImportRow[]) {
       rowErrors.push(`${rowLabel}: couldn't read race time "${row.race_time}", left blank.`);
     }
 
-    toInsert.push({
-      event_id: eventId,
-      race_name: raceName,
-      category: categoryForRace(raceName, category) as LineupCategory | null,
-      race_time: raceTime,
-      created_by: user.id,
-    });
+    toInsert.push({ race_name: raceName, category, race_time: raceTime });
   });
 
   if (toInsert.length === 0) {
     return { imported: 0, errors: rowErrors.length ? rowErrors : ["No valid rows found."] };
   }
 
-  const { error, data } = await supabase.from("races").insert(toInsert).select("id");
-  if (error) throw new Error(error.message);
-
-  await createLaunchRecoveryTasksForRaces(supabase, {
-    eventId,
-    userId: user.id,
-    raceIds: (data ?? []).map((r) => r.id),
-  });
+  const { raceIds } = await insertRaces(supabase, { eventId, userId: user.id, races: toInsert });
 
   revalidatePath("/lineups");
   revalidatePath("/");
   revalidatePath("/coach/tasks");
-  return { imported: data?.length ?? 0, errors: rowErrors };
+  return { imported: raceIds.length, errors: rowErrors };
 }
 
 // Pulls the ★-marked lines out of a regatta's own description (the same
@@ -345,40 +335,16 @@ export async function createRacesFromDescription(eventId: string) {
   const starredNames = parseStarredLines(event.description);
   if (starredNames.length === 0) return { imported: 0 };
 
-  const { data: existingRacesData } = await supabase
-    .from("races")
-    .select("race_name")
-    .eq("event_id", eventId);
-  const existingNames = new Set(
-    ((existingRacesData as { race_name: string }[] | null) ?? []).map((r) => r.race_name)
-  );
-
-  const newNames = [...new Set(starredNames.filter((name) => !existingNames.has(name)))];
-  if (newNames.length === 0) return { imported: 0 };
-
-  const { error, data } = await supabase
-    .from("races")
-    .insert(
-      newNames.map((raceName) => ({
-        event_id: eventId,
-        race_name: raceName,
-        category: categoryForRace(raceName, null) as LineupCategory | null,
-        created_by: user.id,
-      }))
-    )
-    .select("id");
-  if (error) throw new Error(error.message);
-
-  await createLaunchRecoveryTasksForRaces(supabase, {
+  const { raceIds } = await insertRaces(supabase, {
     eventId,
     userId: user.id,
-    raceIds: (data ?? []).map((r) => r.id),
+    races: starredNames.map((race_name) => ({ race_name })),
   });
 
   revalidatePath("/lineups");
   revalidatePath("/");
   revalidatePath("/coach/tasks");
-  return { imported: data?.length ?? 0 };
+  return { imported: raceIds.length };
 }
 
 export async function deleteRace(formData: FormData) {
@@ -408,59 +374,7 @@ export async function createLineupForRace(formData: FormData) {
   const boatId = String(formData.get("boat_id") ?? "").trim();
   if (!raceId || !boatId) throw new Error("Please choose a boat.");
 
-  const { data: race, error: raceError } = await supabase
-    .from("races")
-    .select("event_id, category, race_name, race_time, lineup_id")
-    .eq("id", raceId)
-    .single();
-  if (raceError || !race) throw new Error("That race couldn't be found.");
-  if (race.lineup_id) throw new Error("This race already has a lineup.");
-
-  const { data: boat, error: boatError } = await supabase
-    .from("boats")
-    .select("name, boat_class")
-    .eq("id", boatId)
-    .single();
-  if (boatError || !boat) throw new Error("That boat couldn't be found.");
-
-  const { category: templateCategory, notes: templateNotes, seats } = await boatLineupDefaults(
-    supabase,
-    boatId,
-    boat.boat_class
-  );
-
-  const lineupId = crypto.randomUUID();
-  const { error } = await supabase.from("lineups").insert({
-    id: lineupId,
-    event_id: race.event_id,
-    boat_id: boatId,
-    boat_name: boat.name,
-    boat_class: boat.boat_class,
-    category: categoryForRace(race.race_name, templateCategory ?? race.category) as LineupCategory | null,
-    notes: templateNotes,
-    race_name: race.race_name,
-    race_time: race.race_time,
-    created_by: user.id,
-  });
-  if (error) throw new Error(error.message);
-
-  const { error: seatsError } = await supabase
-    .from("lineup_seats")
-    .insert(seats.map((s) => ({ ...s, lineup_id: lineupId })));
-  if (seatsError) throw new Error(seatsError.message);
-
-  const { error: raceUpdateError } = await supabase
-    .from("races")
-    .update({ lineup_id: lineupId })
-    .eq("id", raceId);
-  if (raceUpdateError) throw new Error(raceUpdateError.message);
-
-  await linkOrCreateLaunchRecoveryTasksForLineup(supabase, {
-    raceId,
-    lineupId,
-    eventId: race.event_id,
-    userId: user.id,
-  });
+  await buildLineupForRace(supabase, { raceId, boatId, userId: user.id });
 
   revalidatePath("/lineups");
   revalidatePath("/");
