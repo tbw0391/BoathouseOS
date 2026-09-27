@@ -12,19 +12,17 @@ const TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/announcements", label: "Announcements", icon: Megaphone },
 ];
 
-export function BottomNav({ userId, showOnWater }: { userId: string | null; showOnWater: boolean }) {
+export function BottomNav({ userId }: { userId: string | null }) {
   const pathname = usePathname();
   // The pending screen has its own sign-out button and nowhere else to go.
   if (!userId || pathname.startsWith("/pending")) return null;
-
-  const tabs = TABS.filter((t) => t.href !== "/on-water" || showOnWater);
 
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-10 border-t bg-white flex"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {tabs.map((tab) => {
+      {TABS.map((tab) => {
         const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
         const Icon = tab.icon;
         return (

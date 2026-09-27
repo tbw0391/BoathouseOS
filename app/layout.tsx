@@ -57,17 +57,13 @@ export default async function RootLayout({
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
 
   let photoUrl: string | null = null;
-  let canUseOnWater = false;
   if (user) {
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("photo_url, role")
+      .select("photo_url")
       .eq("id", user.id)
       .single();
-    const profile = profileData as { photo_url: string | null; role: string } | null;
-    photoUrl = profile?.photo_url ?? null;
-    // On the Water is for coxswains (tracking) and coaches/admins (the map).
-    canUseOnWater = ["coxswain", "coach", "admin"].includes(profile?.role ?? "");
+    photoUrl = (profileData as { photo_url: string | null } | null)?.photo_url ?? null;
   }
 
   const themeStyle = {
@@ -94,7 +90,7 @@ export default async function RootLayout({
         <PullToRefresh>
           <div className="pb-16">{children}</div>
         </PullToRefresh>
-        <BottomNav userId={user?.id ?? null} showOnWater={canUseOnWater} />
+        <BottomNav userId={user?.id ?? null} />
       </body>
     </html>
   );

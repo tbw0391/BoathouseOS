@@ -38,6 +38,19 @@ export function LiveBoats({
     return () => clearInterval(id);
   }, []);
 
+  // Rowers and parents can't see an outing once it ends, so the realtime
+  // "ended" update never reaches them. Recheck which boats are still out.
+  useEffect(() => {
+    const supabase = createClient();
+    const id = setInterval(async () => {
+      const { data, error } = await supabase.from("on_water_sessions").select("id").is("ended_at", null);
+      if (error || !data) return;
+      const stillOut = new Set((data as { id: string }[]).map((s) => s.id));
+      setSessions((prev) => prev.filter((view) => stillOut.has(view.session.id)));
+    }, 30000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;

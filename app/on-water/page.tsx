@@ -30,13 +30,14 @@ export default async function OnWaterPage() {
     );
   }
 
+  // Rowers, parents: watch the boats that are out (0079 lets them see
+  // outings in progress only).
   if (callerRole !== "coxswain" && callerRole !== "admin") {
+    const activeBoats = await getActiveBoats();
     return (
       <div className="min-h-screen p-8">
         <h1 className="text-2xl font-bold mb-6">On the Water</h1>
-        <p className="text-sm text-gray-500">
-          GPS tracking is for coxswains. Coaches can see every boat on the water from here.
-        </p>
+        <LiveBoats initialSessions={activeBoats} />
       </div>
     );
   }

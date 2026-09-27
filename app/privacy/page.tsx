@@ -74,7 +74,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>On-water location:</strong> only while a coxswain has started on-water
-            tracking during a practice, their phone&apos;s GPS position is recorded so coaches can
+            tracking during a practice, their phone&apos;s GPS position is recorded so the club can
             see where the boat is. Tracking stops when the session ends, and the phone asks for
             permission first.
           </li>
@@ -97,8 +97,9 @@ export default function PrivacyPage() {
         <p>
           Your information is visible to the approved members of your own club, as the app&apos;s
           screens show it (for example, the roster and bio pages). New signups can&apos;t see
-          anything until a club admin approves them. Some things are narrower: on-water locations
-          are visible only to coaches, admins, and the coxswain who recorded them; bills and
+          anything until a club admin approves them. Some things are narrower: while a boat is on
+          the water, club members can see where it is right now, but its full track and past
+          outings are visible only to coaches, admins, and the coxswain who recorded them; bills and
           payments only to the family involved and the club&apos;s treasurer and admins; erg time
           history and attendance only to the member and their coaches; and &quot;interested&quot;
           form submissions only to the BoathouseOS team.

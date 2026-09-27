@@ -13,7 +13,8 @@ export interface ActiveSessionView {
 }
 
 // Every outing on the water right now, with its boat, coxswain and latest
-// GPS fix. Only coaches and admins can read other people's sessions.
+// GPS fix. Coaches and admins see every outing; other members see outings in
+// progress with their last 15 minutes of positions (0079).
 export async function getActiveBoats(): Promise<ActiveSessionView[]> {
   const supabase = await createClient();
 
