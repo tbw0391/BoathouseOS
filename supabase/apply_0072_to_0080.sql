@@ -406,7 +406,7 @@ create policy "members manage the boats they follow"
 
 select public.apply_approval_gate();
 
-create extension if not exists pg_net;
+create extension if not exists pg_net with schema extensions;
 
 select cron.unschedule(jobid) from cron.job where jobname = 'scheduled-alerts';
 
