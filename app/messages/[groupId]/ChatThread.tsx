@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/database.types";
-import { sendMessage, markChatRead } from "../actions";
+import { sendMessage, markChatRead, deleteMessage } from "../actions";
 
 export function ChatThread({
   groupId,
@@ -44,6 +44,15 @@ export function ChatThread({
           markChatRead(groupId);
         }
       }
+    ).on(
+      // Delete events can't be filtered by group and only carry the id, so
+      // just drop it if it's one of ours.
+      "postgres_changes",
+      { event: "DELETE", schema: "public", table: "messages" },
+      (payload) => {
+        const id = (payload.old as { id?: string }).id;
+        if (id) setMessages((prev) => prev.filter((m) => m.id !== id));
+      }
     );
 
     // RLS-secured postgres_changes needs the realtime connection's auth token
@@ -73,6 +82,14 @@ export function ChatThread({
     });
   }
 
+  function handleDelete(messageId: string) {
+    if (!window.confirm("Delete this message for everyone?")) return;
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    startTransition(async () => {
+      await deleteMessage(groupId, messageId);
+    });
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex-1 overflow-y-auto flex flex-col gap-2 pb-4">
@@ -92,6 +109,15 @@ export function ChatThread({
               >
                 {m.body}
               </div>
+              {mine && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(m.id)}
+                  className="text-xs text-gray-400 hover:text-red-600 hover:underline"
+                >
+                  Delete
+                </button>
+              )}
             </div>
           );
         })}
