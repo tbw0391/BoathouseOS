@@ -346,6 +346,20 @@ export interface PhotoTag {
   created_at: string;
 }
 
+export interface PhotoLike {
+  photo_id: string;
+  profile_id: string;
+  created_at: string;
+}
+
+export interface PhotoComment {
+  id: string;
+  photo_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+}
+
 export type SuggestionStatus = 'new' | 'reviewed';
 export type SuggestionCategory = 'club' | 'app';
 

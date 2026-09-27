@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Photo, PhotoTag, Profile, Role } from "@/lib/database.types";
+import type { Photo, PhotoComment, PhotoLike, PhotoTag, Profile, Role } from "@/lib/database.types";
 import { PhotoUploadForm } from "./PhotoUploadForm";
 import { deletePhoto } from "./actions";
+import { PhotoSocial } from "./PhotoSocial";
+import { StorageImage } from "@/components/StorageImage";
 
 export default async function PhotosPage() {
   const supabase = await createClient();
@@ -30,8 +32,14 @@ export default async function PhotosPage() {
     .order("created_at", { ascending: false });
   const photos = (photosData as Photo[] | null) ?? [];
 
-  const { data: tagsData } = await supabase.from("photo_tags").select("*");
+  const [{ data: tagsData }, { data: likesData }, { data: commentsData }] = await Promise.all([
+    supabase.from("photo_tags").select("*"),
+    supabase.from("photo_likes").select("*"),
+    supabase.from("photo_comments").select("*").order("created_at", { ascending: true }),
+  ]);
   const tags = (tagsData as PhotoTag[] | null) ?? [];
+  const likes = (likesData as PhotoLike[] | null) ?? [];
+  const comments = (commentsData as PhotoComment[] | null) ?? [];
 
   const nameById = new Map(roster.map((r) => [r.id, r.display_name]));
   const tagsByPhoto = new Map<string, string[]>();
@@ -57,13 +65,37 @@ export default async function PhotosPage() {
 
             return (
               <div key={photo.id} className="border rounded-lg overflow-hidden flex flex-col">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo.url} alt={photo.caption ?? ""} className="w-full aspect-square object-cover" />
+                <div className="relative w-full aspect-square">
+                  <StorageImage
+                    src={photo.url}
+                    alt={photo.caption ?? ""}
+                    fill
+                    sizes="(min-width: 640px) 33vw, 50vw"
+                    className="object-cover"
+                  />
+                </div>
                 <div className="p-2 flex flex-col gap-1">
                   {photo.caption && <p className="text-sm">{photo.caption}</p>}
                   {taggedNames.length > 0 && (
                     <p className="text-xs text-gray-500">With {taggedNames.join(", ")}</p>
                   )}
+                  <PhotoSocial
+                    photoId={photo.id}
+                    likeCount={likes.filter((l) => l.photo_id === photo.id).length}
+                    likedByMe={likes.some((l) => l.photo_id === photo.id && l.profile_id === user?.id)}
+                    likerNames={likes
+                      .filter((l) => l.photo_id === photo.id)
+                      .map((l) => nameById.get(l.profile_id))
+                      .filter((n): n is string => Boolean(n))}
+                    comments={comments
+                      .filter((c) => c.photo_id === photo.id)
+                      .map((c) => ({
+                        id: c.id,
+                        authorName: nameById.get(c.author_id) ?? "Someone",
+                        body: c.body,
+                        canDelete: isStaff || c.author_id === user?.id,
+                      }))}
+                  />
                   {canDelete && (
                     <form action={deletePhoto}>
                       <input type="hidden" name="photo_id" value={photo.id} />
