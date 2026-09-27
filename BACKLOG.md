@@ -425,6 +425,11 @@
       Signing out removes that device's subscription (push_endpoint
       cookie). Off in the shared demo account. iPhone needs the app added
       to the Home Screen first (the prompt says so).
+- [x] Admin on/off switches for each alert, club-wide (2026-09-27): Admin
+      Settings → Alerts (chat messages, new events, schedule changes,
+      announcements, food list published, photo comments, regatta-week
+      pop-up). Stored in club_settings "alert_settings"; missing = on.
+      Checked in lib/push.ts sendPush before anything is sent.
 - [ ] Push setup: generate VAPID keys (`npx web-push generate-vapid-keys`),
       add NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to Vercel
       (Production) and .env.local, redeploy. Until then the prompt stays

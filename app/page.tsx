@@ -29,6 +29,7 @@ import {
 import RacingScull from "@/components/icons/RacingScull";
 import { PushToggle } from "@/components/PushToggle";
 import { RegattaWeekPopup, type RegattaWeekLink } from "@/components/RegattaWeekPopup";
+import { ALERT_SETTINGS_KEY, parseAlertSettings } from "@/lib/alertSettings";
 import { DEMO_EMAIL } from "@/lib/demoAccount";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -853,6 +854,7 @@ export default async function Home() {
         "team_store_featured_items",
         "nav_visibility",
         "nav_disabled_hrefs",
+        ALERT_SETTINGS_KEY,
       ]),
   ]);
   const settingsByKey = new Map(
@@ -1173,7 +1175,8 @@ export default async function Home() {
     }
   }
 
-  const regattaWeek = upcomingRegatta
+  const regattaWeek =
+    upcomingRegatta && parseAlertSettings(settingsByKey.get(ALERT_SETTINGS_KEY)).regatta_week_popup
     ? regattaWeekReminder(upcomingRegatta, {
         isFamily,
         isFoodTentManager,

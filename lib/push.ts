@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ALERT_SETTINGS_KEY, parseAlertSettings, type AlertKind } from "@/lib/alertSettings";
 
 // Phone/browser push alerts. Needs NEXT_PUBLIC_VAPID_PUBLIC_KEY and
 // VAPID_PRIVATE_KEY (generate a pair with `npx web-push generate-vapid-keys`);
@@ -10,6 +11,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const PUSH_ENDPOINT_COOKIE = "push_endpoint";
 
 export interface PushMessage {
+  // Which admin on/off switch covers this alert (see lib/alertSettings.ts).
+  kind: AlertKind;
   title: string;
   body: string;
   // Where tapping the notification opens.
@@ -38,13 +41,21 @@ export async function sendPush(userIds: string[], message: PushMessage) {
     if (ids.length === 0 || !configure()) return;
 
     const admin = createAdminClient();
+    const { data: setting } = await admin
+      .from("club_settings")
+      .select("value")
+      .eq("key", ALERT_SETTINGS_KEY)
+      .maybeSingle();
+    if (!parseAlertSettings((setting as { value: string | null } | null)?.value)[message.kind]) return;
+
     const { data } = await admin
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
       .in("user_id", ids);
     const subs = (data as { id: string; endpoint: string; p256dh: string; auth: string }[] | null) ?? [];
 
-    const payload = JSON.stringify(message);
+    const { title, body, url, tag } = message;
+    const payload = JSON.stringify({ title, body, url, tag });
     const gone: string[] = [];
     await Promise.allSettled(
       subs.map((s) =>

@@ -101,6 +101,7 @@ export async function addPhotoComment(photoId: string, text: string) {
     const uploader = (photo as { uploaded_by: string | null } | null)?.uploaded_by;
     if (!uploader || uploader === user.id) return;
     await sendPush([uploader], {
+      kind: "photo_comment",
       title: `${(author as { display_name: string } | null)?.display_name ?? "Someone"} commented on your photo`,
       body: body.length > 140 ? `${body.slice(0, 139)}…` : body,
       url: "/photos",

@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { NAV_SECTIONS, NAV_VISIBILITY_OPTIONS, resolveNavVisibility } from "@/lib/navSections";
 import { LINEUP_SECTIONS, resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { THEME_COLOR_LABELS, parseThemeColors, type ThemeColorKey } from "@/lib/theme";
+import { ALERT_SETTINGS_KEY, ALERT_TYPES, parseAlertSettings } from "@/lib/alertSettings";
 import {
+  updateAlertSettings,
   updateNavToggles,
   updateLineupSectionVisibility,
   updateThemeColors,
@@ -34,13 +36,20 @@ export default async function AdminPage() {
   const { data: settingsData } = await supabase
     .from("club_settings")
     .select("key, value")
-    .in("key", ["nav_visibility", "nav_disabled_hrefs", "theme_colors", "lineup_section_visibility"]);
+    .in("key", [
+      "nav_visibility",
+      "nav_disabled_hrefs",
+      "theme_colors",
+      "lineup_section_visibility",
+      ALERT_SETTINGS_KEY,
+    ]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
   );
   const visibilityByHref = resolveNavVisibility(settingsByKey);
   const themeColors = parseThemeColors(settingsByKey.get("theme_colors"));
   const lineupSectionVisibility = resolveLineupSectionVisibility(settingsByKey);
+  const alertsEnabled = parseAlertSettings(settingsByKey.get(ALERT_SETTINGS_KEY));
 
   return (
     <div className="min-h-screen p-8">
@@ -111,6 +120,41 @@ export default async function AdminPage() {
             </div>
           );
         })}
+        <button
+          type="submit"
+          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          Save
+        </button>
+      </form>
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">Alerts</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        Turn each kind of alert on or off for the whole club. Phone alerts only reach people who
+        turned on alerts on their phone.
+      </p>
+
+      <form action={updateAlertSettings} className="flex flex-col gap-3 max-w-sm">
+        {ALERT_TYPES.map((t) => (
+          <div key={t.kind} className="border rounded-lg px-4 py-3 text-sm flex flex-col gap-2">
+            <span className="font-medium">{t.label}</span>
+            <span className="text-xs text-gray-500">{t.detail}</span>
+            <div className="flex gap-4">
+              {(["on", "off"] as const).map((option) => (
+                <label key={option} className="flex items-center gap-1.5 text-xs text-gray-600">
+                  <input
+                    type="radio"
+                    name={`alert:${t.kind}`}
+                    value={option}
+                    defaultChecked={alertsEnabled[t.kind] === (option === "on")}
+                    className="w-4 h-4"
+                  />
+                  {option === "on" ? "On" : "Off"}
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
         <button
           type="submit"
           className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"

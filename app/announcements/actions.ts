@@ -63,6 +63,7 @@ export async function sendAnnouncement(formData: FormData) {
       .eq("id", user.id)
       .single();
     await sendPush(await activeMemberIds(roles), {
+      kind: "announcement",
       title: `Announcement from ${(sender as { display_name: string } | null)?.display_name ?? "your coach"}`,
       body: message.length > 140 ? `${message.slice(0, 139)}…` : message,
       url: "/",

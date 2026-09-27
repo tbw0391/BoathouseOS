@@ -91,6 +91,7 @@ export async function publishFoodList(eventId: string) {
     await sendPush(
       (await familyMemberIds()).filter((id) => id !== user.id),
       {
+        kind: "food_published",
         title: "Food tent signups are open",
         body: `${(event as { title: string } | null)?.title ?? "The next regatta"}: pick something to bring.`,
         url: "/food-tent",

@@ -83,6 +83,7 @@ async function alertChatMembers(groupId: string, senderId: string, body: string)
     .filter((id) => id !== senderId);
 
   await sendPush(recipients, {
+    kind: "chat_message",
     title,
     body: body.length > 140 ? `${body.slice(0, 139)}…` : body,
     url: `/messages/${groupId}`,

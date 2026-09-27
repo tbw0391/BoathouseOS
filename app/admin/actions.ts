@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NAV_SECTIONS, NAV_VISIBILITY_OPTIONS, type NavVisibility } from "@/lib/navSections";
 import { LINEUP_SECTIONS } from "@/lib/lineupSections";
 import { DEFAULT_THEME_COLORS, isHexColor, type ThemeColorKey } from "@/lib/theme";
+import { ALERT_SETTINGS_KEY, ALERT_TYPES } from "@/lib/alertSettings";
 
 export async function updateNavToggles(formData: FormData) {
   const supabase = await createClient();
@@ -134,4 +135,34 @@ export async function updateThemeColors(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/", "layout");
+}
+
+export async function updateAlertSettings(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if ((callerProfile as { role: string } | null)?.role !== "admin") {
+    throw new Error("Only admins can change alerts.");
+  }
+
+  const enabled = Object.fromEntries(
+    ALERT_TYPES.map((t) => [t.kind, formData.get(`alert:${t.kind}`) !== "off"])
+  );
+
+  const { error } = await supabase
+    .from("club_settings")
+    .upsert({ key: ALERT_SETTINGS_KEY, value: JSON.stringify(enabled) }, { onConflict: "key" });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/");
+  revalidatePath("/admin");
 }

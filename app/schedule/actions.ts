@@ -67,6 +67,7 @@ export async function createScheduleEvent(formData: FormData) {
   revalidatePath("/schedule");
   after(async () =>
     sendPush((await activeMemberIds()).filter((id) => id !== user.id), {
+      kind: "schedule_new",
       title: `New on the schedule: ${title}`,
       body: [formatAlertTime(startsAt), location].filter(Boolean).join(" · "),
       url: scheduleUrl(event_type),
@@ -128,6 +129,7 @@ export async function updateScheduleEvent(formData: FormData) {
   if (timeChanged || placeChanged) {
     after(async () =>
       sendPush((await activeMemberIds()).filter((id) => id !== user.id), {
+        kind: "schedule_change",
         title: `Schedule change: ${title}`,
         body: [
           timeChanged ? `Now ${formatAlertTime(startsAt)}` : null,
