@@ -29,6 +29,7 @@ export interface Profile {
   erg_5k_time: string | null;
   is_board_member: boolean;
   is_tent_leader: boolean;
+  is_treasurer: boolean;
   us_rowing_number: string | null;
   spouse_id: string | null;
   walk_up_song: string | null;
@@ -391,4 +392,130 @@ export interface MaintenanceRequest {
   submitted_by: string | null;
   created_at: string;
   resolved_at: string | null;
+}
+
+// Payments (0067_payments.sql). Money is integer cents.
+export type FeeMode = "club" | "payer";
+
+export interface PaymentSettings {
+  id: boolean;
+  stripe_account_id: string | null;
+  stripe_charges_enabled: boolean;
+  default_fee_mode: FeeMode;
+  updated_at: string;
+}
+
+export interface Charge {
+  id: string;
+  title: string;
+  description: string | null;
+  kind: "season" | "dues" | "regatta" | "travel" | "apparel" | "other";
+  amount_cents: number;
+  due_date: string | null;
+  fee_mode: FeeMode | null;
+  event_id: string | null;
+  signup_open: boolean;
+  allow_installments: boolean;
+  installment_count: number;
+  installment_interval_days: number;
+  created_by: string | null;
+  created_at: string;
+  archived_at: string | null;
+}
+
+export interface Discount {
+  id: string;
+  name: string;
+  kind: "percent" | "amount";
+  percent_bps: number | null;
+  amount_cents: number | null;
+  charge_id: string | null;
+  profile_id: string | null;
+  expires_on: string | null;
+  active: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface Bill {
+  id: string;
+  charge_id: string;
+  rower_id: string;
+  amount_cents: number;
+  discount_cents: number;
+  discount_note: string | null;
+  plan: "full" | "installments";
+  status: "owed" | "paid" | "waived" | "cancelled";
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  signed_up_by: string | null;
+  created_at: string;
+}
+
+export interface Payment {
+  id: string;
+  bill_id: string | null;
+  order_id: string | null;
+  amount_cents: number;
+  surcharge_cents: number;
+  platform_fee_cents: number;
+  method: "card" | "cash" | "check" | "other";
+  status: "pending" | "succeeded" | "failed" | "refunded";
+  installment_number: number | null;
+  stripe_checkout_session_id: string | null;
+  stripe_payment_intent_id: string | null;
+  stripe_invoice_id: string | null;
+  note: string | null;
+  paid_by: string | null;
+  recorded_by: string | null;
+  created_at: string;
+  paid_at: string | null;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  price_cents: number;
+  sizes: string[];
+  in_stock_item: boolean;
+  active: boolean;
+  created_at: string;
+}
+
+export interface ProductStock {
+  product_id: string;
+  size: string;
+  quantity: number;
+}
+
+export interface OrderWindow {
+  id: string;
+  title: string;
+  description: string | null;
+  opens_at: string;
+  closes_at: string;
+  created_at: string;
+}
+
+export interface Order {
+  id: string;
+  buyer_id: string;
+  for_rower_id: string | null;
+  window_id: string | null;
+  status: "pending" | "paid" | "picked_up" | "cancelled";
+  total_cents: number;
+  created_at: string;
+  paid_at: string | null;
+  picked_up_at: string | null;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  size: string;
+  quantity: number;
+  price_cents: number;
 }
