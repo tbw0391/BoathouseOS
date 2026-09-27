@@ -13,8 +13,24 @@ const USER_AGENT = "BoathouseOS/1.0 (contact: tbw0391@gmail.com)";
 const FORECAST_HORIZON_DAYS = 7;
 const CACHE_TTL_MS = 3 * 60 * 60 * 1000;
 
-function localDateKey(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US");
+// Calendar dates are Eastern, where the club rows — not the server's UTC —
+// so "today" and a regatta's days flip at local midnight.
+function easternDate(when: string | Date): string {
+  return new Date(when).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+}
+
+function daysBetween(fromDate: string, toDate: string): number {
+  return Math.round((Date.parse(`${toDate}T00:00:00Z`) - Date.parse(`${fromDate}T00:00:00Z`)) / (24 * 60 * 60 * 1000));
+}
+
+// The regatta day to forecast: its first day until then, then each race day
+// in turn (Sunday of a two-day regatta), or null once its last day is over.
+export function forecastDayFor(event: Pick<ScheduleEvent, "starts_at" | "ends_at">): string | null {
+  const today = easternDate(new Date());
+  const firstDay = easternDate(event.starts_at);
+  const lastDay = easternDate(event.ends_at ?? event.starts_at);
+  const day = today > firstDay ? today : firstDay;
+  return day > lastDay ? null : day;
 }
 
 async function geocodeLocation(location: string): Promise<{ lat: number; lon: number } | null> {
@@ -72,16 +88,8 @@ export async function getOrRefreshEventForecast(
 ): Promise<EventForecast | null> {
   if (!event.location) return null;
 
-  // Calendar-day difference, not a raw instant subtraction — a regatta that
-  // started earlier today (and so is behind "now") should still count as
-  // day 0, same fix as the home page's other "is this event still today"
-  // checks.
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const eventDay = new Date(event.starts_at);
-  eventDay.setHours(0, 0, 0, 0);
-  const daysOut = Math.round((eventDay.getTime() - startOfToday.getTime()) / (24 * 60 * 60 * 1000));
-  if (daysOut < 0 || daysOut > FORECAST_HORIZON_DAYS) return null;
+  const forecastDay = forecastDayFor(event);
+  if (!forecastDay || daysBetween(easternDate(new Date()), forecastDay) > FORECAST_HORIZON_DAYS) return null;
 
   const { data: existingRow } = await supabase
     .from("event_forecasts")
@@ -91,8 +99,13 @@ export async function getOrRefreshEventForecast(
   const existing = existingRow as EventForecast | null;
 
   const locationChanged = existing?.geocoded_location !== event.location;
+  // A new race day (midnight, or day 2 of a regatta) needs its own forecast
+  // right away, not whenever the cache happens to expire.
   const stale =
-    !existing || locationChanged || Date.now() - new Date(existing.fetched_at).getTime() > CACHE_TTL_MS;
+    !existing ||
+    locationChanged ||
+    existing.forecast_date !== forecastDay ||
+    Date.now() - new Date(existing.fetched_at).getTime() > CACHE_TTL_MS;
   if (!stale) return existing;
 
   let lat = !locationChanged ? existing?.latitude ?? null : null;
@@ -105,7 +118,12 @@ export async function getOrRefreshEventForecast(
       const { data: upserted } = await supabase
         .from("event_forecasts")
         .upsert(
-          { event_id: event.id, geocoded_location: event.location, fetched_at: new Date().toISOString() },
+          {
+            event_id: event.id,
+            geocoded_location: event.location,
+            forecast_date: forecastDay,
+            fetched_at: new Date().toISOString(),
+          },
           { onConflict: "event_id" }
         )
         .select("*")
@@ -117,9 +135,8 @@ export async function getOrRefreshEventForecast(
   }
 
   const periods = await fetchNwsPeriods(lat, lon);
-  const eventDateKey = localDateKey(event.starts_at);
-  const dayPeriod = periods?.find((p) => localDateKey(p.startTime) === eventDateKey && p.isDaytime);
-  const nightPeriod = periods?.find((p) => localDateKey(p.startTime) === eventDateKey && !p.isDaytime);
+  const dayPeriod = periods?.find((p) => easternDate(p.startTime) === forecastDay && p.isDaytime);
+  const nightPeriod = periods?.find((p) => easternDate(p.startTime) === forecastDay && !p.isDaytime);
   const primary = dayPeriod ?? nightPeriod ?? null;
 
   const row = {
@@ -127,7 +144,7 @@ export async function getOrRefreshEventForecast(
     geocoded_location: event.location,
     latitude: lat,
     longitude: lon,
-    forecast_date: eventDateKey ? new Date(event.starts_at).toISOString().slice(0, 10) : null,
+    forecast_date: forecastDay,
     high_f: dayPeriod?.temperature ?? primary?.temperature ?? null,
     low_f: nightPeriod?.temperature ?? null,
     short_forecast: primary?.shortForecast ?? null,
