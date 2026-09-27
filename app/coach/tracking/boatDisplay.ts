@@ -39,15 +39,25 @@ export interface BoatMotion {
   headingDeg: number | null;
 }
 
-type PingLike = { lat: number; lng: number; speed_mps: number | null; heading_deg: number | null; recorded_at: string };
+type PingLike = {
+  lat: number;
+  lng: number;
+  accuracy_m: number | null;
+  speed_mps: number | null;
+  heading_deg: number | null;
+  recorded_at: string;
+};
+
+const isGoodFix = (p: PingLike) => p.accuracy_m != null && p.accuracy_m <= GOOD_FIX_M;
 
 // Speed and heading from the phone when it reports them (many iPhones
-// don't), otherwise worked out from the last two positions.
+// don't), otherwise worked out from the last two positions. Blurry fixes
+// give nothing: two ±1 km guesses would show a boat doing 60 mph.
 export function boatMotion(last: PingLike | null, prev: PingLike | null): BoatMotion {
-  if (!last) return { moving: false, speedMps: null, headingDeg: null };
+  if (!last || isApproximate(last.accuracy_m)) return { moving: false, speedMps: null, headingDeg: null };
 
   const gapSec = prev ? (new Date(last.recorded_at).getTime() - new Date(prev.recorded_at).getTime()) / 1000 : 0;
-  const usablePrev = prev && gapSec > 0 && gapSec <= 60 ? prev : null;
+  const usablePrev = prev && gapSec > 0 && gapSec <= 60 && isGoodFix(prev) && isGoodFix(last) ? prev : null;
 
   const speedMps =
     last.speed_mps != null && last.speed_mps >= 0
@@ -78,3 +88,13 @@ export const mph = (speedMps: number) => (speedMps * 2.23694).toFixed(1);
 
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 export const compass = (deg: number) => COMPASS[Math.round(deg / 45) % 8];
+
+// How far off a fix may be, in meters, before it's no use for a boat. A
+// phone with real GPS outdoors reports ~3–15 m; iPhone "Precise Location"
+// off or a laptop's Wi-Fi guess reports hundreds or thousands.
+export const GOOD_FIX_M = 25;
+export const APPROXIMATE_FIX_M = 100;
+
+export const isApproximate = (accuracyM: number | null) => accuracyM != null && accuracyM > APPROXIMATE_FIX_M;
+
+export const distanceLabel = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`);

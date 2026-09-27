@@ -6,7 +6,17 @@ import { Map as MapIcon, Navigation2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { LocationPing, OnWaterSession } from "@/lib/database.types";
 import type { ActiveSessionView } from "@/lib/onWater";
-import { ageLabel, boatColor, boatMotion, compass, mph, split500, STALE_AFTER_MS } from "./boatDisplay";
+import {
+  ageLabel,
+  boatColor,
+  boatMotion,
+  compass,
+  distanceLabel,
+  isApproximate,
+  mph,
+  split500,
+  STALE_AFTER_MS,
+} from "./boatDisplay";
 
 const LeafletMap = dynamic(() => import("./LeafletMap"), { ssr: false });
 
@@ -123,6 +133,12 @@ export function LiveBoats({
                     minute: "2-digit",
                   })}
                 </p>
+                {view.lastPing && isApproximate(view.lastPing.accuracy_m) && (
+                  <p className="text-sm text-amber-700 mt-0.5">
+                    Rough location only (±{distanceLabel(view.lastPing.accuracy_m!)}). The cox&apos;s phone needs
+                    Precise Location turned on.
+                  </p>
+                )}
                 {view.lastPing && !stale && motion.speedMps != null && (
                   <p className="flex items-center gap-1.5 text-sm font-medium mt-0.5">
                     {motion.moving ? (

@@ -5,8 +5,42 @@ import { createClient } from "@/lib/supabase/client";
 import type { Boat, OnWaterSession } from "@/lib/database.types";
 import { ON_WATER_COLORS } from "@/lib/onWaterColors";
 import { startSession, endSession } from "./actions";
+import { APPROXIMATE_FIX_M, distanceLabel, GOOD_FIX_M } from "@/app/coach/tracking/boatDisplay";
 
 const PING_INTERVAL_MS = 7000;
+
+// Always a fresh fix from the GPS chip, never a cached or network guess.
+const GPS_OPTIONS: PositionOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 };
+
+// Green / amber / red line under the timer, plus how to fix a blurry fix.
+function GpsQuality({ accuracyM }: { accuracyM: number | null }) {
+  if (accuracyM == null) return null;
+  if (accuracyM <= GOOD_FIX_M) {
+    return <p className="text-sm text-green-700 mt-2">Strong GPS (±{distanceLabel(accuracyM)})</p>;
+  }
+  if (accuracyM <= APPROXIMATE_FIX_M) {
+    return (
+      <p className="text-sm text-amber-600 mt-2">
+        Weak GPS (±{distanceLabel(accuracyM)}). It usually sharpens after a minute outdoors with a clear view of the
+        sky.
+      </p>
+    );
+  }
+  return (
+    <div className="text-sm text-red-700 mt-2 rounded-lg border-2 border-red-600 bg-red-50 p-3 flex flex-col gap-1">
+      <p className="font-bold">Your phone is only sending a rough location (±{distanceLabel(accuracyM)}).</p>
+      <p>
+        <strong>iPhone:</strong> Settings → Privacy &amp; Security → Location Services → Safari Websites (or the
+        browser you use) → turn on <strong>Precise Location</strong>, then reload this page.
+      </p>
+      <p>
+        <strong>Android:</strong> Settings → Location → turn on <strong>Google Location Accuracy</strong> and make
+        sure this browser&apos;s location permission has <strong>Precise</strong> selected.
+      </p>
+      <p>A laptop has no GPS, so use a phone on the water.</p>
+    </div>
+  );
+}
 
 // This phone remembers which boat it's in and its color, so the coxswain
 // only has to pick them once.
@@ -92,6 +126,8 @@ export function OnWaterTracker({
 
   const watchIdRef = useRef<number | null>(null);
   const lastInsertRef = useRef<number>(0);
+  // The most accurate fix seen since the last one sent.
+  const bestFixRef = useRef<GeolocationPosition | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   useEffect(() => {
@@ -135,7 +171,10 @@ export function OnWaterTracker({
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      () => setPermission("granted"),
+      (position) => {
+        setPermission("granted");
+        setLastAccuracy(position.coords.accuracy ?? null);
+      },
       (geoError) => {
         if (geoError.code === geoError.PERMISSION_DENIED) {
           setPermission("denied");
@@ -143,9 +182,19 @@ export function OnWaterTracker({
           setError(`Location error: ${geoError.message}`);
         }
       },
-      { enableHighAccuracy: true, maximumAge: 5000 }
+      GPS_OPTIONS
     );
   }
+
+  // Before an outing, take a reading so the coxswain sees GPS quality up front.
+  useEffect(() => {
+    if (permission !== "granted" || sessionId || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => setLastAccuracy(position.coords.accuracy ?? null),
+      () => {},
+      GPS_OPTIONS
+    );
+  }, [permission, sessionId]);
 
   useEffect(() => {
     if (!startedAt) return;
@@ -186,11 +235,16 @@ export function OnWaterTracker({
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
+        const best = bestFixRef.current;
+        if (!best || position.coords.accuracy <= best.coords.accuracy) bestFixRef.current = position;
+
         const now = Date.now();
         if (now - lastInsertRef.current < PING_INTERVAL_MS) return;
         lastInsertRef.current = now;
 
-        const { latitude, longitude, accuracy, heading, speed } = position.coords;
+        const fix = bestFixRef.current ?? position;
+        bestFixRef.current = null;
+        const { latitude, longitude, accuracy, heading, speed } = fix.coords;
         supabase
           .from("location_pings")
           .insert({
@@ -211,8 +265,11 @@ export function OnWaterTracker({
             }
           });
       },
-      (geoError) => setError(`Location error: ${geoError.message}`),
-      { enableHighAccuracy: true, maximumAge: 5000 }
+      (geoError) => {
+        // A timeout just means no new fix yet; watchPosition keeps trying.
+        if (geoError.code !== geoError.TIMEOUT) setError(`Location error: ${geoError.message}`);
+      },
+      GPS_OPTIONS
     );
   }
 
@@ -268,7 +325,10 @@ export function OnWaterTracker({
   if (!sessionId) {
     return (
       <div className="flex flex-col gap-5 max-w-sm">
-        <LocationSwitch permission={permission} onEnable={requestLocation} />
+        <div>
+          <LocationSwitch permission={permission} onEnable={requestLocation} />
+          <GpsQuality accuracyM={lastAccuracy} />
+        </div>
 
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Which boat is this phone in?</p>
@@ -365,8 +425,9 @@ export function OnWaterTracker({
         <p className="text-sm text-gray-500 mt-2">
           {lastPingAgeSec === null
             ? "Waiting for first GPS fix…"
-            : `Last ping ${lastPingAgeSec}s ago${lastAccuracy ? ` (±${Math.round(lastAccuracy)}m)` : ""}`}
+            : `Last ping ${lastPingAgeSec}s ago`}
         </p>
+        <GpsQuality accuracyM={lastAccuracy} />
         {!wakeLockActive && (
           <p className="text-sm text-amber-600 mt-2">
             Keep this screen on and the app open — your phone may otherwise stop sending your location.

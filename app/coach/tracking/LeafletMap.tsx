@@ -1,11 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { Fragment, useEffect } from "react";
+import { Circle, MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { ActiveSessionView } from "@/lib/onWater";
-import { ageLabel, boatColor, boatMotion, compass, mph, split500, STALE_AFTER_MS } from "./boatDisplay";
+import {
+  ageLabel,
+  boatColor,
+  boatMotion,
+  compass,
+  distanceLabel,
+  GOOD_FIX_M,
+  isApproximate,
+  mph,
+  split500,
+  STALE_AFTER_MS,
+} from "./boatDisplay";
 
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -63,29 +74,44 @@ export default function LeafletMap({ sessions }: { sessions: ActiveSessionView[]
         const motion = boatMotion(ping, view.prevPing);
         const name = view.boatName ?? view.coxswainName;
         const label = !stale && motion.moving && motion.speedMps != null ? `${name} · ${split500(motion.speedMps)}` : name;
+        const accuracyM = ping.accuracy_m;
         return (
-          <Marker
-            key={view.session.id}
-            position={[ping.lat, ping.lng]}
-            icon={boatIcon(color, label, stale, stale ? null : motion.headingDeg)}
-          >
-            <Popup>
-              <strong>{view.boatName ?? "Boat not set"}</strong>
-              <div>Cox: {view.coxswainName}</div>
-              {!stale && motion.speedMps != null && (
-                <div>
-                  {motion.moving
-                    ? `${split500(motion.speedMps)} /500m (${mph(motion.speedMps)} mph)${
-                        motion.headingDeg != null ? `, heading ${compass(motion.headingDeg)}` : ""
-                      }`
-                    : "Stopped"}
+          <Fragment key={view.session.id}>
+            {accuracyM != null && accuracyM > GOOD_FIX_M && (
+              // How far off this position could be: the boat is somewhere inside.
+              <Circle
+                center={[ping.lat, ping.lng]}
+                radius={accuracyM}
+                pathOptions={{ color, weight: 1, fillOpacity: 0.08, dashArray: "4 4" }}
+              />
+            )}
+            <Marker
+              position={[ping.lat, ping.lng]}
+              icon={boatIcon(color, label, stale, stale ? null : motion.headingDeg)}
+            >
+              <Popup>
+                <strong>{view.boatName ?? "Boat not set"}</strong>
+                <div>Cox: {view.coxswainName}</div>
+                {isApproximate(accuracyM) && (
+                  <div style={{ color: "#b45309" }}>
+                    Rough location only (±{distanceLabel(accuracyM!)}) — the cox&apos;s phone needs Precise Location on
+                  </div>
+                )}
+                {!stale && motion.speedMps != null && (
+                  <div>
+                    {motion.moving
+                      ? `${split500(motion.speedMps)} /500m (${mph(motion.speedMps)} mph)${
+                          motion.headingDeg != null ? `, heading ${compass(motion.headingDeg)}` : ""
+                        }`
+                      : "Stopped"}
+                  </div>
+                )}
+                <div style={{ color: stale ? "#b91c1c" : "#4b5563" }}>
+                  Last GPS {ageLabel(ping.recorded_at)} ago{stale ? " — may have stopped tracking" : ""}
                 </div>
-              )}
-              <div style={{ color: stale ? "#b91c1c" : "#4b5563" }}>
-                Last GPS {ageLabel(ping.recorded_at)} ago{stale ? " — may have stopped tracking" : ""}
-              </div>
-            </Popup>
-          </Marker>
+              </Popup>
+            </Marker>
+          </Fragment>
         );
       })}
     </MapContainer>
