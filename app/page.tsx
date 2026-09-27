@@ -47,7 +47,7 @@ import type {
 import { parseStoreItems } from "@/lib/storeItems";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getUnreadScheduleCount } from "@/lib/schedule";
-import { getOrRefreshEventForecast } from "@/lib/weather";
+import { forecastDayFor, getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
 import { QrCodes } from "@/app/global-admin/qr/QrCodes";
 import { DEMO_CLUB_COOKIE, findDemoClub, getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
@@ -649,14 +649,14 @@ export default async function Home() {
       getUnreadScheduleCount(user.id),
       supabase.from("profiles").select("role, spouse_id, is_tent_leader").eq("id", user.id).single(),
       supabase.from("chat_groups").select("id").eq("team", "coach").maybeSingle(),
+      // Recent and upcoming regattas; the next one is picked below.
       supabase
         .from("schedule_events")
         .select("*")
         .eq("event_type", "regatta")
-        .gte("starts_at", startOfToday())
+        .gte("starts_at", new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString())
         .lte("starts_at", weekOut.toISOString())
-        .order("starts_at", { ascending: true })
-        .limit(1),
+        .order("starts_at", { ascending: true }),
       supabase.rpc("is_global_admin"),
       // RLS only returns other people's pending rows to admins, so this is 0
       // for everyone else.
@@ -688,7 +688,11 @@ export default async function Home() {
       coachChatHref = `/messages/${(coachGroupResult.data as Pick<ChatGroup, "id">).id}`;
     }
 
-    upcomingRegatta = ((regattaResult.data as ScheduleEvent[] | null) ?? [])[0] ?? null;
+    // The next regatta still to race: one stays "next" through midnight
+    // (Eastern) after its last day, then the following one takes over, along
+    // with its weather.
+    upcomingRegatta =
+      ((regattaResult.data as ScheduleEvent[] | null) ?? []).find((e) => forecastDayFor(e) !== null) ?? null;
 
     householdUserIds = [user.id];
     if (isParent) {
@@ -989,7 +993,10 @@ export default async function Home() {
           )}
           <span>
             Forecast for <strong>{upcomingRegatta.title}</strong> (
-            {new Date(upcomingRegatta.starts_at).toLocaleDateString()}):{" "}
+            {upcomingRegattaForecast.forecast_date
+              ? new Date(`${upcomingRegattaForecast.forecast_date}T12:00:00`).toLocaleDateString()
+              : new Date(upcomingRegatta.starts_at).toLocaleDateString()}
+            ):{" "}
             <strong>{upcomingRegattaForecast.short_forecast}</strong>
             {upcomingRegattaForecast.high_f !== null && <>, high {upcomingRegattaForecast.high_f}°F</>}
             {upcomingRegattaForecast.low_f !== null && <>, low {upcomingRegattaForecast.low_f}°F</>}
