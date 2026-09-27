@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
 import type { CoachTask, CoachTaskAssignment, Lineup, Profile, Race, TaskType } from "@/lib/database.types";
 import { TaskForm } from "./TaskForm";
 import { TaskRow } from "./TaskRow";
@@ -19,23 +20,38 @@ export async function EventTasks({ eventId, canManage }: { eventId: string; canM
       .order("display_name", { ascending: true }),
   ]);
   const taskTypes = (taskTypesData as TaskType[] | null) ?? [];
-  const tasks = (tasksData as CoachTask[] | null) ?? [];
+  const allTasks = (tasksData as CoachTask[] | null) ?? [];
   const roster = (rosterData as Pick<Profile, "id" | "display_name" | "role">[] | null) ?? [];
   const nameById = new Map(roster.map((p) => [p.id, p.display_name]));
 
-  const lineupIds = [...new Set(tasks.map((t) => t.lineup_id).filter((id): id is string => !!id))];
-  const raceIds = [...new Set(tasks.map((t) => t.race_id).filter((id): id is string => !!id))];
+  const lineupIds = [...new Set(allTasks.map((t) => t.lineup_id).filter((id): id is string => !!id))];
+  const raceIds = [...new Set(allTasks.map((t) => t.race_id).filter((id): id is string => !!id))];
   const [{ data: assignmentsData }, { data: lineupsData }, { data: racesData }] = await Promise.all([
-    tasks.length
-      ? supabase.from("coach_task_assignments").select("*").in("task_id", tasks.map((t) => t.id))
+    allTasks.length
+      ? supabase.from("coach_task_assignments").select("*").in("task_id", allTasks.map((t) => t.id))
       : Promise.resolve({ data: [] as CoachTaskAssignment[] }),
     lineupIds.length
-      ? supabase.from("lineups").select("id, boat_name").in("id", lineupIds)
-      : Promise.resolve({ data: [] as Pick<Lineup, "id" | "boat_name">[] }),
+      ? supabase.from("lineups").select("id, boat_name, club_slug").in("id", lineupIds)
+      : Promise.resolve({ data: [] as Pick<Lineup, "id" | "boat_name" | "club_slug">[] }),
     raceIds.length
-      ? supabase.from("races").select("id, race_name").in("id", raceIds)
-      : Promise.resolve({ data: [] as Pick<Race, "id" | "race_name">[] }),
+      ? supabase.from("races").select("id, race_name, club_slug").in("id", raceIds)
+      : Promise.resolve({ data: [] as Pick<Race, "id" | "race_name" | "club_slug">[] }),
   ]);
+
+  // With a club picked, drop jobs for another club's races or boats.
+  const selectedClubSlug = await getSelectedClubSlug();
+  const clubByLineupId = new Map(
+    ((lineupsData as Pick<Lineup, "id" | "club_slug">[] | null) ?? []).map((l) => [l.id, l.club_slug])
+  );
+  const clubByRaceId = new Map(
+    ((racesData as Pick<Race, "id" | "club_slug">[] | null) ?? []).map((r) => [r.id, r.club_slug])
+  );
+  const tasks = allTasks.filter((t) =>
+    visibleToClub(
+      (t.lineup_id ? clubByLineupId.get(t.lineup_id) : null) ?? (t.race_id ? clubByRaceId.get(t.race_id) : null),
+      selectedClubSlug
+    )
+  );
   const assignments = (assignmentsData as CoachTaskAssignment[] | null) ?? [];
   const boatNameByLineupId = new Map(
     ((lineupsData as Pick<Lineup, "id" | "boat_name">[] | null) ?? []).map((l) => [l.id, l.boat_name])
