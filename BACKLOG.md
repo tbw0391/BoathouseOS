@@ -161,9 +161,8 @@
       a fixed class each, editable anytime from the Fleet section on the
       Lineups page. Creating a lineup now picks a boat from this list instead
       of typing a name/class each time.
-- [ ] Edit an existing lineup's category/notes (the boat itself is now
-      editable via the fleet, but a lineup entry is still create-or-delete
-      only for category/notes)
+- [x] Edit an existing lineup's category/notes (2026-09-27): tap the
+      category/notes under a boat in a regatta's lineup to change them.
 - [x] Race time/name per lineup (distinct from the regatta's overall start
       time), editable inline; shown on the rower/parent home-page banner
 - [x] Races collected before assignment: a `races` table (name, category,
@@ -209,10 +208,9 @@
       pre-filled, and the race is no longer pending. The template itself is
       untouched by later edits to that lineup, and can be reapplied to
       other races (e.g. week after week) independently.
-- [ ] Template roster restriction: unlike a live lineup's seat picker (which
-      only offers the matching squad group), a template's seat picker
-      currently offers the full roster regardless of category — fine for
-      now, but worth tightening later if it causes mistakes.
+- [x] Template roster restriction (2026-09-27): template and boat-crew seat
+      pickers only offer the category's squad, like live lineups; anyone
+      already seated stays listed.
 
 ## Coach Tasks
 - [x] Coaches can assign practice/regatta-day tasks to rowers (e.g. launch
@@ -387,13 +385,12 @@
       N days" and tap buttons: Food Tent (tent leaders: draft to publish;
       families: sign up / see what you're bringing), Races & crews (coaches
       see how many races still need a lineup), and Coach announcements.
-- [ ] Race-time notification for the existing rower/parent lineup banner
-      (app/page.tsx lineupBanners): actually alert the family 20 min before
-      the race's scheduled start, not just show a static banner whenever
-      there's an upcoming assignment — depends on real push notifications
-      (PWA) being built first, plus a scheduled job to fire at T-20min per
-      race. Also: the banner should stop showing once the race has passed,
-      not just once it's not "upcoming" by date.
+- [ ] Race-time alerts: dropped for now (2026-09-27) because regattas
+      usually run late and a fixed "20 minutes before" would fire at the
+      wrong time. If revisited: a coach sets a "running late by N min"
+      delay on race day, or taps "send 20-minute alert" manually. Separate
+      small fix still open: the lineup banner should stop showing once the
+      race has passed, not just once it's no longer "upcoming" by date.
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding
@@ -441,9 +438,24 @@
       add NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to Vercel
       (Production) and .env.local, redeploy. Until then the prompt stays
       hidden and nothing is sent.
-- [ ] Scheduled alerts (need a Vercel Cron hitting an API route): the
-      tent leader's "draft food list ready" alert from the 7-days-out
-      pg_cron job, and race-time alerts 20 min before a race.
+- [x] Scheduled alerts (2026-09-27, 0080_scheduled_alerts.sql): pg_cron +
+      pg_net call /api/cron/alerts every 5 min (lib/scheduledAlerts.ts):
+      "food list draft ready" to tent leaders/coaches/admins; "payment due"
+      3 days before a hand-paid bill's due date and "overdue" the day after
+      (families; bills on an automatic plan skipped). Each sent once
+      (scheduled_alerts_sent). Failed installments alert the family and
+      treasurer from the Stripe webhook (invoice.payment_failed).
+- [ ] Scheduled alerts setup: pick a long random secret, add it to Vercel
+      as CRON_SECRET, and run
+      `select vault.create_secret('<secret>', 'cron_secret');` in Supabase.
+      Also add invoice.payment_failed to the Stripe webhook's events.
+- [x] Parents follow boats (2026-09-27, 0080): "Tell me when these boats go
+      out" tap buttons on On the Water; followers get the boat-on-the-water
+      alert too.
+- [x] Agree-to-Terms pop-up (2026-09-27): approved members whose
+      terms_version isn't the current TERMS_VERSION get a blocking pop-up
+      (Terms and Privacy pages stay readable) until they agree. Skipped for
+      the demo account. Bumping TERMS_VERSION asks everyone again.
 - [x] Deploy (Vercel) (2026-09-23): live at https://w-crew-app.vercel.app. The
       Vercel project + its Supabase integration (env vars: POSTGRES_*,
       SUPABASE_*, NEXT_PUBLIC_SUPABASE_*) already existed from ~2026-09-18,
@@ -641,7 +653,8 @@
       .env.local. Nothing charges real money until live keys go in.
 - [ ] 2. In Stripe, add a webhook for "events on connected accounts" pointing
       at https://boathouseos.app/api/stripe/webhook, sending
-      checkout.session.completed, invoice.paid, charge.refunded and
+      checkout.session.completed, invoice.paid, invoice.payment_failed,
+      charge.refunded and
       account.updated. Its signing secret is STRIPE_WEBHOOK_SECRET. Then
       connect the club on Manage payments and test end to end in test mode.
 - [ ] 3. Before going live, check card-network and state rules with Stripe or
@@ -651,8 +664,8 @@
 - [x] 4. Terms and refund policy drafted 2026-09-27 (see Terms and
       Conditions) — lawyer review and the convenience-fee refund decision
       still open.
-- [ ] Payment-plan emails/reminders and a failed-installment alert for the
-      treasurer (Stripe retries failed installments on its own).
+- [x] Payment reminders and failed-installment alerts — as push alerts
+      (2026-09-27, see Scheduled alerts under Infra). Emails not built.
 - [ ] Clubs pay BoathouseOS: Stripe Billing subscription tiered by roster
       size, after multi-club Phase 1.
 

@@ -4,6 +4,9 @@ import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { ServiceWorkerUpdater } from "@/components/ServiceWorkerUpdater";
+import { TermsGate } from "@/components/TermsGate";
+import { TERMS_VERSION } from "@/lib/terms";
+import { DEMO_EMAIL } from "@/lib/demoAccount";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getThemeColors } from "@/lib/theme";
@@ -66,6 +69,19 @@ export default async function RootLayout({
     photoUrl = (profileData as { photo_url: string | null } | null)?.photo_url ?? null;
   }
 
+  // Approved members who haven't agreed to the current Terms. Queried on its
+  // own so a missing column (migration not applied yet) just skips the gate.
+  let needsTerms = false;
+  if (user && user.email !== DEMO_EMAIL) {
+    const { data: termsData, error: termsError } = await supabase
+      .from("profiles")
+      .select("terms_version, approved_at")
+      .eq("id", user.id)
+      .single();
+    const terms = termsData as { terms_version: string | null; approved_at: string | null } | null;
+    needsTerms = !termsError && !!terms?.approved_at && terms.terms_version !== TERMS_VERSION;
+  }
+
   const themeStyle = {
     "--color-primary": theme.primary,
     "--color-secondary": theme.secondary,
@@ -91,6 +107,7 @@ export default async function RootLayout({
           <div className="pb-16">{children}</div>
         </PullToRefresh>
         <BottomNav userId={user?.id ?? null} />
+        {needsTerms && <TermsGate />}
       </body>
     </html>
   );
