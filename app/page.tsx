@@ -21,6 +21,7 @@ import {
   Megaphone,
   ShieldCheck,
   Trophy,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 import RacingScull from "@/components/icons/RacingScull";
@@ -65,6 +66,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/on-water": Navigation,
   "/workouts": Dumbbell,
   "/food-tent": Tent,
+  "/payments": CreditCard,
   "/volunteer": HelpingHand,
   "/photos": Camera,
   "/messages": MessageCircle,

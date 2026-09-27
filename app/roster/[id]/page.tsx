@@ -7,7 +7,14 @@ import { RoleToggle } from "./RoleToggle";
 import { RemoveMemberButton } from "./RemoveMemberButton";
 import { PermanentlyDeleteButton } from "./PermanentlyDeleteButton";
 import { ResetPasswordButton } from "./ResetPasswordButton";
-import { setBoardMember, setTentLeader, setRemoved, permanentlyDeleteProfile, resetMemberPassword } from "./actions";
+import {
+  setBoardMember,
+  setTentLeader,
+  setTreasurer,
+  setRemoved,
+  permanentlyDeleteProfile,
+  resetMemberPassword,
+} from "./actions";
 import { TEAM_LABELS } from "@/lib/teams";
 import { getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
@@ -189,6 +196,7 @@ export default async function BioPage({
             {teams.length > 0 && ` · ${teams.map((t) => TEAM_LABELS[t]).join(", ")}`}
             {profile.is_board_member && " · Board Member"}
             {profile.is_tent_leader && " · Tent Leader"}
+            {profile.is_treasurer && " · Treasurer"}
           </p>
         </div>
         <div className="ml-auto flex flex-col items-end gap-2">
@@ -214,6 +222,14 @@ export default async function BioPage({
               onLabel="Make tent leader"
               offLabel="Remove as tent leader"
               onToggle={setTentLeader.bind(null, profile.id)}
+            />
+          )}
+          {isCallerAdmin && (
+            <RoleToggle
+              initialValue={profile.is_treasurer}
+              onLabel="Make treasurer"
+              offLabel="Remove as treasurer"
+              onToggle={setTreasurer.bind(null, profile.id)}
             />
           )}
           {canRemove && (

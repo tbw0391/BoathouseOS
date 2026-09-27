@@ -167,9 +167,9 @@ export default async function ManagePaymentsPage() {
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Charges</h2>
-          <a href="/payments/manage/export" className="text-sm text-gray-600 underline">
+          <Link href="/payments/manage/export" prefetch={false} className="text-sm text-gray-600 underline">
             Export all to CSV
-          </a>
+          </Link>
         </div>
         <NewChargeForm />
         {active.length === 0 && <p className="text-sm text-gray-500">No charges yet.</p>}
