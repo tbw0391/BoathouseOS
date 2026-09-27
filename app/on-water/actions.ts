@@ -2,12 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { LineupSeat, Profile } from "@/lib/database.types";
+import type { Profile } from "@/lib/database.types";
+import { isOnWaterColor } from "@/lib/onWaterColors";
 
-async function requireEligibleCoxswain(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  lineupId: string | null
-) {
+export async function startSession(boatId: string, color: string) {
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -18,37 +17,31 @@ async function requireEligibleCoxswain(
     .select("role")
     .eq("id", user.id)
     .single();
-  const callerRole = (callerProfile as Pick<Profile, "role"> | null)?.role;
-  if (callerRole === "coxswain") return { user };
-
-  const { data: seatsData } = await supabase
-    .from("lineup_seats")
-    .select("*")
-    .eq("seat_role", "coxswain")
-    .eq("rower_id", user.id);
-  const seats = (seatsData as LineupSeat[] | null) ?? [];
-  const holdsCoxSeat = lineupId ? seats.some((s) => s.lineup_id === lineupId) : seats.length > 0;
-
-  if (!holdsCoxSeat) {
-    throw new Error("You don't have a coxswain assignment, so you can't start tracking.");
+  if ((callerProfile as Pick<Profile, "role"> | null)?.role !== "coxswain") {
+    throw new Error("Only coxswains can turn on GPS tracking.");
   }
 
-  return { user };
-}
+  const { data: boat } = await supabase.from("boats").select("id").eq("id", boatId).maybeSingle();
+  if (!boat) throw new Error("Pick which boat you're in.");
+  if (!isOnWaterColor(color)) throw new Error("Pick a color.");
 
-export async function startSession(lineupId: string | null) {
-  const supabase = await createClient();
-  const { user } = await requireEligibleCoxswain(supabase, lineupId);
+  // A phone left tracking from an earlier outing would show twice on the map.
+  await supabase
+    .from("on_water_sessions")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("coxswain_id", user.id)
+    .is("ended_at", null);
 
   const { data, error } = await supabase
     .from("on_water_sessions")
-    .insert({ lineup_id: lineupId, coxswain_id: user.id })
+    .insert({ coxswain_id: user.id, boat_id: boatId, color })
     .select("id")
     .single();
 
   if (error) throw new Error(error.message);
 
   revalidatePath("/on-water");
+  revalidatePath("/coach/tracking");
   return data.id as string;
 }
 
