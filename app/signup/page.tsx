@@ -117,6 +117,21 @@ export default function SignupPage() {
           </div>
         </div>
 
+        <label className="flex items-start gap-2 text-sm text-gray-600">
+          <input type="checkbox" name="agree_terms" required className="mt-1" />
+          <span>
+            I agree to the{" "}
+            <Link href="/terms" target="_blank" className="underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" target="_blank" className="underline">
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
@@ -130,9 +145,15 @@ export default function SignupPage() {
         <Link href="/login" className="text-sm text-gray-500 hover:underline text-center">
           Already have an account? Sign in
         </Link>
-        <Link href="/privacy" className="text-xs text-gray-400 hover:underline text-center">
-          Privacy policy
-        </Link>
+        <p className="text-xs text-gray-400 text-center">
+          <Link href="/terms" className="hover:underline">
+            Terms
+          </Link>
+          {" · "}
+          <Link href="/privacy" className="hover:underline">
+            Privacy policy
+          </Link>
+        </p>
       </form>
     </div>
   );

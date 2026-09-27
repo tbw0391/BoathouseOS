@@ -40,6 +40,10 @@ export function InterestForm() {
         <Link href="/privacy" className="underline">
           privacy policy
         </Link>
+        {", "}
+        <Link href="/terms" className="underline">
+          terms
+        </Link>
         ).
       </p>
 

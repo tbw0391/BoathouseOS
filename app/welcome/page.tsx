@@ -145,6 +145,10 @@ export default function WelcomePage() {
         <Link href="/privacy" className="underline">
           Privacy
         </Link>
+        {" · "}
+        <Link href="/terms" className="underline">
+          Terms
+        </Link>
       </p>
     </div>
   );

@@ -76,7 +76,8 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/interest') ||
     // The public landing page for visiting clubs.
     request.nextUrl.pathname === '/welcome' ||
-    request.nextUrl.pathname === '/privacy';
+    request.nextUrl.pathname === '/privacy' ||
+    request.nextUrl.pathname === '/terms';
 
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();

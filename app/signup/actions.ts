@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp } from "@/lib/clientIp";
 import type { Team } from "@/lib/database.types";
+import { TERMS_VERSION } from "@/lib/terms";
 
 const SELF_SIGNUP_ROLES = ["rower", "coxswain", "parent"] as const;
 type SelfSignupRole = (typeof SELF_SIGNUP_ROLES)[number];
@@ -31,6 +32,9 @@ export async function signUp(formData: FormData) {
 
   if (!email || !password || !firstName || !lastName) {
     throw new Error("First name, last name, email, and password are required.");
+  }
+  if (formData.get("agree_terms") !== "on") {
+    throw new Error("Please agree to the Terms of Service and Privacy Policy.");
   }
   if (password.length < 8) {
     throw new Error("Password must be at least 8 characters.");
@@ -75,6 +79,8 @@ export async function signUp(formData: FormData) {
     role,
     // Pending until an admin approves them (see 0060_member_approval.sql).
     approved_at: null,
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: TERMS_VERSION,
   });
 
   if (profileError) {
