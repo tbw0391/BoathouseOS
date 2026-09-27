@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import RacingScull from "@/components/icons/RacingScull";
 import { PushToggle } from "@/components/PushToggle";
+import { RegattaWeekPopup, type RegattaWeekLink } from "@/components/RegattaWeekPopup";
 import { DEMO_EMAIL } from "@/lib/demoAccount";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -761,6 +762,80 @@ async function loadAnnouncementBanners(
   }));
 }
 
+// The once-a-day "regatta week" pop-up: what this person should check before
+// the next regatta, as tap buttons.
+function regattaWeekReminder(
+  event: ScheduleEvent,
+  who: {
+    isFamily: boolean;
+    isFoodTentManager: boolean;
+    isCoachOrAdmin: boolean;
+    hasFoodDraft: boolean;
+    needsFoodSignup: boolean;
+    isBringingFood: boolean;
+    racesWithoutLineup: number;
+  },
+): { eventId: string; heading: string; links: RegattaWeekLink[] } {
+  const eastern = (d: Date) =>
+    d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const days = Math.round(
+    (new Date(eastern(new Date(event.starts_at))).getTime() -
+      new Date(eastern(new Date())).getTime()) /
+      (24 * 60 * 60 * 1000),
+  );
+  const when =
+    days < 0
+      ? "is underway"
+      : days === 0
+        ? "is today"
+        : days === 1
+          ? "is tomorrow"
+          : `is in ${days} days`;
+
+  const links: RegattaWeekLink[] = [];
+  if (who.isFoodTentManager && who.hasFoodDraft) {
+    links.push({
+      href: "/food-tent",
+      icon: "food",
+      label: "Food Tent",
+      detail: "The draft food list is ready to review and publish.",
+    });
+  } else if (who.isFamily && who.needsFoodSignup) {
+    links.push({
+      href: "/food-tent",
+      icon: "food",
+      label: "Food Tent",
+      detail: "Sign up to bring something.",
+    });
+  } else if (who.isFamily && who.isBringingFood) {
+    links.push({
+      href: "/food-tent",
+      icon: "food",
+      label: "Food Tent",
+      detail: "See what you're bringing.",
+    });
+  }
+  links.push({
+    href: `/lineups/${event.id}`,
+    icon: "lineups",
+    label: "Races & crews",
+    detail:
+      who.isCoachOrAdmin && who.racesWithoutLineup > 0
+        ? `${who.racesWithoutLineup} race${who.racesWithoutLineup === 1 ? " still needs" : "s still need"} a lineup.`
+        : "See who's racing and when.",
+  });
+  links.push({
+    href: "/announcements",
+    icon: "messages",
+    label: "Coach announcements",
+    detail: who.isCoachOrAdmin
+      ? "Post what the team needs to know."
+      : "Read what the coaches have posted.",
+  });
+
+  return { eventId: event.id, heading: `${event.title} ${when}!`, links };
+}
+
 export default async function Home() {
   const supabase = await createClient();
   const [
@@ -823,6 +898,7 @@ export default async function Home() {
   } | null = null;
 
   let householdUserIds: string[] = [];
+  let isFamily = false;
 
   if (user) {
     const now = new Date();
@@ -1071,6 +1147,7 @@ export default async function Home() {
       loadMyRecentPrs(supabase, user.id),
     ]);
     const isGuardian = (familyLinkRows.data ?? []).length > 0;
+    isFamily = isParent || isGuardian;
     signupCallBanners = isParent || isGuardian ? signupCallBannerResults : [];
 
     // Every family is asked to bring 2 gal of water per regatta, regardless
@@ -1095,6 +1172,21 @@ export default async function Home() {
       }
     }
   }
+
+  const regattaWeek = upcomingRegatta
+    ? regattaWeekReminder(upcomingRegatta, {
+        isFamily,
+        isFoodTentManager,
+        isCoachOrAdmin,
+        hasFoodDraft: foodPrepBanners.some((b) => b.eventId === upcomingRegatta!.id),
+        needsFoodSignup: signupCallBanners.some((b) => b.eventId === upcomingRegatta!.id),
+        isBringingFood: banners.some(
+          (b) => b.eventId === upcomingRegatta!.id && b.items.some((i) => !i.label.includes("gal of water")),
+        ),
+        racesWithoutLineup:
+          pendingRaceBanners.find((b) => b.eventTitle === upcomingRegatta!.title)?.count ?? 0,
+      })
+    : null;
 
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
   const hotcSchedule = demoClub ? await getHotcSchedule(demoClub) : null;
@@ -1614,6 +1706,14 @@ export default async function Home() {
       )}
 
       {user && <PushToggle isDemo={user.email === DEMO_EMAIL} />}
+
+      {regattaWeek && (
+        <RegattaWeekPopup
+          eventId={regattaWeek.eventId}
+          heading={regattaWeek.heading}
+          links={regattaWeek.links}
+        />
+      )}
 
       <div className="w-full grid grid-cols-3 gap-4">
         {NAV_SECTIONS.filter((s) => s.href !== "/coach" || isCoachOrAdmin)
