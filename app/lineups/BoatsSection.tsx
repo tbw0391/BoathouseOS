@@ -2,8 +2,8 @@
 
 import { useRef, useState, useTransition } from "react";
 import { createBoat, updateBoat, deleteBoat } from "./actions";
-import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
-import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM, FLEET_CATEGORY_GROUPS, CATEGORY_BOAT_CLASS } from "@/lib/lineupCategories";
+import { BOAT_CLASSES } from "@/lib/boatClasses";
+import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import type { Boat, Team } from "@/lib/database.types";
 import { BoatTypePicker } from "@/app/boats/BoatTypePicker";
 
@@ -15,38 +15,6 @@ const TEAM_BG: Partial<Record<Team, string>> = {
   masters: "bg-yellow-50",
 };
 
-// Boats out of the Men's/Women's depth scheme (singles, doubles, pairs) —
-// offered as a plain boat-class fallback in the same picker.
-const OTHER_BOAT_CLASSES = BOAT_CLASS_OPTIONS.filter(
-  (cls) => !Object.values(CATEGORY_BOAT_CLASS).includes(cls)
-);
-
-export function BoatTypeSelect({ defaultValue }: { defaultValue: string }) {
-  return (
-    <select name="boat_type" defaultValue={defaultValue} required className="border rounded px-2 py-1 text-sm">
-      <option value="" disabled>
-        Boat type
-      </option>
-      {FLEET_CATEGORY_GROUPS.map((group) => (
-        <optgroup key={group.label} label={group.label}>
-          {group.options.map((cat) => (
-            <option key={cat} value={cat}>
-              {LINEUP_CATEGORIES[cat]}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-      <optgroup label="Other">
-        {OTHER_BOAT_CLASSES.map((cls) => (
-          <option key={cls} value={cls}>
-            {BOAT_CLASSES[cls].label}
-          </option>
-        ))}
-      </optgroup>
-    </select>
-  );
-}
-
 function BoatRow({ boat }: { boat: Boat }) {
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +22,10 @@ function BoatRow({ boat }: { boat: Boat }) {
 
   function handleSave(formData: FormData) {
     setError(null);
+    if (!formData.get("boat_type")) {
+      setError("Pick the boat's size (and squad, if it has one).");
+      return;
+    }
     formData.set("boat_id", boat.id);
     startTransition(async () => {
       try {
@@ -82,7 +54,7 @@ function BoatRow({ boat }: { boat: Boat }) {
             required
             className="border rounded px-2 py-1 text-sm"
           />
-          <BoatTypeSelect defaultValue={boat.category ?? boat.boat_class} />
+          <BoatTypePicker boat={boat} />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button

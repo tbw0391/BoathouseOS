@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { updateBoat, deleteBoat } from "@/app/lineups/actions";
-import { BoatTypeSelect } from "@/app/lineups/BoatsSection";
+import { BoatTypePicker } from "./BoatTypePicker";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES } from "@/lib/lineupCategories";
-import { HULL_COLORS, HULL_COLOR_OPTIONS, RIGS, RIG_OPTIONS } from "@/lib/boatOptions";
+import { HULL_COLORS, RIGS } from "@/lib/boatOptions";
 import type { Boat } from "@/lib/database.types";
 
 export function BoatCard({ boat, canManage }: { boat: Boat; canManage: boolean }) {
@@ -15,6 +15,10 @@ export function BoatCard({ boat, canManage }: { boat: Boat; canManage: boolean }
 
   function handleSave(formData: FormData) {
     setError(null);
+    if (!formData.get("boat_type")) {
+      setError("Pick the boat's size (and squad, if it has one).");
+      return;
+    }
     formData.set("boat_id", boat.id);
     startTransition(async () => {
       try {
@@ -45,33 +49,7 @@ export function BoatCard({ boat, canManage }: { boat: Boat; canManage: boolean }
           required
           className="border rounded px-2 py-1 text-sm"
         />
-        <BoatTypeSelect defaultValue={boat.category ?? boat.boat_class} />
-
-        <select
-          name="hull_color"
-          defaultValue={boat.hull_color ?? ""}
-          className="border rounded px-2 py-1 text-sm"
-        >
-          <option value="">No hull color</option>
-          {HULL_COLOR_OPTIONS.map((color) => (
-            <option key={color} value={color}>
-              {HULL_COLORS[color].label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          name="rig"
-          defaultValue={boat.rig ?? ""}
-          className="border rounded px-2 py-1 text-sm"
-        >
-          <option value="">No rig</option>
-          {RIG_OPTIONS.map((rig) => (
-            <option key={rig} value={rig}>
-              {RIGS[rig]}
-            </option>
-          ))}
-        </select>
+        <BoatTypePicker boat={boat} />
 
         {error && <p className="text-xs text-red-600">{error}</p>}
 

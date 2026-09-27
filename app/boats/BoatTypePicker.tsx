@@ -4,10 +4,12 @@ import { useState } from "react";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { CATEGORY_BOAT_CLASS, LINEUP_CATEGORIES } from "@/lib/lineupCategories";
 import { HULL_COLORS, HULL_COLOR_OPTIONS, RIGS } from "@/lib/boatOptions";
+import type { Boat } from "@/lib/database.types";
 
 // Tap-through replacement for the long "Boat type" dropdown when adding a
 // boat: size, then squad, then which boat in the depth chart. Posts the same
-// boat_type / hull_color / rig fields createBoat already reads.
+// boat_type / hull_color / rig fields createBoat and updateBoat read. Pass
+// `boat` to start from an existing boat's values when editing.
 
 const SIZES = ["8+", "4+", "4x", "4-", "2x", "2-", "1x"];
 const SCULLING = new Set(["1x", "2x", "4x"]);
@@ -19,7 +21,12 @@ const SQUADS = [
   { slug: "masters", label: "Masters" },
 ];
 
-const SIZE_SLUG: Record<string, string> = { "8+": "8plus", "4+": "4plus", "4x": "4x", "4-": "4minus" };
+const SIZE_SLUG: Record<string, string> = {
+  "8+": "8plus",
+  "4+": "4plus",
+  "4x": "4x",
+  "4-": "4minus",
+};
 
 function Choice({
   selected,
@@ -46,35 +53,70 @@ function Choice({
   );
 }
 
-function Step({ label, children }: { label: string; children: React.ReactNode }) {
+function Step({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        {label}
+      </p>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
 }
 
-export function BoatTypePicker({ showColorAndRig = true }: { showColorAndRig?: boolean }) {
-  const [size, setSize] = useState<string | null>(null);
-  const [squad, setSquad] = useState<string | null>(null);
-  const [depth, setDepth] = useState<number | null>(null);
-  const [hullColor, setHullColor] = useState<string | null>(null);
-  const [rig, setRig] = useState<string | null>(null);
+export function BoatTypePicker({
+  boat,
+}: {
+  boat?: Pick<Boat, "boat_class" | "category" | "hull_color" | "rig">;
+}) {
+  const initial = boat?.category?.match(/^(mens|womens|masters)_(\d)_/);
+  const initialHasDepthChart = boat
+    ? Object.values(CATEGORY_BOAT_CLASS).includes(boat.boat_class)
+    : false;
+  const [size, setSize] = useState<string | null>(boat?.boat_class ?? null);
+  const [squad, setSquad] = useState<string | null>(
+    initial ? initial[1] : boat && initialHasDepthChart ? "none" : null,
+  );
+  const [depth, setDepth] = useState<number | null>(
+    initial ? Number(initial[2]) : null,
+  );
+  const [hullColor, setHullColor] = useState<string | null>(
+    boat?.hull_color ?? null,
+  );
+  const [rig, setRig] = useState<string | null>(boat?.rig ?? null);
 
-  const categoryKey = size && squad && squad !== "none" && depth ? `${squad}_${depth}_${SIZE_SLUG[size]}` : null;
-  const hasDepthChart = size ? Object.values(CATEGORY_BOAT_CLASS).includes(size) : false;
+  const categoryKey =
+    size && squad && squad !== "none" && depth
+      ? `${squad}_${depth}_${SIZE_SLUG[size]}`
+      : null;
+  const hasDepthChart = size
+    ? Object.values(CATEGORY_BOAT_CLASS).includes(size)
+    : false;
   const squads = SQUADS.filter((s) => {
     if (!size) return false;
     const key = `${s.slug}_1_${SIZE_SLUG[size]}`;
     return key in CATEGORY_BOAT_CLASS;
   });
-  const depths = squad && squad !== "none" && size
-    ? [1, 2, 3, 4].filter((d) => `${squad}_${d}_${SIZE_SLUG[size]}` in CATEGORY_BOAT_CLASS)
-    : [];
+  const depths =
+    squad && squad !== "none" && size
+      ? [1, 2, 3, 4].filter(
+          (d) => `${squad}_${d}_${SIZE_SLUG[size]}` in CATEGORY_BOAT_CLASS,
+        )
+      : [];
 
-  const boatType = categoryKey ?? (size && (!hasDepthChart || squad === "none") ? size : "");
-  const summary = categoryKey ? LINEUP_CATEGORIES[categoryKey] : boatType ? BOAT_CLASSES[boatType].label : null;
+  const boatType =
+    categoryKey ?? (size && (!hasDepthChart || squad === "none") ? size : "");
+  const summary = categoryKey
+    ? LINEUP_CATEGORIES[categoryKey]
+    : boatType
+      ? BOAT_CLASSES[boatType].label
+      : null;
   const effectiveRig = size && SCULLING.has(size) ? "scull" : rig;
 
   function pickSize(next: string) {
@@ -134,43 +176,47 @@ export function BoatTypePicker({ showColorAndRig = true }: { showColorAndRig?: b
         </Step>
       )}
 
-      {showColorAndRig && (
-        <>
-          <Step label="Hull color (optional)">
-            {HULL_COLOR_OPTIONS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                title={HULL_COLORS[c].label}
-                aria-label={HULL_COLORS[c].label}
-                aria-pressed={hullColor === c}
-                onClick={() => setHullColor(hullColor === c ? null : c)}
-                className={`w-9 h-9 rounded-full border-2 ${
-                  hullColor === c ? "ring-2 ring-offset-2 ring-[var(--color-primary)] border-gray-700" : "border-gray-300"
-                }`}
-                style={{ backgroundColor: HULL_COLORS[c].swatch }}
-              />
-            ))}
-          </Step>
+      <Step label="Hull color (optional)">
+        {HULL_COLOR_OPTIONS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            title={HULL_COLORS[c].label}
+            aria-label={HULL_COLORS[c].label}
+            aria-pressed={hullColor === c}
+            onClick={() => setHullColor(hullColor === c ? null : c)}
+            className={`w-9 h-9 rounded-full border-2 ${
+              hullColor === c
+                ? "ring-2 ring-offset-2 ring-[var(--color-primary)] border-gray-700"
+                : "border-gray-300"
+            }`}
+            style={{ backgroundColor: HULL_COLORS[c].swatch }}
+          />
+        ))}
+      </Step>
 
-          {size && !SCULLING.has(size) && (
-            <Step label="Rig (optional)">
-              {SWEEP_RIGS.map((r) => (
-                <Choice key={r} selected={rig === r} onClick={() => setRig(rig === r ? null : r)}>
-                  {RIGS[r]}
-                </Choice>
-              ))}
-            </Step>
-          )}
-        </>
+      {size && !SCULLING.has(size) && (
+        <Step label="Rig (optional)">
+          {SWEEP_RIGS.map((r) => (
+            <Choice
+              key={r}
+              selected={rig === r}
+              onClick={() => setRig(rig === r ? null : r)}
+            >
+              {RIGS[r]}
+            </Choice>
+          ))}
+        </Step>
       )}
 
       <p className="text-sm text-gray-600">
         {summary ? (
           <>
-            Adding: <span className="font-medium text-gray-900">{summary}</span>
-            {showColorAndRig && hullColor && `, ${HULL_COLORS[hullColor].label.toLowerCase()} hull`}
-            {showColorAndRig && effectiveRig && `, ${RIGS[effectiveRig].toLowerCase()} rig`}
+            {boat ? "Saving as" : "Adding"}:{" "}
+            <span className="font-medium text-gray-900">{summary}</span>
+            {hullColor &&
+              `, ${HULL_COLORS[hullColor].label.toLowerCase()} hull`}
+            {effectiveRig && `, ${RIGS[effectiveRig].toLowerCase()} rig`}
           </>
         ) : (
           "Pick a size to get started."

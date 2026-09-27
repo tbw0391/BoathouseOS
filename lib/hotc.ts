@@ -156,10 +156,6 @@ export function hotcRaceCategory(race: Pick<HotcRace, "eventName" | "crew">): Li
   const depth = namedDepth ? Number(namedDepth) : letter ? letter.charCodeAt(0) - 64 : 1;
   const team = /^womens/i.test(race.eventName) ? "womens" : /^mens/i.test(race.eventName) ? "mens" : null;
   if (!team) return null;
-  if (/masters/i.test(race.eventName)) {
-    return boatSlug === "8plus" || boatSlug === "4plus"
-      ? `masters_${Math.min(depth, 3)}_${boatSlug}`
-      : null;
-  }
+  if (/masters/i.test(race.eventName)) return `masters_${depth}_${boatSlug}`;
   return `${team}_${depth}_${boatSlug}`;
 }

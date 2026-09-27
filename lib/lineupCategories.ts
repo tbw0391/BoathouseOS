@@ -13,9 +13,14 @@ const DEPTH_BOAT_CLASSES: { slug: string; label: string; boatClass: string }[] =
 
 const DEPTHS = [1, 2, 3, 4];
 
-const GENDERS: { slug: "mens" | "womens"; label: string }[] = [
+// Masters has the same depth chart as Men's and Women's (1st-4th in every
+// team boat class). The flat "masters" category is kept below alongside
+// "development" for backward compatibility with data written before it had
+// a depth chart.
+const GENDERS: { slug: "mens" | "womens" | "masters"; label: string }[] = [
   { slug: "mens", label: "Men's" },
   { slug: "womens", label: "Women's" },
+  { slug: "masters", label: "Masters" },
 ];
 
 const LINEUP_CATEGORIES: Record<string, string> = {};
@@ -23,8 +28,8 @@ const LINEUP_CATEGORY_TEAM: Record<string, Team> = {};
 const LINEUP_CATEGORY_GROUPS: { label: string; options: string[] }[] = [];
 
 // Every depth category maps to exactly one boat class — this is also the set
-// of categories a fleet boat (an 8 or a 4) can be designated as; masters,
-// development, and non-depth classes (1x/2x/2-) are never a "boat category".
+// of categories a fleet boat (an 8 or a 4) can be designated as; development
+// and non-depth classes (1x/2x/2-) are never a "boat category".
 const CATEGORY_BOAT_CLASS: Record<string, string> = {};
 const FLEET_CATEGORY_GROUPS: { label: string; options: string[] }[] = [];
 
@@ -42,26 +47,6 @@ for (const gender of GENDERS) {
   LINEUP_CATEGORY_GROUPS.push({ label: gender.label, options: groupOptions });
   FLEET_CATEGORY_GROUPS.push({ label: gender.label, options: [...groupOptions] });
 }
-
-// Masters gets a shallower depth chart than Men's/Women's: just 1st-3rd, and
-// only for 8+ and 4+ (the two boat classes masters actually fields). The
-// flat "masters" category is kept below alongside "development" for
-// backward compatibility with existing data written before this split.
-const MASTERS_DEPTHS = [1, 2, 3];
-const MASTERS_BOAT_CLASSES = DEPTH_BOAT_CLASSES.filter((bc) => bc.slug === "8plus" || bc.slug === "4plus");
-
-const mastersGroupOptions: string[] = [];
-for (const boatClass of MASTERS_BOAT_CLASSES) {
-  for (const depth of MASTERS_DEPTHS) {
-    const key = `masters_${depth}_${boatClass.slug}`;
-    LINEUP_CATEGORIES[key] = `Masters ${depth}V${boatClass.label}`;
-    LINEUP_CATEGORY_TEAM[key] = "masters";
-    CATEGORY_BOAT_CLASS[key] = boatClass.boatClass;
-    mastersGroupOptions.push(key);
-  }
-}
-LINEUP_CATEGORY_GROUPS.push({ label: "Masters", options: mastersGroupOptions });
-FLEET_CATEGORY_GROUPS.push({ label: "Masters", options: [...mastersGroupOptions] });
 
 LINEUP_CATEGORIES.masters = "Masters";
 LINEUP_CATEGORIES.development = "Development";
