@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { StorageImage } from "@/components/StorageImage";
 import type { Profile, Team } from "@/lib/database.types";
 import { TEAM_LABELS } from "@/lib/teams";
 
@@ -122,10 +123,11 @@ export function RosterGrid({
               }`}
             >
               {p.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <StorageImage
                   src={p.photo_url}
                   alt=""
+                  width={32}
+                  height={32}
                   className="w-8 h-8 shrink-0 rounded-full object-cover"
                 />
               ) : (

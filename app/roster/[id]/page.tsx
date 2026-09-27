@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { FamilyLink, Photo, PhotoTag, Profile, ProfileTeam } from "@/lib/database.types";
 import { BioForm } from "./BioForm";
+import { StorageImage } from "@/components/StorageImage";
 import { RoleToggle } from "./RoleToggle";
 import { RemoveMemberButton } from "./RemoveMemberButton";
 import { PermanentlyDeleteButton } from "./PermanentlyDeleteButton";
@@ -178,10 +179,11 @@ export default async function BioPage({
 
       <div className="mt-4 flex items-start gap-4">
         {profile.photo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <StorageImage
             src={profile.photo_url}
             alt=""
+            width={160}
+            height={160}
             className="w-40 h-40 rounded-full object-cover border"
           />
         ) : (
@@ -345,13 +347,15 @@ export default async function BioPage({
           <h2 className="text-sm font-medium text-gray-600 mb-2">Photos</h2>
           <div className="grid grid-cols-3 gap-2">
             {taggedPhotos.map((photo) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={photo.id}
-                src={photo.url}
-                alt={photo.caption ?? ""}
-                className="w-full aspect-square object-cover rounded"
-              />
+              <div key={photo.id} className="relative w-full aspect-square">
+                <StorageImage
+                  src={photo.url}
+                  alt={photo.caption ?? ""}
+                  fill
+                  sizes="33vw"
+                  className="object-cover rounded"
+                />
+              </div>
             ))}
           </div>
         </div>

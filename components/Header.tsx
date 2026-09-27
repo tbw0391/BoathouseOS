@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { StorageImage } from "@/components/StorageImage";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Camera,
@@ -90,10 +91,11 @@ export function Header({
               className="inline-flex items-center justify-center"
             >
               {photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <StorageImage
                   src={photoUrl}
                   alt=""
+                  width={32}
+                  height={32}
                   className="w-8 h-8 rounded-full object-cover border"
                 />
               ) : (

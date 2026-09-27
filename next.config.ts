@@ -29,7 +29,19 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
+// Uploaded photos and avatars (see components/StorageImage.tsx). Upload paths
+// are unique per file, so a resized copy never goes stale.
+const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+  : null;
+
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: supabaseHost
+      ? [{ protocol: "https", hostname: supabaseHost, pathname: "/storage/v1/object/public/**" }]
+      : [],
+    minimumCacheTTL: 60 * 60 * 24 * 31,
+  },
   async headers() {
     return [
       {

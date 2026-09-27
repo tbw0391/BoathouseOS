@@ -335,7 +335,9 @@
       Photos tile on the home page)
 - [x] Tag roster members in a photo
 - [x] A tagged member sees the photo on their own bio page
-- [ ] Photo comments / likes
+- [x] Photo comments / likes (2026-09-27, 0078_photo_likes_and_comments.sql):
+      heart with count (hover shows who), comments under each photo (author
+      or coach/admin can delete), push alert to the uploader on a comment.
 
 ## Team store
 - [x] Admin-editable link (club_settings.team_store_url)
@@ -380,8 +382,11 @@
       2K/5K faster than the previous best as a PR; the rower sees a gold
       banner for 7 days. Existing times were seeded as the baseline. Only
       m:ss(.s) times are tracked.
-- [ ] Regatta-week popup banners, starting the week before a regatta:
-      food tent request reminder, lineups reminder, coaches' messages reminder
+- [x] Regatta-week pop-up (2026-09-27): during the 7 days before the next
+      regatta, the home page pops up once a day (per device) with "X is in
+      N days" and tap buttons: Food Tent (tent leaders: draft to publish;
+      families: sign up / see what you're bringing), Races & crews (coaches
+      see how many races still need a lineup), and Coach announcements.
 - [ ] Race-time notification for the existing rower/parent lineup banner
       (app/page.tsx lineupBanners): actually alert the family 20 min before
       the race's scheduled start, not just show a static banner whenever
@@ -451,12 +456,11 @@
       them — so roster phones/addresses can linger on a shared device.
       Options: NetworkOnly for those caches (loses offline), or clear
       caches on sign-out.
-- [ ] Swap raw `<img>` tags for `next/image` on photos and avatars (photos
-      page, roster bio page, roster table) for automatic resizing/
-      optimization — needs the Supabase storage domain added to
-      next.config.ts's images.remotePatterns, and a decision on Vercel image
-      optimization cost/config once deployed. Low priority at current photo
-      volume.
+- [x] next/image for uploaded photos and avatars (2026-09-27): photos page,
+      bio page, roster grid, header avatar, via components/StorageImage.tsx
+      (non-Supabase URLs fall back to <img>). Cached 31 days since upload
+      paths are unique. Watch Vercel's image-optimization usage on the Hobby
+      plan if photo volume grows.
 - [x] Admin-only "To-do List" tile (/todo) that reads and renders this
       BACKLOG.md file right in the app, so Todd doesn't have to open the repo
 
