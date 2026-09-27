@@ -11,6 +11,8 @@ import {
 import { HULL_COLOR_OPTIONS, RIG_OPTIONS } from "@/lib/boatOptions";
 import type { LineupCategory } from "@/lib/database.types";
 import { getSelectedClubSlug } from "@/lib/demoClubs";
+import { clubRaces, crewNamesIn, crewTimerFeedUrl, fetchCrewTimerFeed, type Feed } from "@/lib/crewtimer";
+import { hotcRaceCategory, hotcRaceName } from "@/lib/hotc";
 import {
   boatLineupDefaults,
   buildLineupForRace,
@@ -353,6 +355,87 @@ export async function addPastedRaces(eventId: string, text: string) {
       return { race_name: m[4].trim(), race_time: easternTimeOn(eventDate, hour, Number(m[2])) };
     });
   if (races.length === 0) throw new Error("Type or paste at least one race.");
+
+  const { raceIds } = await insertRaces(supabase, {
+    eventId,
+    userId: user.id,
+    races,
+    clubSlug: await getSelectedClubSlug(),
+  });
+
+  revalidatePath("/lineups", "layout");
+  revalidatePath("/");
+  revalidatePath("/coach/tasks");
+  return { imported: raceIds.length, skipped: races.length - raceIds.length };
+}
+
+export interface CrewTimerRaceOption {
+  key: string;
+  raceName: string;
+  startLabel: string | null;
+  crew: string;
+  alreadyAdded: boolean;
+}
+
+async function loadCrewTimer(link: string): Promise<{ feed: Feed; date: string }> {
+  const feedUrl = crewTimerFeedUrl(link);
+  if (!feedUrl) throw new Error("Paste the regatta's CrewTimer link, like crewtimer.com/regatta/r16268.");
+  const feed = await fetchCrewTimerFeed(feedUrl, 300);
+  if (!feed?.results) throw new Error("Couldn't find that regatta on CrewTimer.");
+  const date = feed.regattaInfo?.Date;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("That CrewTimer regatta has no date yet.");
+  return { feed, date };
+}
+
+// "7:45 AM" on the regatta's date, Eastern.
+function crewTimerStart(date: string, start: string | null): string | null {
+  const m = start?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return null;
+  let hour = Number(m[1]) % 12;
+  if (m[3].toUpperCase() === "PM") hour += 12;
+  return easternTimeOn(date, hour, Number(m[2]));
+}
+
+// Step 1 of "From CrewTimer": your club's entries in that regatta, or, if
+// the name doesn't match, every club entered so the coach can pick theirs.
+export async function findCrewTimerRaces(eventId: string, link: string, crewName: string) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+  if (!eventId) throw new Error("Missing event.");
+  if (!crewName.trim()) throw new Error("Type your club's name as it appears on CrewTimer.");
+
+  const { feed, date } = await loadCrewTimer(link);
+  const races = clubRaces(feed, [crewName]);
+  if (races.length === 0) {
+    return { title: feed.regattaInfo?.Title ?? null, date, races: [], crewNames: crewNamesIn(feed) };
+  }
+
+  const { data: existing } = await supabase.from("races").select("race_name").eq("event_id", eventId);
+  const existingNames = new Set(((existing as { race_name: string }[] | null) ?? []).map((r) => r.race_name));
+  const options: CrewTimerRaceOption[] = races.map((r) => {
+    const raceName = hotcRaceName(r);
+    return { key: raceName, raceName, startLabel: r.start, crew: r.crew, alreadyAdded: existingNames.has(raceName) };
+  });
+  return { title: feed.regattaInfo?.Title ?? null, date, races: options, crewNames: [] as string[] };
+}
+
+// Step 2: add the picked ones. Looked up again from CrewTimer rather than
+// trusting what the browser sent back.
+export async function addCrewTimerRaces(eventId: string, link: string, crewName: string, keys: string[]) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+  if (!eventId) throw new Error("Missing event.");
+
+  const { feed, date } = await loadCrewTimer(link);
+  const picked = new Set(keys);
+  const races = clubRaces(feed, [crewName])
+    .filter((r) => picked.has(hotcRaceName(r)))
+    .map((r) => ({
+      race_name: hotcRaceName(r),
+      race_time: crewTimerStart(date, r.start),
+      category: hotcRaceCategory(r),
+    }));
+  if (races.length === 0) throw new Error("Pick at least one race.");
 
   const { raceIds } = await insertRaces(supabase, {
     eventId,

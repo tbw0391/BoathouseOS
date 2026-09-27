@@ -5,9 +5,10 @@ import { addPastedRaces } from "./actions";
 import { addAllRegattaRaces } from "@/app/regatta/actions";
 import { ImportRacesForm } from "./ImportRacesForm";
 import { CreateLineupForm } from "./CreateLineupForm";
+import { CrewTimerImport } from "./CrewTimerImport";
 import type { Boat } from "@/lib/database.types";
 
-type Tab = "feed" | "paste" | "excel" | "boat";
+type Tab = "feed" | "crewtimer" | "paste" | "excel" | "boat";
 
 // The one place a coach adds races to a regatta. Whatever the source, races
 // land the same way (lib/raceWorkflow.ts insertRaces): duplicates skipped,
@@ -16,15 +17,18 @@ export function AddRacesPanel({
   eventId,
   boats,
   hasResultsFeed,
+  crewTimerName,
   pendingStarredLines,
 }: {
   eventId: string;
   boats: Boat[];
   hasResultsFeed: boolean;
+  crewTimerName: string | null;
   pendingStarredLines: string[];
 }) {
   const tabs: { id: Tab; label: string }[] = [
     ...(hasResultsFeed ? [{ id: "feed" as const, label: "Results feed" }] : []),
+    { id: "crewtimer", label: "From CrewTimer" },
     { id: "paste", label: "Paste a list" },
     { id: "excel", label: "Excel" },
     { id: "boat", label: "One boat" },
@@ -124,6 +128,8 @@ export function AddRacesPanel({
           </button>
         </div>
       )}
+
+      {tab === "crewtimer" && <CrewTimerImport eventId={eventId} defaultCrewName={crewTimerName} />}
 
       {tab === "excel" && <ImportRacesForm eventId={eventId} />}
 

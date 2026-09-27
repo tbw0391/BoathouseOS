@@ -122,12 +122,16 @@
       (PWA) being built first; also need to decide the trigger: someone at
       the course manually marks "racing now" vs. pulling from a live regatta
       timing feed, if the regatta provides one
-- [ ] Scrape a regatta's published race schedule (heat sheet) directly from
-      its results/registration site instead of the coach manually
-      building/importing the CSV that `importRaces` uses today, then let a
-      coach pick which of our own groups (category) races each entry —
-      source site(s) to scrape TBD (e.g. RegattaCentral), and scraping is
-      inherently fragile to that site's format changing.
+- [x] Import a regatta's races from CrewTimer (2026-09-27): "From
+      CrewTimer" tab under Add races — paste the regatta's CrewTimer link
+      and the club's CrewTimer name (remembered per device; tap-to-pick
+      list if it doesn't match), tap which entries to add. Uses CrewTimer's
+      public JSON feed (lib/crewtimer.ts, shared with the HOTC demo), not
+      page scraping; race name, start time and a best-guess category come
+      along. Only CrewTimer's feed host is ever fetched.
+- [ ] RegattaCentral: pick a regatta from RegattaCentral's list when adding
+      one to the schedule, with its details and races filled in. Needs
+      RegattaCentral's permission/API access rather than scraping.
 
 ## Lineups
 - [x] Create a lineup/boat for an event (boat name, boat class from a

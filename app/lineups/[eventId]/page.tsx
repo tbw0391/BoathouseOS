@@ -267,6 +267,7 @@ export default async function EventRacesPage({
           canManage={canManage}
           pendingStarredLines={canManage ? pendingStarredLines : []}
           hasResultsFeed={typedEvent.title === HOTC.title}
+          crewTimerName={findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value)?.name ?? null}
           initialSelectedKey={selectedRaceId ? `race:${selectedRaceId}` : null}
         />
       )}

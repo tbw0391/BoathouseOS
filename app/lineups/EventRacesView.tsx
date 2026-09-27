@@ -15,6 +15,7 @@ export function EventRacesView({
   canManage,
   pendingStarredLines,
   hasResultsFeed,
+  crewTimerName = null,
   initialSelectedKey = null,
 }: {
   eventId: string;
@@ -23,6 +24,7 @@ export function EventRacesView({
   canManage: boolean;
   pendingStarredLines: string[];
   hasResultsFeed: boolean;
+  crewTimerName?: string | null;
   initialSelectedKey?: string | null;
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(initialSelectedKey);
@@ -73,6 +75,7 @@ export function EventRacesView({
             eventId={eventId}
             boats={boats}
             hasResultsFeed={hasResultsFeed}
+            crewTimerName={crewTimerName}
             pendingStarredLines={pendingStarredLines}
           />
         </div>

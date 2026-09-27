@@ -1,6 +1,7 @@
 import "server-only";
 import type { DemoClub } from "@/lib/demoClubs";
 import type { LineupCategory } from "@/lib/database.types";
+import { clubRaces, fetchCrewTimerFeed, type CrewTimerRace } from "@/lib/crewtimer";
 
 // The real 2026 Head of the Cuyahoga, straight from CrewTimer's public
 // results feed (same feed as lib/crewtimer.ts in the club app). The race
@@ -42,90 +43,21 @@ const CREWTIMER_NAMES: Record<string, string[]> = {
   ],
 };
 
-interface FeedEntry {
-  Bow?: string;
-  Crew?: string;
-  Stroke?: string;
-  Place?: number | "";
-  AdjTime?: string;
-  RawTime?: string;
-  PenaltyCode?: string;
-}
-
-interface FeedEvent {
-  EventNum?: string;
-  Event?: string;
-  Start?: string;
-  entries?: FeedEntry[];
-}
-
-interface Feed {
-  regattaInfo?: { Date?: string };
-  results?: FeedEvent[];
-}
-
-export interface HotcRace {
-  eventNum: string;
-  eventName: string;
-  start: string | null;
-  bow: string | null;
-  crew: string;
-  stroke: string | null;
-  place: number | null;
-  time: string | null;
-  penalty: string | null;
-  entryCount: number;
-}
+export type HotcRace = CrewTimerRace;
 
 export interface HotcSchedule {
   date: string | null;
   races: HotcRace[];
 }
 
-function normalize(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-// Clubs with several boats in one event enter them as "Dayton Boat Club A",
-// "... B", and so on.
-function withoutBoatLetter(crew: string): string {
-  return crew.replace(/\s+[A-Z]$/, "");
-}
-
 export async function getHotcSchedule(club: DemoClub): Promise<HotcSchedule | null> {
-  let feed: Feed;
-  try {
-    // A minute is fresh enough to see a result shortly after a boat finishes.
-    const res = await fetch(HOTC.feedUrl, { next: { revalidate: 60 } });
-    if (!res.ok) return null;
-    feed = (await res.json()) as Feed;
-  } catch {
-    return null;
-  }
-
-  const names = new Set((CREWTIMER_NAMES[club.slug] ?? [club.name]).map(normalize));
-  const races: HotcRace[] = [];
-  for (const event of feed.results ?? []) {
-    const entries = event.entries ?? [];
-    for (const entry of entries) {
-      if (!entry.Crew || !names.has(normalize(withoutBoatLetter(entry.Crew)))) continue;
-      races.push({
-        eventNum: event.EventNum ?? "",
-        // CrewTimer prefixes the name with its event number ("1 Mens Open 1x").
-        eventName: (event.Event ?? "Race").replace(/^\d+\s+/, ""),
-        start: event.Start || null,
-        bow: entry.Bow || null,
-        crew: entry.Crew,
-        stroke: entry.Stroke || null,
-        place: typeof entry.Place === "number" ? entry.Place : null,
-        time: entry.AdjTime || entry.RawTime || null,
-        penalty: entry.PenaltyCode || null,
-        entryCount: entries.length,
-      });
-    }
-  }
-
-  return { date: feed.regattaInfo?.Date ?? null, races };
+  // A minute is fresh enough to see a result shortly after a boat finishes.
+  const feed = await fetchCrewTimerFeed(HOTC.feedUrl, 60);
+  if (!feed) return null;
+  return {
+    date: feed.regattaInfo?.Date ?? null,
+    races: clubRaces(feed, CREWTIMER_NAMES[club.slug] ?? [club.name]),
+  };
 }
 
 // What a demo race becomes on the Lineups page. The bow number keeps each
