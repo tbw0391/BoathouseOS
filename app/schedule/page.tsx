@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { Sailboat, Dumbbell } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import type { CalendarEvent } from "@/lib/scheduleCalendar";
 import { MarkViewed } from "./MarkViewed";
+import { ScheduleCalendar } from "./ScheduleCalendar";
 
-export default function SchedulePage() {
+export default async function SchedulePage() {
+  const supabase = await createClient();
+  const { data: eventsData } = await supabase
+    .from("schedule_events")
+    .select("id, title, event_type, starts_at, ends_at, recurrence, location")
+    .order("starts_at", { ascending: true });
+  const events = (eventsData as CalendarEvent[] | null) ?? [];
+
   return (
     <div className="min-h-screen p-8">
       <MarkViewed />
@@ -23,6 +33,10 @@ export default function SchedulePage() {
           <Dumbbell className="w-6 h-6" />
           Practice
         </Link>
+      </div>
+
+      <div className="mt-8">
+        <ScheduleCalendar events={events} />
       </div>
     </div>
   );
