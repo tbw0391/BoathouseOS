@@ -215,7 +215,8 @@ export interface NewRace {
 
 // Adds races to a regatta in one go: skips any whose name is already on it
 // (so re-running an import or re-tapping "Add all" only adds what's new),
-// applies the Masters rule, and gives each one its Launch/Recovery tasks.
+// applies the Masters rule, gives each one its Launch/Recovery tasks, and
+// puts a boat in any race only one fleet boat fits.
 export async function insertRaces(
   supabase: SupabaseServerClient,
   { eventId, userId, races }: { eventId: string; userId: string; races: NewRace[] }
@@ -247,7 +248,44 @@ export async function insertRaces(
 
   const raceIds = ((data as { id: string }[] | null) ?? []).map((r) => r.id);
   await createLaunchRecoveryTasksForRaces(supabase, { eventId, userId, raceIds });
+  await autoAssignBoats(supabase, { raceIds, userId });
   return { raceIds };
+}
+
+// A race whose category (e.g. Masters 1V8) matches exactly one fleet boat
+// gets that boat, and its saved crew, straight away — no choice to make.
+// Races with no category, or with several matching boats, stay pending for
+// a coach to pick. Best-effort: a failure here leaves the race pending
+// rather than failing the import.
+async function autoAssignBoats(
+  supabase: SupabaseServerClient,
+  { raceIds, userId }: { raceIds: string[]; userId: string }
+) {
+  if (raceIds.length === 0) return;
+  const { data: raceRows } = await supabase.from("races").select("id, category").in("id", raceIds);
+  const races = ((raceRows as { id: string; category: string | null }[] | null) ?? []).filter(
+    (r) => r.category && r.category in CATEGORY_BOAT_CLASS
+  );
+  if (races.length === 0) return;
+
+  const { data: boatRows } = await supabase
+    .from("boats")
+    .select("id, category")
+    .in("category", [...new Set(races.map((r) => r.category as string))]);
+  const boatIdsByCategory = new Map<string, string[]>();
+  for (const b of (boatRows as { id: string; category: string }[] | null) ?? []) {
+    boatIdsByCategory.set(b.category, [...(boatIdsByCategory.get(b.category) ?? []), b.id]);
+  }
+
+  for (const race of races) {
+    const boatIds = boatIdsByCategory.get(race.category as string) ?? [];
+    if (boatIds.length !== 1) continue;
+    try {
+      await buildLineupForRace(supabase, { raceId: race.id, boatId: boatIds[0], userId });
+    } catch (e) {
+      console.error("Couldn't auto-assign a boat to race", race.id, e);
+    }
+  }
 }
 
 // Builds a lineup for a pending race from a fleet boat: race name/time from

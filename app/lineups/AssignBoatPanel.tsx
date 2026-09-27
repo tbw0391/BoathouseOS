@@ -25,6 +25,10 @@ export function AssignBoatPanel({
   const eligibleBoats = raceTeam
     ? boats.filter((b) => !b.category || LINEUP_CATEGORY_TEAM[b.category as LineupCategory] === raceTeam)
     : boats;
+  // When exactly one boat is designated for this race's category, it's
+  // almost certainly the one — start with it picked.
+  const exactMatches = category ? eligibleBoats.filter((b) => b.category === category) : [];
+  const suggestedBoatId = exactMatches.length === 1 ? exactMatches[0].id : "";
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -57,7 +61,7 @@ export function AssignBoatPanel({
           </p>
         ) : (
           <>
-            <select name="boat_id" required defaultValue="" className="border rounded px-2 py-1 text-sm">
+            <select name="boat_id" required defaultValue={suggestedBoatId} className="border rounded px-2 py-1 text-sm">
               <option value="" disabled>
                 Choose a boat
               </option>
