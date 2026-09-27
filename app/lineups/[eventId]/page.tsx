@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { EventTasks } from "@/app/coach/tasks/EventTasks";
 import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
 import { cookies } from "next/headers";
-import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
+import { DEMO_CLUB_COOKIE, findDemoClub, visibleToClub } from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { createClient } from "@/lib/supabase/server";
@@ -91,8 +91,12 @@ export default async function EventRacesPage({
         .order("display_name", { ascending: true }),
       supabase.from("profile_teams").select("*"),
     ]);
-  const races = (racesData as Race[] | null) ?? [];
-  const lineups = (lineupsData as Lineup[] | null) ?? [];
+  // With a club picked, only that club's races and boats (plus untagged ones).
+  const selectedClubSlug = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value)?.slug ?? null;
+  const races = ((racesData as Race[] | null) ?? []).filter((r) => visibleToClub(r.club_slug, selectedClubSlug));
+  const lineups = ((lineupsData as Lineup[] | null) ?? []).filter((l) =>
+    visibleToClub(l.club_slug, selectedClubSlug)
+  );
   const boats = (boatsData as Boat[] | null) ?? [];
   const roster = (rosterData as Pick<Profile, "id" | "display_name">[] | null) ?? [];
 

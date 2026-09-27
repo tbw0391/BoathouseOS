@@ -50,7 +50,7 @@ import { getUnreadScheduleCount } from "@/lib/schedule";
 import { getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
 import { QrCodes } from "@/app/global-admin/qr/QrCodes";
-import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
+import { DEMO_CLUB_COOKIE, findDemoClub, getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
@@ -368,7 +368,10 @@ async function loadSentLineupNotices(
 // sheet import) but don't have a boat/crew assigned yet.
 async function loadPendingRaceBanners(supabase: SupabaseServerClient): Promise<PendingRaceBanner[]> {
   const { data: pendingRaceRows } = await supabase.from("races").select("*").is("lineup_id", null);
-  const pendingRacesData = (pendingRaceRows as Race[] | null) ?? [];
+  const selectedClubSlug = await getSelectedClubSlug();
+  const pendingRacesData = ((pendingRaceRows as Race[] | null) ?? []).filter((r) =>
+    visibleToClub(r.club_slug, selectedClubSlug)
+  );
   if (pendingRacesData.length === 0) return [];
 
   const eventIds = [...new Set(pendingRacesData.map((r) => r.event_id))];

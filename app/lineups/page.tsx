@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isPastEvent } from "@/lib/schedule";
+import { getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
 import type { Lineup, Race, ScheduleEvent } from "@/lib/database.types";
 import { EventIcon } from "@/components/EventIcon";
 
@@ -25,10 +26,13 @@ export default async function LineupsPage() {
   const events = (eventsData as ScheduleEvent[] | null) ?? [];
 
   const { data: lineupsData } = await supabase.from("lineups").select("*");
-  const lineups = (lineupsData as Lineup[] | null) ?? [];
+  const selectedClubSlug = await getSelectedClubSlug();
+  const lineups = ((lineupsData as Lineup[] | null) ?? []).filter((l) =>
+    visibleToClub(l.club_slug, selectedClubSlug)
+  );
 
   const { data: racesData } = await supabase.from("races").select("*");
-  const races = (racesData as Race[] | null) ?? [];
+  const races = ((racesData as Race[] | null) ?? []).filter((r) => visibleToClub(r.club_slug, selectedClubSlug));
 
   const eventIdsWithLineups = new Set(lineups.map((l) => l.event_id));
   const eventIdsWithRaces = new Set(races.map((r) => r.event_id));
