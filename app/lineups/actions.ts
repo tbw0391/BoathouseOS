@@ -544,6 +544,27 @@ export async function updateLineupRace(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updateLineupDetails(formData: FormData) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+
+  const lineupId = String(formData.get("lineup_id") ?? "").trim();
+  if (!lineupId) throw new Error("Missing boat.");
+  const category = String(formData.get("category") ?? "").trim();
+  if (category && !LINEUP_CATEGORY_OPTIONS.includes(category)) {
+    throw new Error("Please choose a valid category.");
+  }
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  const { error } = await supabase
+    .from("lineups")
+    .update({ category: (category || null) as LineupCategory | null, notes })
+    .eq("id", lineupId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/lineups", "layout");
+}
+
 export async function updateLineupPlace(formData: FormData) {
   const supabase = await createClient();
   await requireManager(supabase);

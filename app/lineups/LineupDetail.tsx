@@ -3,6 +3,7 @@ import { SeatFiller } from "./SeatFiller";
 import { assignSeat } from "./actions";
 import { DeleteLineupButton } from "./DeleteLineupButton";
 import { EditRaceInfo } from "./EditRaceInfo";
+import { EditLineupDetails } from "./EditLineupDetails";
 import { EditRaceResult } from "./EditRaceResult";
 import type { Lineup, LineupSeat } from "@/lib/database.types";
 
@@ -35,7 +36,7 @@ export function LineupDetail({
               ({BOAT_CLASSES[lineup.boat_class]?.label ?? lineup.boat_class})
             </span>
           </p>
-          {lineup.notes && <p className="text-sm text-gray-500">{lineup.notes}</p>}
+          <EditLineupDetails lineup={lineup} canManage={canManage} />
           <EditRaceInfo lineup={lineup} canManage={canManage} />
           <EditRaceResult lineup={lineup} canManage={canManage} />
         </div>
