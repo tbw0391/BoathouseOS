@@ -12,6 +12,7 @@ import {
   payerSurcharge,
   platformFee,
 } from "@/lib/payments";
+import { householdIdsForRower, sendPush, treasurerIds } from "@/lib/push";
 
 // Bill and order bookkeeping that has to run with the service role: creating
 // bills with discounts applied, starting Stripe Checkout, and applying what
@@ -396,6 +397,44 @@ export async function handleInvoicePaid(
   // A retried webhook for the same invoice hits the unique invoice id.
   if (error && error.code !== "23505") throw new Error(error.message);
   await refreshBillStatus(admin, billId);
+}
+
+// An automatic installment was declined. Stripe retries on its own; this
+// just lets the family and the treasurer know.
+export async function handleInvoicePaymentFailed(admin: Admin, invoice: Stripe.Invoice) {
+  const billId = invoice.parent?.subscription_details?.metadata?.bill_id;
+  if (!billId) return;
+  const { data } = await admin.from("bills").select("rower_id, charge_id").eq("id", billId).single();
+  const bill = data as Pick<Bill, "rower_id" | "charge_id"> | null;
+  if (!bill) return;
+  const [{ data: charge }, { data: rower }] = await Promise.all([
+    admin.from("charges").select("title").eq("id", bill.charge_id).single(),
+    admin.from("profiles").select("display_name").eq("id", bill.rower_id).single(),
+  ]);
+
+  const what = `${(charge as { title: string } | null)?.title ?? "A bill"} for ${
+    (rower as { display_name: string } | null)?.display_name ?? "a rower"
+  }`;
+  const [family, treasurers] = await Promise.all([householdIdsForRower(bill.rower_id), treasurerIds()]);
+  await Promise.all([
+    sendPush(family, {
+      kind: "payment_failed",
+      title: "A payment didn't go through",
+      body: `${what}: the card was declined. Stripe will try again, or pay on the Payments page.`,
+      url: "/payments",
+      tag: `bill-failed-${billId}`,
+    }),
+    sendPush(
+      treasurers.filter((id) => !family.includes(id)),
+      {
+        kind: "payment_failed",
+        title: "Automatic payment failed",
+        body: `${what}: an installment was declined. Stripe will retry.`,
+        url: "/payments/manage",
+        tag: `bill-failed-${billId}`,
+      }
+    ),
+  ]);
 }
 
 export async function handleChargeRefunded(admin: Admin, charge: Stripe.Charge) {

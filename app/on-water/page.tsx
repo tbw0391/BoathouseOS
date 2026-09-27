@@ -4,6 +4,7 @@ import type { Boat, Lineup, LineupSeat, OnWaterSession, Profile } from "@/lib/da
 import { getActiveBoats } from "@/lib/onWater";
 import { LiveBoats } from "@/app/coach/tracking/LiveBoats";
 import { OnWaterTracker } from "./OnWaterTracker";
+import { FollowBoats } from "./FollowBoats";
 
 export default async function OnWaterPage() {
   const supabase = await createClient();
@@ -33,11 +34,19 @@ export default async function OnWaterPage() {
   // Rowers, parents: watch the boats that are out (0079 lets them see
   // outings in progress only).
   if (callerRole !== "coxswain" && callerRole !== "admin") {
-    const activeBoats = await getActiveBoats();
+    const [activeBoats, { data: boatsData }, { data: followsData }] = await Promise.all([
+      getActiveBoats(),
+      supabase.from("boats").select("id, name").order("name"),
+      supabase.from("on_water_follows").select("boat_id").eq("profile_id", user?.id ?? ""),
+    ]);
     return (
       <div className="min-h-screen p-8">
         <h1 className="text-2xl font-bold mb-6">On the Water</h1>
         <LiveBoats initialSessions={activeBoats} />
+        <FollowBoats
+          boats={(boatsData as Pick<Boat, "id" | "name">[] | null) ?? []}
+          followedIds={((followsData as { boat_id: string }[] | null) ?? []).map((f) => f.boat_id)}
+        />
       </div>
     );
   }

@@ -6,11 +6,13 @@ import {
   handleChargeRefunded,
   handleCheckoutCompleted,
   handleInvoicePaid,
+  handleInvoicePaymentFailed,
 } from "@/lib/billing";
 
 // Stripe → BoathouseOS. Registered in Stripe as a Connect webhook ("events on
 // connected accounts") pointing at /api/stripe/webhook, sending:
-// checkout.session.completed, invoice.paid, charge.refunded, account.updated.
+// checkout.session.completed, invoice.paid, invoice.payment_failed,
+// charge.refunded, account.updated.
 // Every event is verified with STRIPE_WEBHOOK_SECRET before anything is
 // written, so nobody can fake a payment by calling this URL.
 export async function POST(request: Request) {
@@ -36,6 +38,9 @@ export async function POST(request: Request) {
         break;
       case "invoice.paid":
         await handleInvoicePaid(admin, stripe, event.data.object, event.account);
+        break;
+      case "invoice.payment_failed":
+        await handleInvoicePaymentFailed(admin, event.data.object);
         break;
       case "charge.refunded":
         await handleChargeRefunded(admin, event.data.object);

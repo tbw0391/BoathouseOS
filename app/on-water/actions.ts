@@ -52,8 +52,9 @@ export async function startSession(boatId: string, color: string) {
   return sessionId;
 }
 
-// Tells the crew's parents their boat is out: everyone seated in today's
-// lineup for this boat, if there is one, plus the coxswain.
+// Tells the crew's parents their boat is out (everyone seated in today's
+// lineup for this boat, if there is one, plus the coxswain), and anyone
+// following the boat on the On the Water page.
 async function alertCrewFamilies(sessionId: string, boatId: string, coxswainId: string) {
   const admin = createAdminClient();
 
@@ -95,10 +96,15 @@ async function alertCrewFamilies(sessionId: string, boatId: string, coxswainId: 
     ]),
   ];
 
+  const { data: followers } = await admin.from("on_water_follows").select("profile_id").eq("boat_id", boatId);
+
   const boatName = (boat as { name: string } | null)?.name ?? "A boat";
   const coxName = (coxswain as { display_name: string } | null)?.display_name;
   await sendPush(
-    (await guardianIdsFor(crew)).filter((id) => id !== coxswainId),
+    [
+      ...(await guardianIdsFor(crew)),
+      ...((followers as { profile_id: string }[] | null) ?? []).map((f) => f.profile_id),
+    ].filter((id) => id !== coxswainId),
     {
       kind: "boat_on_water",
       title: `${boatName} is on the water`,
@@ -125,4 +131,19 @@ export async function endSession(sessionId: string) {
 
   revalidatePath("/on-water");
   revalidatePath("/coach/tracking");
+}
+
+export async function setBoatFollowed(boatId: string, follow: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { error } = follow
+    ? await supabase
+        .from("on_water_follows")
+        .upsert({ profile_id: user.id, boat_id: boatId }, { onConflict: "profile_id,boat_id", ignoreDuplicates: true })
+    : await supabase.from("on_water_follows").delete().eq("profile_id", user.id).eq("boat_id", boatId);
+  if (error) throw new Error(error.message);
 }

@@ -15,7 +15,22 @@ export const ALERT_TYPES = [
   {
     kind: "boat_on_water",
     label: "Boat on the water",
-    detail: "Phone alert to the crew's parents when their boat starts tracking.",
+    detail: "Phone alert to the crew's parents, and anyone following the boat, when it starts tracking.",
+  },
+  {
+    kind: "food_draft",
+    label: "Food list draft ready",
+    detail: "Phone alert to tent leaders when the week-out draft is waiting.",
+  },
+  {
+    kind: "payment_due",
+    label: "Payment due / overdue",
+    detail: "Phone alert to the family 3 days before a bill is due, and the day after if unpaid.",
+  },
+  {
+    kind: "payment_failed",
+    label: "Automatic payment failed",
+    detail: "Phone alert to the family and the treasurer when an installment is declined.",
   },
   {
     kind: "regatta_week_popup",

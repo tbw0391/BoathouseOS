@@ -152,3 +152,21 @@ export async function guardianIdsFor(rowerIds: string[]): Promise<string[]> {
     ]),
   ];
 }
+
+// Who handles a rower's bills: their guardians (and spouses), or the rower
+// themselves if nobody's linked (an adult rower).
+export async function householdIdsForRower(rowerId: string): Promise<string[]> {
+  const guardians = await guardianIdsFor([rowerId]);
+  return guardians.length > 0 ? guardians : [rowerId];
+}
+
+// Admins and treasurers (who manage payments).
+export async function treasurerIds(): Promise<string[]> {
+  const { data } = await createAdminClient()
+    .from("profiles")
+    .select("id")
+    .or("role.eq.admin,is_treasurer.eq.true")
+    .not("approved_at", "is", null)
+    .is("disabled_at", null);
+  return ((data as { id: string }[] | null) ?? []).map((p) => p.id);
+}
