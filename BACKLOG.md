@@ -558,6 +558,11 @@
       longer callable by signed-out visitors. Remaining advisor warnings
       are intentional (signed-in helpers used by RLS) plus the
       leaked-password setting.
+- [x] Automated tests (2026-09-27): Vitest (`npm test`, tests/) covering
+      money math, discounts, installments, alert switches, push-endpoint
+      allowlist, calendar repeats/standing practices, CrewTimer parsing and
+      race categories. GitHub Actions (.github/workflows/ci.yml) runs
+      typecheck + lint + tests on every push.
 - [ ] Ongoing: new tables need `select public.apply_approval_gate();` at the
       end of their migration. Review RLS on every new table, run /security-review before
       big releases, check Supabase Advisors → Security.

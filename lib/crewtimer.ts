@@ -94,13 +94,17 @@ export function clubRaces(feed: Feed, clubNames: string[]): CrewTimerRace[] {
   return races;
 }
 
-// Every club entered, without boat letters, for picking your own.
+// Every club entered, without boat letters, for picking your own. Spellings
+// that only differ in case or punctuation count as one club (first seen wins).
 export function crewNamesIn(feed: Feed): string[] {
-  const names = new Set<string>();
+  const byKey = new Map<string, string>();
   for (const event of feed.results ?? []) {
     for (const entry of event.entries ?? []) {
-      if (entry.Crew) names.add(withoutBoatLetter(entry.Crew.trim()));
+      if (!entry.Crew) continue;
+      const name = withoutBoatLetter(entry.Crew.trim());
+      const key = normalizeCrewName(name);
+      if (!byKey.has(key)) byKey.set(key, name);
     }
   }
-  return [...names].sort((a, b) => a.localeCompare(b));
+  return [...byKey.values()].sort((a, b) => a.localeCompare(b));
 }
