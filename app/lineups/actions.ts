@@ -8,6 +8,7 @@ import {
   LINEUP_CATEGORY_OPTIONS,
   FLEET_CATEGORY_OPTIONS,
   CATEGORY_BOAT_CLASS,
+  categoryForRace,
 } from "@/lib/lineupCategories";
 import { HULL_COLOR_OPTIONS, RIG_OPTIONS } from "@/lib/boatOptions";
 import { parseStarredLines } from "@/lib/scheduleStars";
@@ -416,7 +417,7 @@ export async function createLineup(formData: FormData) {
     boat_id: boatId,
     boat_name: boat.name,
     boat_class: boat.boat_class,
-    category: category as LineupCategory,
+    category: categoryForRace(raceName, category) as LineupCategory,
     notes,
     race_name: raceName,
     race_time: raceTime,
@@ -485,7 +486,13 @@ export async function importRaces(eventId: string, rows: RaceImportRow[]) {
       rowErrors.push(`${rowLabel}: couldn't read race time "${row.race_time}", left blank.`);
     }
 
-    toInsert.push({ event_id: eventId, race_name: raceName, category, race_time: raceTime, created_by: user.id });
+    toInsert.push({
+      event_id: eventId,
+      race_name: raceName,
+      category: categoryForRace(raceName, category) as LineupCategory | null,
+      race_time: raceTime,
+      created_by: user.id,
+    });
   });
 
   if (toInsert.length === 0) {
@@ -542,7 +549,14 @@ export async function createRacesFromDescription(eventId: string) {
 
   const { error, data } = await supabase
     .from("races")
-    .insert(newNames.map((raceName) => ({ event_id: eventId, race_name: raceName, created_by: user.id })))
+    .insert(
+      newNames.map((raceName) => ({
+        event_id: eventId,
+        race_name: raceName,
+        category: categoryForRace(raceName, null) as LineupCategory | null,
+        created_by: user.id,
+      }))
+    )
     .select("id");
   if (error) throw new Error(error.message);
 
@@ -613,7 +627,7 @@ export async function createLineupForRace(formData: FormData) {
     boat_id: boatId,
     boat_name: boat.name,
     boat_class: boat.boat_class,
-    category: templateCategory ?? race.category,
+    category: categoryForRace(race.race_name, templateCategory ?? race.category) as LineupCategory | null,
     notes: templateNotes,
     race_name: race.race_name,
     race_time: race.race_time,
@@ -769,9 +783,12 @@ export async function updateLineupRace(formData: FormData) {
   const raceTimeRaw = String(formData.get("race_time") ?? "").trim();
   const raceTime = raceTimeRaw ? new Date(raceTimeRaw).toISOString() : null;
 
+  const { data: lineup } = await supabase.from("lineups").select("category").eq("id", lineupId).single();
+  const category = categoryForRace(raceName, (lineup as { category: string | null } | null)?.category ?? null);
+
   const { error } = await supabase
     .from("lineups")
-    .update({ race_name: raceName, race_time: raceTime })
+    .update({ race_name: raceName, race_time: raceTime, category: category as LineupCategory | null })
     .eq("id", lineupId);
 
   if (error) throw new Error(error.message);

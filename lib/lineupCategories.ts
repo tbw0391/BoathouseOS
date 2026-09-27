@@ -72,3 +72,19 @@ LINEUP_CATEGORY_GROUPS.push({ label: "Other", options: ["masters", "development"
 export { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM, LINEUP_CATEGORY_GROUPS, CATEGORY_BOAT_CLASS, FLEET_CATEGORY_GROUPS };
 export const LINEUP_CATEGORY_OPTIONS = Object.keys(LINEUP_CATEGORIES);
 export const FLEET_CATEGORY_OPTIONS = Object.keys(CATEGORY_BOAT_CLASS);
+
+// A race named for masters (e.g. "Race 12: Men's Masters 8+") is a masters
+// race no matter which fleet boat rows it, so it reads as Masters rather than
+// picking up the boat's Men's/Women's category.
+export function isMastersRaceName(raceName: string | null | undefined): boolean {
+  return /\bmasters?\b/i.test(raceName ?? "");
+}
+
+// The category a race or lineup should carry: a masters race keeps a
+// masters category when it already has one and otherwise becomes plain
+// Masters; anything else keeps what it was given.
+export function categoryForRace(raceName: string | null | undefined, category: string | null): string | null {
+  if (!isMastersRaceName(raceName)) return category;
+  if (category && LINEUP_CATEGORY_TEAM[category] === "masters") return category;
+  return "masters";
+}

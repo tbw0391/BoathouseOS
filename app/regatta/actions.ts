@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule, hotcRaceCategory, hotcRaceName, hotcRaceTime } from "@/lib/hotc";
+import { categoryForRace } from "@/lib/lineupCategories";
+import type { LineupCategory } from "@/lib/database.types";
 
 // Turns one of the picked club's Head of the Cuyahoga races into a race on
 // the Lineups page (creating the regatta on the schedule the first time), then
@@ -77,7 +79,7 @@ export async function addRegattaRaceToLineups(formData: FormData) {
         event_id: eventId,
         race_name: raceName,
         race_time: hotcRaceTime(schedule.date, race.start),
-        category: hotcRaceCategory(race),
+        category: categoryForRace(raceName, hotcRaceCategory(race)) as LineupCategory | null,
         created_by: user.id,
       })
       .select("id")
