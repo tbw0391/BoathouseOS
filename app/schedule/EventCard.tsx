@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { deleteScheduleEvent, updateScheduleEvent } from "./actions";
 import type { EventType, ScheduleEvent } from "@/lib/database.types";
 import { EventIcon } from "@/components/EventIcon";
@@ -192,6 +193,14 @@ export function EventCard({
             )
           )}
         </div>
+      )}
+      {eventType === "regatta" && (
+        <Link
+          href={`/lineups/${event.id}`}
+          className="mt-3 inline-block text-sm font-medium text-[var(--color-primary)] underline"
+        >
+          Open regatta: races, crews, jobs, results →
+        </Link>
       )}
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       {canManage && eventType === "regatta" && (

@@ -37,6 +37,7 @@ export async function createTaskType(formData: FormData) {
   }
 
   revalidatePath("/coach/tasks");
+  revalidatePath("/lineups", "layout");
 }
 
 export async function deleteTaskType(typeId: string) {
@@ -52,6 +53,7 @@ export async function deleteTaskType(typeId: string) {
   }
 
   revalidatePath("/coach/tasks");
+  revalidatePath("/lineups", "layout");
 }
 
 export async function createCoachTask(formData: FormData) {
@@ -74,6 +76,7 @@ export async function createCoachTask(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/coach/tasks");
+  revalidatePath("/lineups", "layout");
   revalidatePath("/");
 }
 
@@ -95,6 +98,7 @@ export async function updateCoachTask(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/coach/tasks");
+  revalidatePath("/lineups", "layout");
   revalidatePath("/");
 }
 
@@ -106,6 +110,7 @@ export async function deleteCoachTask(taskId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/coach/tasks");
+  revalidatePath("/lineups", "layout");
   revalidatePath("/");
 }
 
@@ -122,6 +127,7 @@ export async function assignRowerToTask(taskId: string, userId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/coach/tasks");
+  revalidatePath("/lineups", "layout");
   revalidatePath("/");
 }
 
@@ -140,6 +146,7 @@ export async function unassignRowerFromTask(taskId: string, userId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/coach/tasks");
+  revalidatePath("/lineups", "layout");
   revalidatePath("/");
 }
 
@@ -159,6 +166,7 @@ export async function assignRowerGroupToTask(taskId: string, userIds: string[]) 
   if (error) throw new Error(error.message);
 
   revalidatePath("/coach/tasks");
+  revalidatePath("/lineups", "layout");
   revalidatePath("/");
 }
 
@@ -177,5 +185,6 @@ export async function unassignRowerGroupFromTask(taskId: string, userIds: string
   if (error) throw new Error(error.message);
 
   revalidatePath("/coach/tasks");
+  revalidatePath("/lineups", "layout");
   revalidatePath("/");
 }

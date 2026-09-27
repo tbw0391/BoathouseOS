@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { RaceBox } from "./RaceBox";
 import { LineupDetail } from "./LineupDetail";
 import { AssignBoatPanel } from "./AssignBoatPanel";
@@ -11,8 +10,6 @@ import type { Boat } from "@/lib/database.types";
 
 export function EventRacesView({
   eventId,
-  eventTitle,
-  eventDate,
   items,
   boats,
   canManage,
@@ -21,8 +18,6 @@ export function EventRacesView({
   initialSelectedKey = null,
 }: {
   eventId: string;
-  eventTitle: string;
-  eventDate: string;
   items: RaceBoxItem[];
   boats: Boat[];
   canManage: boolean;
@@ -54,13 +49,7 @@ export function EventRacesView({
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <Link href="/lineups" className="text-sm text-gray-500 hover:underline">
-        ← Lineups
-      </Link>
-      <h1 className="text-2xl font-bold mt-4">{eventTitle}</h1>
-      <p className="text-sm text-gray-500 mb-6">{eventDate}</p>
-
+    <div>
       {items.length === 0 ? (
         <p className="text-sm text-gray-500">No races or boats yet.</p>
       ) : (
