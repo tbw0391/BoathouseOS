@@ -9,7 +9,6 @@ import {
   categoryForRace,
 } from "@/lib/lineupCategories";
 import { HULL_COLOR_OPTIONS, RIG_OPTIONS } from "@/lib/boatOptions";
-import { parseStarredLines } from "@/lib/scheduleStars";
 import type { LineupCategory } from "@/lib/database.types";
 import {
   boatLineupDefaults,
@@ -310,40 +309,6 @@ export async function importRaces(eventId: string, rows: RaceImportRow[]) {
   revalidatePath("/");
   revalidatePath("/coach/tasks");
   return { imported: raceIds.length, errors: rowErrors };
-}
-
-// Pulls the ★-marked lines out of a regatta's own description (the same
-// lines that show highlighted on the Schedule page) and turns any that
-// aren't already a race for this event into one — same "Races needing a
-// lineup" flow as a CSV import, just sourced from the schedule instead of a
-// spreadsheet. Matches by exact race name, so re-clicking after adding more
-// starred lines only adds the new ones.
-export async function createRacesFromDescription(eventId: string) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
-
-  if (!eventId) throw new Error("Missing event.");
-
-  const { data: event, error: eventError } = await supabase
-    .from("schedule_events")
-    .select("description")
-    .eq("id", eventId)
-    .single();
-  if (eventError || !event) throw new Error("That event couldn't be found.");
-
-  const starredNames = parseStarredLines(event.description);
-  if (starredNames.length === 0) return { imported: 0 };
-
-  const { raceIds } = await insertRaces(supabase, {
-    eventId,
-    userId: user.id,
-    races: starredNames.map((race_name) => ({ race_name })),
-  });
-
-  revalidatePath("/lineups");
-  revalidatePath("/");
-  revalidatePath("/coach/tasks");
-  return { imported: raceIds.length };
 }
 
 // Wall-clock time on a date in Eastern time (EDT or EST, whichever applies
