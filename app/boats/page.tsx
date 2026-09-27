@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Boat, LineupTemplate, LineupTemplateSeat, Profile } from "@/lib/database.types";
+import type { Boat, LineupCategory, LineupTemplate, LineupTemplateSeat, Profile, ProfileTeam } from "@/lib/database.types";
+import { LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { AddBoatForm } from "./AddBoatForm";
 import { BoatsGrid } from "./BoatsGrid";
 import { LineupTemplatesSection } from "@/app/lineups/LineupTemplatesSection";
@@ -46,8 +47,9 @@ export default async function BoatsPage() {
   let templates: LineupTemplate[] = [];
   let templateSeats: LineupTemplateSeat[] = [];
   let roster: Pick<Profile, "id" | "display_name">[] = [];
+  let profileTeams: ProfileTeam[] = [];
   if (canManage) {
-    const [templatesResult, seatsResult, rosterResult] = await Promise.all([
+    const [templatesResult, seatsResult, rosterResult, teamsResult] = await Promise.all([
       supabase.from("lineup_templates").select("*").order("name", { ascending: true }),
       supabase.from("lineup_template_seats").select("*"),
       supabase
@@ -55,7 +57,9 @@ export default async function BoatsPage() {
         .select("id, display_name")
         .is("disabled_at", null)
         .order("display_name", { ascending: true }),
+      supabase.from("profile_teams").select("*"),
     ]);
+    profileTeams = (teamsResult.data as ProfileTeam[] | null) ?? [];
     templates = (templatesResult.data as LineupTemplate[] | null) ?? [];
     templateSeats = ((seatsResult.data as LineupTemplateSeat[] | null) ?? []).sort(seatOrder);
     roster = (rosterResult.data as Pick<Profile, "id" | "display_name">[] | null) ?? [];
@@ -64,6 +68,31 @@ export default async function BoatsPage() {
   for (const t of templates) {
     if (t.boat_id) crewSeatsByBoatId[t.boat_id] = templateSeats.filter((s) => s.template_id === t.id);
   }
+
+  // Like a race lineup's seat picker: a crew only offers its category's squad
+  // (e.g. Women's boats offer the Women's team). Anyone already seated stays
+  // listed so their name still shows.
+  const profileIdsByTeam = new Map<string, Set<string>>();
+  for (const row of profileTeams) {
+    profileIdsByTeam.set(row.team, (profileIdsByTeam.get(row.team) ?? new Set()).add(row.profile_id));
+  }
+  function crewRoster(category: LineupCategory | null, seats: LineupTemplateSeat[]) {
+    const team = category ? LINEUP_CATEGORY_TEAM[category] : null;
+    if (!team) return roster;
+    const members = profileIdsByTeam.get(team) ?? new Set<string>();
+    const seated = new Set(seats.map((s) => s.rower_id));
+    return roster.filter((p) => members.has(p.id) || seated.has(p.id));
+  }
+  const rosterByTemplateId: Record<string, Pick<Profile, "id" | "display_name">[]> = {};
+  for (const t of templates) {
+    const boatCategory = t.boat_id ? boats.find((b) => b.id === t.boat_id)?.category ?? null : null;
+    rosterByTemplateId[t.id] = crewRoster(
+      t.category ?? boatCategory,
+      templateSeats.filter((s) => s.template_id === t.id)
+    );
+  }
+  const crewRosterByBoatId: Record<string, Pick<Profile, "id" | "display_name">[]> = {};
+  for (const b of boats) crewRosterByBoatId[b.id] = crewRoster(b.category, crewSeatsByBoatId[b.id] ?? []);
 
   return (
     <div className="min-h-screen p-8">
@@ -89,12 +118,22 @@ export default async function BoatsPage() {
       )}
 
       {boats.length > 0 && (
-        <BoatsGrid boats={boats} canManage={canManage} crewSeatsByBoatId={crewSeatsByBoatId} roster={roster} />
+        <BoatsGrid
+          boats={boats}
+          canManage={canManage}
+          crewSeatsByBoatId={crewSeatsByBoatId}
+          crewRosterByBoatId={crewRosterByBoatId}
+        />
       )}
 
       {canManage && (
         <div className="mt-8">
-          <LineupTemplatesSection templates={templates} templateSeats={templateSeats} roster={roster} boats={boats} />
+          <LineupTemplatesSection
+            templates={templates}
+            templateSeats={templateSeats}
+            rosterByTemplateId={rosterByTemplateId}
+            boats={boats}
+          />
         </div>
       )}
     </div>

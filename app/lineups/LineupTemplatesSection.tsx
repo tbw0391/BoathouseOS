@@ -108,12 +108,13 @@ function TemplateCard({
 export function LineupTemplatesSection({
   templates,
   templateSeats,
-  roster,
+  rosterByTemplateId,
   boats,
 }: {
   templates: LineupTemplate[];
   templateSeats: LineupTemplateSeat[];
-  roster: Pick<Profile, "id" | "display_name">[];
+  // Each template's seat choices, limited to its category's squad.
+  rosterByTemplateId: Record<string, Pick<Profile, "id" | "display_name">[]>;
   boats: Boat[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -178,7 +179,7 @@ export function LineupTemplatesSection({
                         ? 1
                         : 0
                 )}
-              roster={roster}
+              roster={rosterByTemplateId[t.id] ?? []}
               boats={boats}
               templates={templates}
             />
