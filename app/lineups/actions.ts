@@ -445,6 +445,7 @@ export async function createLineupTemplate(formData: FormData) {
   if (seatsError) throw new Error(seatsError.message);
 
   revalidatePath("/lineups");
+  revalidatePath("/boats");
 }
 
 export async function updateTemplateBoat(formData: FormData) {
@@ -477,6 +478,7 @@ export async function updateTemplateBoat(formData: FormData) {
   }
 
   revalidatePath("/lineups");
+  revalidatePath("/boats");
 }
 
 export async function deleteLineupTemplate(templateId: string) {
@@ -487,6 +489,7 @@ export async function deleteLineupTemplate(templateId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/lineups");
+  revalidatePath("/boats");
 }
 
 export async function assignTemplateSeat(seatId: string, rowerId: string | null) {
@@ -501,6 +504,7 @@ export async function assignTemplateSeat(seatId: string, rowerId: string | null)
   if (error) throw new Error(error.message);
 
   revalidatePath("/lineups");
+  revalidatePath("/boats");
 }
 
 export async function updateLineupRace(formData: FormData) {

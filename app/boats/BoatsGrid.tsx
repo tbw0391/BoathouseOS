@@ -5,7 +5,7 @@ import { BoatCard } from "./BoatCard";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { HULL_COLORS, RIGS } from "@/lib/boatOptions";
-import type { Boat, Team } from "@/lib/database.types";
+import type { Boat, LineupTemplateSeat, Team } from "@/lib/database.types";
 
 type SortKey = "name" | "type" | "hull_color" | "rig";
 
@@ -39,7 +39,17 @@ function sortValue(boat: Boat, key: SortKey): string {
   }
 }
 
-export function BoatsGrid({ boats, canManage }: { boats: Boat[]; canManage: boolean }) {
+export function BoatsGrid({
+  boats,
+  canManage,
+  crewSeatsByBoatId,
+  roster,
+}: {
+  boats: Boat[];
+  canManage: boolean;
+  crewSeatsByBoatId: Record<string, LineupTemplateSeat[]>;
+  roster: { id: string; display_name: string }[];
+}) {
   // Order of this array is sort priority: first key wins ties broken by the next.
   const [sortKeys, setSortKeys] = useState<SortKey[]>([]);
   const [filterTeams, setFilterTeams] = useState<Team[]>([]);
@@ -140,7 +150,13 @@ export function BoatsGrid({ boats, canManage }: { boats: Boat[]; canManage: bool
       {sortedBoats.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
           {sortedBoats.map((boat) => (
-            <BoatCard key={boat.id} boat={boat} canManage={canManage} />
+            <BoatCard
+              key={boat.id}
+              boat={boat}
+              canManage={canManage}
+              crewSeats={crewSeatsByBoatId[boat.id] ?? null}
+              roster={roster}
+            />
           ))}
         </div>
       )}

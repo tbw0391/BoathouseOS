@@ -130,6 +130,8 @@ export function LineupTemplatesSection({
     (b) => b.category && !templates.some((t) => t.boat_id === b.id)
   );
   const selectedBoat = boatsNeedingTemplate.find((b) => b.id === boatId) ?? null;
+  // Crews linked to a fleet boat are edited from that boat's card instead.
+  const otherTemplates = templates.filter((t) => !t.boat_id || !boats.some((b) => b.id === t.boat_id));
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -147,22 +149,21 @@ export function LineupTemplatesSection({
 
   return (
     <details
-      className="mb-8 border rounded-lg p-4 max-w-lg"
+      className="border rounded-lg p-4 max-w-lg"
       open={open}
       onToggle={(e) => setOpen(e.currentTarget.open)}
     >
       <summary className="cursor-pointer text-sm font-medium text-gray-600">
-        Lineup Templates ({templates.length})
+        Other saved crews ({otherTemplates.length})
       </summary>
       <p className="mt-2 text-xs text-gray-500">
-        Fleet boats get a saved crew automatically once they have a category — edit its seats
-        below. Use this form only for a crew that isn&apos;t tied to a fleet boat yet (masters,
-        development, or a legacy boat).
+        A fleet boat&apos;s own crew is under its Crew button above. Use this for a crew that
+        isn&apos;t tied to a fleet boat (like a custom development crew).
       </p>
 
-      {templates.length > 0 && (
+      {otherTemplates.length > 0 && (
         <div className="mt-3 flex flex-col gap-3">
-          {templates.map((t) => (
+          {otherTemplates.map((t) => (
             <TemplateCard
               key={t.id}
               template={t}

@@ -1,15 +1,28 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateBoat, deleteBoat } from "@/app/lineups/actions";
+import { updateBoat, deleteBoat, assignTemplateSeat } from "@/app/lineups/actions";
+import { SeatFiller } from "@/app/lineups/SeatFiller";
 import { BoatTypePicker } from "./BoatTypePicker";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES } from "@/lib/lineupCategories";
 import { HULL_COLORS, RIGS } from "@/lib/boatOptions";
-import type { Boat } from "@/lib/database.types";
+import type { Boat, LineupTemplateSeat } from "@/lib/database.types";
 
-export function BoatCard({ boat, canManage }: { boat: Boat; canManage: boolean }) {
+export function BoatCard({
+  boat,
+  canManage,
+  crewSeats,
+  roster,
+}: {
+  boat: Boat;
+  canManage: boolean;
+  // The boat's saved crew (every fleet boat with a squad has one), if any.
+  crewSeats: LineupTemplateSeat[] | null;
+  roster: { id: string; display_name: string }[];
+}) {
   const [editing, setEditing] = useState(false);
+  const [crewOpen, setCrewOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -79,9 +92,13 @@ export function BoatCard({ boat, canManage }: { boat: Boat; canManage: boolean }
 
   const tint = boat.hull_color ? HULL_COLORS[boat.hull_color]?.swatch : null;
 
+  const filledSeats = crewSeats?.filter((s) => s.rower_id).length ?? 0;
+
   return (
     <div
-      className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-[var(--color-primary)] px-3 py-3 text-sm text-center min-w-0"
+      className={`flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-[var(--color-primary)] px-3 py-3 text-sm text-center min-w-0 ${
+        crewOpen ? "col-span-3" : ""
+      }`}
       style={tint ? { backgroundColor: `color-mix(in srgb, ${tint} 18%, white)` } : undefined}
     >
       <span className="truncate w-full font-medium">{boat.name}</span>
@@ -101,7 +118,12 @@ export function BoatCard({ boat, canManage }: { boat: Boat; canManage: boolean }
       </span>
 
       {canManage && (
-        <div className="flex gap-3 mt-1">
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1">
+          {crewSeats && (
+            <button onClick={() => setCrewOpen(!crewOpen)} className="text-xs font-medium hover:underline">
+              {crewOpen ? "Close crew" : `Crew ${filledSeats}/${crewSeats.length}`}
+            </button>
+          )}
           <button onClick={() => setEditing(true)} className="text-xs font-medium hover:underline">
             Edit
           </button>
@@ -112,6 +134,14 @@ export function BoatCard({ boat, canManage }: { boat: Boat; canManage: boolean }
           >
             Remove
           </button>
+        </div>
+      )}
+      {crewOpen && crewSeats && (
+        <div className="w-full max-w-md mt-2 text-left">
+          <p className="text-xs text-gray-500 mb-2">
+            This crew fills in automatically whenever {boat.name} is put in a race.
+          </p>
+          <SeatFiller seats={crewSeats} roster={roster} onAssign={assignTemplateSeat} />
         </div>
       )}
     </div>

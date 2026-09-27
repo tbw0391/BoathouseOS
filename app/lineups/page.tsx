@@ -1,18 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isPastEvent } from "@/lib/schedule";
-import type {
-  Boat,
-  Lineup,
-  LineupTemplate,
-  LineupTemplateSeat,
-  Profile,
-  Race,
-  ScheduleEvent,
-} from "@/lib/database.types";
-import { resolveLineupSectionVisibility } from "@/lib/lineupSections";
-import { BoatsSection } from "./BoatsSection";
-import { LineupTemplatesSection } from "./LineupTemplatesSection";
+import type { Lineup, Race, ScheduleEvent } from "@/lib/database.types";
 import { EventIcon } from "@/components/EventIcon";
 
 export default async function LineupsPage() {
@@ -28,22 +17,6 @@ export default async function LineupsPage() {
     .single();
   const callerRole = (callerProfile as { role: string } | null)?.role;
   const canManage = callerRole === "admin" || callerRole === "coach";
-  const isAdmin = callerRole === "admin";
-
-  const { data: settingsData } = await supabase
-    .from("club_settings")
-    .select("key, value")
-    .eq("key", "lineup_section_visibility");
-  const settingsByKey = new Map(
-    ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
-  );
-  const sectionVisibilityById = resolveLineupSectionVisibility(settingsByKey);
-  function sectionVisible(id: string): boolean {
-    if (isAdmin) return true;
-    const visibility = sectionVisibilityById[id] ?? "everyone";
-    if (visibility === "coaches") return canManage;
-    return visibility === "everyone";
-  }
 
   const { data: eventsData } = await supabase
     .from("schedule_events")
@@ -56,31 +29,6 @@ export default async function LineupsPage() {
 
   const { data: racesData } = await supabase.from("races").select("*");
   const races = (racesData as Race[] | null) ?? [];
-
-  const { data: boatsData } = await supabase
-    .from("boats")
-    .select("*")
-    .order("name", { ascending: true });
-  const boats = (boatsData as Boat[] | null) ?? [];
-
-  const { data: templatesData } = await supabase
-    .from("lineup_templates")
-    .select("*")
-    .order("name", { ascending: true });
-  const templates = (templatesData as LineupTemplate[] | null) ?? [];
-
-  const { data: templateSeatsData } = await supabase
-    .from("lineup_template_seats")
-    .select("*")
-    .order("seat_number", { ascending: true });
-  const templateSeats = (templateSeatsData as LineupTemplateSeat[] | null) ?? [];
-
-  const { data: rosterData } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .is("disabled_at", null)
-    .order("display_name", { ascending: true });
-  const roster = (rosterData as Pick<Profile, "id" | "display_name">[] | null) ?? [];
 
   const eventIdsWithLineups = new Set(lineups.map((l) => l.event_id));
   const eventIdsWithRaces = new Set(races.map((r) => r.event_id));
@@ -140,18 +88,10 @@ export default async function LineupsPage() {
         ))}
       </div>
 
-      {canManage && (sectionVisible("fleet") || sectionVisible("templates")) && (
-        <div className="mt-8 flex flex-col gap-3">
-          {sectionVisible("fleet") && <BoatsSection boats={boats} />}
-          {sectionVisible("templates") && (
-            <LineupTemplatesSection
-              templates={templates}
-              templateSeats={templateSeats}
-              roster={roster}
-              boats={boats}
-            />
-          )}
-        </div>
+      {canManage && (
+        <Link href="/boats" className="mt-8 inline-block text-sm text-gray-600 underline">
+          Boats and saved crews are on the Boats page →
+        </Link>
       )}
 
       {past.length > 0 && (
