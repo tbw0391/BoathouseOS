@@ -9,7 +9,7 @@
 -- Until both are set the calls are rejected and nothing is sent.
 
 -- What's been sent, so each alert goes out once even if runs overlap.
-create table scheduled_alerts_sent (
+create table if not exists scheduled_alerts_sent (
   kind text not null,
   ref text not null,
   sent_at timestamptz not null default now(),
@@ -20,7 +20,7 @@ create table scheduled_alerts_sent (
 alter table scheduled_alerts_sent enable row level security;
 
 -- Parents follow boats on the On the Water page to hear when they go out.
-create table on_water_follows (
+create table if not exists on_water_follows (
   profile_id uuid not null references profiles (id) on delete cascade,
   boat_id uuid not null references boats (id) on delete cascade,
   created_at timestamptz not null default now(),
@@ -29,6 +29,7 @@ create table on_water_follows (
 
 alter table on_water_follows enable row level security;
 
+drop policy if exists "members manage the boats they follow" on on_water_follows;
 create policy "members manage the boats they follow"
   on on_water_follows for all
   to authenticated
@@ -38,6 +39,8 @@ create policy "members manage the boats they follow"
 select public.apply_approval_gate();
 
 create extension if not exists pg_net;
+
+select cron.unschedule(jobid) from cron.job where jobname = 'scheduled-alerts';
 
 select cron.schedule(
   'scheduled-alerts',

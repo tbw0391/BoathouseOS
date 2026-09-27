@@ -2,7 +2,7 @@
 -- on for. Sending happens server-side with the service-role client
 -- (lib/push.ts), which also drops subscriptions the push service says are gone.
 
-create table push_subscriptions (
+create table if not exists push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles (id) on delete cascade,
   endpoint text not null unique,
@@ -12,10 +12,11 @@ create table push_subscriptions (
   created_at timestamptz not null default now()
 );
 
-create index push_subscriptions_user_idx on push_subscriptions (user_id);
+create index if not exists push_subscriptions_user_idx on push_subscriptions (user_id);
 
 alter table push_subscriptions enable row level security;
 
+drop policy if exists "members manage their own push subscriptions" on push_subscriptions;
 create policy "members manage their own push subscriptions"
   on push_subscriptions for all
   to authenticated

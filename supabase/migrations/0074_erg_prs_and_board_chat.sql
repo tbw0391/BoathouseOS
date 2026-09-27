@@ -2,7 +2,7 @@
 -- profile only holds the latest time). Filled by a trigger on profiles, so it
 -- works whichever way the time gets saved (bio form, admin edit, import).
 
-create table erg_times (
+create table if not exists erg_times (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references profiles (id) on delete cascade,
   distance text not null check (distance in ('2k', '5k')),
@@ -13,10 +13,11 @@ create table erg_times (
   recorded_at timestamptz not null default now()
 );
 
-create index erg_times_profile_idx on erg_times (profile_id, distance, recorded_at desc);
+create index if not exists erg_times_profile_idx on erg_times (profile_id, distance, recorded_at desc);
 
 alter table erg_times enable row level security;
 
+drop policy if exists "members read their own erg times, coaches read all" on erg_times;
 create policy "members read their own erg times, coaches read all"
   on erg_times for select
   to authenticated
@@ -78,12 +79,16 @@ create trigger profiles_log_erg_times
   for each row execute function public.log_erg_times();
 
 -- Today's times become the starting point; none of them count as a PR.
+-- (Only the first time this runs.)
 insert into erg_times (profile_id, distance, time_text, seconds)
-select id, '2k', trim(erg_2k_time), public.erg_seconds(erg_2k_time)
-from profiles where public.erg_seconds(erg_2k_time) is not null
-union all
-select id, '5k', trim(erg_5k_time), public.erg_seconds(erg_5k_time)
-from profiles where public.erg_seconds(erg_5k_time) is not null;
+select * from (
+  select id, '2k', trim(erg_2k_time), public.erg_seconds(erg_2k_time)
+  from profiles where public.erg_seconds(erg_2k_time) is not null
+  union all
+  select id, '5k', trim(erg_5k_time), public.erg_seconds(erg_5k_time)
+  from profiles where public.erg_seconds(erg_5k_time) is not null
+) baseline
+where not exists (select 1 from erg_times);
 
 select public.apply_approval_gate();
 
