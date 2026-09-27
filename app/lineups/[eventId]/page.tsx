@@ -211,7 +211,7 @@ export default async function EventRacesPage({
 
   const starredNames = parseStarredLines(typedEvent.description);
   const existingRaceNames = new Set(races.map((r) => r.race_name));
-  const starredCount = starredNames.filter((name) => !existingRaceNames.has(name)).length;
+  const pendingStarredLines = starredNames.filter((name) => !existingRaceNames.has(name));
 
   return (
     <EventRacesView
@@ -221,7 +221,8 @@ export default async function EventRacesPage({
       items={items}
       boats={boats}
       canManage={canManage}
-      starredCount={canManage ? starredCount : 0}
+      pendingStarredLines={canManage ? pendingStarredLines : []}
+      hasResultsFeed={typedEvent.title === HOTC.title}
       initialSelectedKey={selectedRaceId ? `race:${selectedRaceId}` : null}
     />
   );

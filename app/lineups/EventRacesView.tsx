@@ -5,9 +5,7 @@ import Link from "next/link";
 import { RaceBox } from "./RaceBox";
 import { LineupDetail } from "./LineupDetail";
 import { AssignBoatPanel } from "./AssignBoatPanel";
-import { CreateLineupForm } from "./CreateLineupForm";
-import { ImportRacesForm } from "./ImportRacesForm";
-import { ImportStarredRacesButton } from "./ImportStarredRacesButton";
+import { AddRacesPanel } from "./AddRacesPanel";
 import type { RaceBoxItem } from "./raceBoxTypes";
 import type { Boat } from "@/lib/database.types";
 
@@ -18,7 +16,8 @@ export function EventRacesView({
   items,
   boats,
   canManage,
-  starredCount,
+  pendingStarredLines,
+  hasResultsFeed,
   initialSelectedKey = null,
 }: {
   eventId: string;
@@ -27,7 +26,8 @@ export function EventRacesView({
   items: RaceBoxItem[];
   boats: Boat[];
   canManage: boolean;
-  starredCount: number;
+  pendingStarredLines: string[];
+  hasResultsFeed: boolean;
   initialSelectedKey?: string | null;
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(initialSelectedKey);
@@ -61,10 +61,6 @@ export function EventRacesView({
       <h1 className="text-2xl font-bold mt-4">{eventTitle}</h1>
       <p className="text-sm text-gray-500 mb-6">{eventDate}</p>
 
-      {canManage && starredCount > 0 && (
-        <ImportStarredRacesButton eventId={eventId} count={starredCount} />
-      )}
-
       {items.length === 0 ? (
         <p className="text-sm text-gray-500">No races or boats yet.</p>
       ) : (
@@ -83,9 +79,13 @@ export function EventRacesView({
       )}
 
       {canManage && (
-        <div className="mt-6 max-w-lg flex flex-col gap-3">
-          <ImportRacesForm eventId={eventId} />
-          <CreateLineupForm eventId={eventId} boats={boats} />
+        <div className="mt-6 max-w-lg">
+          <AddRacesPanel
+            eventId={eventId}
+            boats={boats}
+            hasResultsFeed={hasResultsFeed}
+            pendingStarredLines={pendingStarredLines}
+          />
         </div>
       )}
     </div>

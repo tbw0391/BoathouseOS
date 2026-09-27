@@ -214,13 +214,13 @@ export async function createLineup(formData: FormData) {
   if (!eventId || !boatId) {
     throw new Error("Please choose a boat.");
   }
-  if (!LINEUP_CATEGORY_OPTIONS.includes(category)) {
-    throw new Error("Please choose a category.");
+  if (category && !LINEUP_CATEGORY_OPTIONS.includes(category)) {
+    throw new Error("Please choose a valid category.");
   }
 
   const { data: boat, error: boatError } = await supabase
     .from("boats")
-    .select("name, boat_class")
+    .select("name, boat_class, category")
     .eq("id", boatId)
     .single();
   if (boatError || !boat) throw new Error("That boat couldn't be found.");
@@ -234,7 +234,7 @@ export async function createLineup(formData: FormData) {
     boat_id: boatId,
     boat_name: boat.name,
     boat_class: boat.boat_class,
-    category: categoryForRace(raceName, category) as LineupCategory,
+    category: categoryForRace(raceName, category || boat.category) as LineupCategory | null,
     notes,
     race_name: raceName,
     race_time: raceTime,
@@ -344,6 +344,50 @@ export async function createRacesFromDescription(eventId: string) {
   revalidatePath("/");
   revalidatePath("/coach/tasks");
   return { imported: raceIds.length };
+}
+
+// Wall-clock time on a date in Eastern time (EDT or EST, whichever applies
+// that day) as an ISO timestamp.
+function easternTimeOn(date: string, hour: number, minute: number): string {
+  const guess = new Date(`${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00-05:00`);
+  const easternHour = Number(
+    guess.toLocaleString("en-US", { timeZone: "America/New_York", hour: "numeric", hourCycle: "h23" })
+  );
+  return new Date(guess.getTime() - ((easternHour - hour + 24) % 24) * 60 * 60 * 1000).toISOString();
+}
+
+// "Paste a list" on a regatta: one race per line, optionally starting with
+// its time ("9:15 AM Men's Masters 8+"). A trailing ★ (from a schedule
+// description) is dropped. Races already on the regatta are skipped.
+export async function addPastedRaces(eventId: string, text: string) {
+  const supabase = await createClient();
+  const { user } = await requireManager(supabase);
+  if (!eventId) throw new Error("Missing event.");
+
+  const { data: event } = await supabase.from("schedule_events").select("starts_at").eq("id", eventId).single();
+  if (!event) throw new Error("That event couldn't be found.");
+  const eventDate = new Date(event.starts_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+
+  const races = text
+    .split("\n")
+    .map((line) => line.replace(/★\s*$/, "").trim())
+    .filter(Boolean)
+    .map((line) => {
+      const m = line.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?\s*[-–—:]?\s+(.+)$/i);
+      if (!m) return { race_name: line };
+      let hour = Number(m[1]) % 12;
+      if (m[3]?.toLowerCase() === "pm" || (!m[3] && Number(m[1]) === 12)) hour += 12;
+      if (!m[3] && Number(m[1]) > 12) hour = Number(m[1]);
+      return { race_name: m[4].trim(), race_time: easternTimeOn(eventDate, hour, Number(m[2])) };
+    });
+  if (races.length === 0) throw new Error("Type or paste at least one race.");
+
+  const { raceIds } = await insertRaces(supabase, { eventId, userId: user.id, races });
+
+  revalidatePath("/lineups", "layout");
+  revalidatePath("/");
+  revalidatePath("/coach/tasks");
+  return { imported: raceIds.length, skipped: races.length - raceIds.length };
 }
 
 export async function deleteRace(formData: FormData) {

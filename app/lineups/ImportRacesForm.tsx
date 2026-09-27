@@ -8,7 +8,6 @@ function normalizeKey(key: string) {
 }
 
 export function ImportRacesForm({ eventId }: { eventId: string }) {
-  const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ imported: number; errors: string[] } | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -55,30 +54,8 @@ export function ImportRacesForm({ eventId }: { eventId: string }) {
     }
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2"
-      >
-        Import races from Excel
-      </button>
-    );
-  }
-
   return (
-    <div className="border rounded-lg p-4 flex flex-col gap-3 max-w-md">
-      <div className="flex items-center justify-between">
-        <h2 className="font-medium">Import races from Excel</h2>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-sm text-gray-500 hover:underline"
-        >
-          Close
-        </button>
-      </div>
-
+    <div className="flex flex-col gap-3">
       <p className="text-sm text-gray-500">
         Columns expected (case-insensitive): Race Name (or Race/Event), Category, Race Time. Only
         Race Name is required. Category can be written like &quot;Men&apos;s 1V8&quot; or

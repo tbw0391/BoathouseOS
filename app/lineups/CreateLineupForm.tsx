@@ -8,7 +8,6 @@ import type { Boat } from "@/lib/database.types";
 
 export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: Boat[] }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -18,31 +17,16 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
       try {
         await createLineup(formData);
         formRef.current?.reset();
-        setOpen(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
     });
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2"
-      >
-        Add boat
-      </button>
-    );
-  }
-
   if (boats.length === 0) {
     return (
       <p className="text-sm text-gray-500">
-        Add a boat to the fleet above before creating a lineup.{" "}
-        <button onClick={() => setOpen(false)} className="underline">
-          Close
-        </button>
+        Add a boat on the Boats page first.
       </p>
     );
   }
@@ -51,7 +35,7 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
     <form
       ref={formRef}
       action={handleSubmit}
-      className="border rounded-lg p-3 flex flex-col gap-2 max-w-sm"
+      className="flex flex-col gap-2"
     >
       <input type="hidden" name="event_id" value={eventId} />
       <select name="boat_id" defaultValue="" required className="border rounded px-3 py-2 text-sm">
@@ -64,10 +48,8 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
           </option>
         ))}
       </select>
-      <select name="category" defaultValue="" required className="border rounded px-3 py-2 text-sm">
-        <option value="" disabled>
-          Category
-        </option>
+      <select name="category" defaultValue="" className="border rounded px-3 py-2 text-sm">
+        <option value="">Category: same as the boat</option>
         {LINEUP_CATEGORY_GROUPS.map((group) => (
           <optgroup key={group.label} label={group.label}>
             {group.options.map((cat) => (
@@ -100,22 +82,13 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 text-sm disabled:opacity-50"
-        >
-          {isPending ? "Adding..." : "Add boat"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-sm text-gray-500 hover:underline"
-        >
-          Cancel
-        </button>
-      </div>
+      <button
+        type="submit"
+        disabled={isPending}
+        className="self-start bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2 text-sm disabled:opacity-50"
+      >
+        {isPending ? "Adding..." : "Add boat"}
+      </button>
     </form>
   );
 }
