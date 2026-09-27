@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import type { Bill, Charge, Discount, Order, OrderItem, Payment, PaymentSettings } from "@/lib/database.types";
 import {
-  PLATFORM_FEE_BPS,
+  CONVENIENCE_FEE_LABEL,
   amountPaid,
   applicableDiscount,
   billTotal,
@@ -119,12 +119,17 @@ export async function startBillCheckout(
   const account = { stripeAccount: settings.stripe_account_id };
 
   if (plan === "full") {
-    const surcharge = payerCovers ? payerSurcharge(remaining) : 0;
+    const convenience = platformFee(remaining);
+    const surcharge = payerCovers ? payerSurcharge(remaining + convenience) : 0;
     const session = await stripe.checkout.sessions.create(
       {
         mode: "payment",
-        line_items: [lineItem(name, remaining), ...(surcharge ? [lineItem("Card processing fee", surcharge)] : [])],
-        payment_intent_data: { application_fee_amount: platformFee(remaining), metadata: { bill_id: bill.id } },
+        line_items: [
+          lineItem(name, remaining),
+          lineItem(CONVENIENCE_FEE_LABEL, convenience),
+          ...(surcharge ? [lineItem("Card processing fee", surcharge)] : []),
+        ],
+        payment_intent_data: { application_fee_amount: convenience, metadata: { bill_id: bill.id } },
         metadata: { kind: "bill", bill_id: bill.id },
         success_url: `${returnUrl}?paid=1`,
         cancel_url: returnUrl,
@@ -135,7 +140,7 @@ export async function startBillCheckout(
       bill_id: bill.id,
       amount_cents: remaining,
       surcharge_cents: surcharge,
-      platform_fee_cents: platformFee(remaining),
+      platform_fee_cents: convenience,
       method: "card",
       status: "pending",
       stripe_checkout_session_id: session.id,
@@ -147,12 +152,17 @@ export async function startBillCheckout(
 
   if (!charge.allow_installments) throw new Error("This charge can't be split into payments.");
   if (bill.stripe_subscription_id) throw new Error("This bill already has a payment plan.");
+  // Each payment carries its own convenience fee (and card fee, if the payer
+  // covers it); leftover cents from splitting go on the first payment.
   const amounts = installmentAmounts(remaining, charge.installment_count);
   const base = amounts[amounts.length - 1];
   const firstExtra = amounts[0] - base;
-  const baseSurcharge = payerCovers ? payerSurcharge(base) : 0;
-  const firstGross = amounts[0] + (payerCovers ? payerSurcharge(amounts[0]) : 0);
-  const firstExtraGross = firstGross - (base + baseSurcharge);
+  const gross = (net: number) => net + platformFee(net) + (payerCovers ? payerSurcharge(net + platformFee(net)) : 0);
+  const baseGross = gross(base);
+  const baseSurcharge = baseGross - base - platformFee(base);
+  const firstExtraGross = gross(amounts[0]) - baseGross;
+  // Stripe takes the application fee as a percent of each invoice.
+  const feePercent = Math.round((platformFee(base) / baseGross) * 10000) / 100;
 
   const session = await stripe.checkout.sessions.create(
     {
@@ -162,25 +172,31 @@ export async function startBillCheckout(
           quantity: 1,
           price_data: {
             currency: "usd",
-            unit_amount: base + baseSurcharge,
+            unit_amount: baseGross,
             recurring: { interval: "day", interval_count: charge.installment_interval_days },
             product_data: {
-              name: `${name} (${charge.installment_count} payments${payerCovers ? ", incl. card fee" : ""})`,
+              name: `${name} (${charge.installment_count} payments, incl. ${CONVENIENCE_FEE_LABEL.toLowerCase()}${
+                payerCovers ? " and card fee" : ""
+              })`,
             },
           },
         },
         ...(firstExtraGross > 0 ? [lineItem("Rounding on first payment", firstExtraGross)] : []),
       ],
       subscription_data: {
-        application_fee_percent: PLATFORM_FEE_BPS / 100,
+        application_fee_percent: feePercent,
         metadata: {
           bill_id: bill.id,
           installment_count: String(charge.installment_count),
           installment_interval_days: String(charge.installment_interval_days),
           installment_net: String(base),
           installment_surcharge: String(baseSurcharge),
+          installment_convenience: String(platformFee(base)),
           first_extra_net: String(firstExtra),
-          first_extra_surcharge: String(firstExtraGross - firstExtra),
+          first_extra_surcharge: String(
+            firstExtraGross - firstExtra - (platformFee(amounts[0]) - platformFee(base))
+          ),
+          first_extra_convenience: String(platformFee(amounts[0]) - platformFee(base)),
           paid_by: userId,
         },
       },
@@ -217,7 +233,8 @@ export async function startOrderCheckout(
   if (!settings.stripe_account_id || !settings.stripe_charges_enabled) {
     throw new Error("Online payments aren't set up yet.");
   }
-  const surcharge = settings.default_fee_mode === "payer" ? payerSurcharge(order.total_cents) : 0;
+  const convenience = platformFee(order.total_cents);
+  const surcharge = settings.default_fee_mode === "payer" ? payerSurcharge(order.total_cents + convenience) : 0;
   const session = await stripe.checkout.sessions.create(
     {
       mode: "payment",
@@ -230,9 +247,10 @@ export async function startOrderCheckout(
             product_data: { name: `${productNames.get(i.product_id) ?? "Item"}${i.size ? ` (${i.size})` : ""}` },
           },
         })),
+        lineItem(CONVENIENCE_FEE_LABEL, convenience),
         ...(surcharge ? [lineItem("Card processing fee", surcharge)] : []),
       ],
-      payment_intent_data: { application_fee_amount: platformFee(order.total_cents), metadata: { order_id: order.id } },
+      payment_intent_data: { application_fee_amount: convenience, metadata: { order_id: order.id } },
       metadata: { kind: "order", order_id: order.id },
       success_url: `${origin}/apparel?paid=1`,
       cancel_url: `${origin}/apparel`,
@@ -243,7 +261,7 @@ export async function startOrderCheckout(
     order_id: order.id,
     amount_cents: order.total_cents,
     surcharge_cents: surcharge,
-    platform_fee_cents: platformFee(order.total_cents),
+    platform_fee_cents: convenience,
     method: "card",
     status: "pending",
     stripe_checkout_session_id: session.id,
@@ -348,6 +366,8 @@ export async function handleInvoicePaid(
   const n = (already ?? 0) + 1;
   const net = Number(meta.installment_net ?? 0) + (n === 1 ? Number(meta.first_extra_net ?? 0) : 0);
   const surcharge = Number(meta.installment_surcharge ?? 0) + (n === 1 ? Number(meta.first_extra_surcharge ?? 0) : 0);
+  const convenience =
+    Number(meta.installment_convenience ?? 0) + (n === 1 ? Number(meta.first_extra_convenience ?? 0) : 0);
 
   let paymentIntent: string | null = null;
   try {
@@ -362,7 +382,7 @@ export async function handleInvoicePaid(
     bill_id: billId,
     amount_cents: net,
     surcharge_cents: surcharge,
-    platform_fee_cents: platformFee(net),
+    platform_fee_cents: convenience,
     method: "card",
     status: "succeeded",
     installment_number: n,

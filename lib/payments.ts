@@ -3,9 +3,12 @@
 
 import type { Bill, Charge, Discount, FeeMode, Payment } from "@/lib/database.types";
 
-// BoathouseOS's cut of each card payment to a club, in basis points (100 = 1%).
-// Taken automatically by Stripe as an application fee.
+// BoathouseOS's convenience fee on each card payment to a club, in basis
+// points (100 = 1%). Added on top for the payer as its own "Convenience fee"
+// line, and collected by Stripe as the application fee, so the club still
+// gets the full amount (less Stripe's card fee unless the payer covers it).
 export const PLATFORM_FEE_BPS = 100;
+export const CONVENIENCE_FEE_LABEL = "Convenience fee";
 
 // Stripe's standard US card pricing, used to gross up a payment when the
 // payer covers the card fee. (The club still sees Stripe's actual fee.)
@@ -30,6 +33,7 @@ export function payerSurcharge(netCents: number): number {
   return gross - netCents;
 }
 
+// The convenience fee on a payment of `netCents`.
 export function platformFee(netCents: number): number {
   return Math.round((netCents * PLATFORM_FEE_BPS) / 10000);
 }
