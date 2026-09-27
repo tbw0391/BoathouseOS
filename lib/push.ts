@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { ALERT_SETTINGS_KEY, parseAlertSettings, type AlertKind } from "@/lib/alertSettings";
 
 // Phone/browser push alerts. Needs NEXT_PUBLIC_VAPID_PUBLIC_KEY and
@@ -9,6 +10,26 @@ import { ALERT_SETTINGS_KEY, parseAlertSettings, type AlertKind } from "@/lib/al
 // without them sending is a no-op and the "Turn on alerts" prompt stays hidden.
 
 export const PUSH_ENDPOINT_COOKIE = "push_endpoint";
+
+// Browsers only hand out endpoints on these push services. Anything else is
+// refused, so a member can't point our server's outgoing alert requests at
+// some other site.
+const PUSH_SERVICE_HOSTS = [
+  /^fcm\.googleapis\.com$/,
+  /^updates\.push\.services\.mozilla\.com$/,
+  /^web\.push\.apple\.com$/,
+  /\.push\.apple\.com$/,
+  /\.notify\.windows\.com$/,
+];
+
+export function isPushServiceEndpoint(endpoint: string): boolean {
+  try {
+    const url = new URL(endpoint);
+    return url.protocol === "https:" && !url.port && PUSH_SERVICE_HOSTS.some((re) => re.test(url.hostname));
+  } catch {
+    return false;
+  }
+}
 
 export interface PushMessage {
   // Which admin on/off switch covers this alert (see lib/alertSettings.ts).
@@ -52,7 +73,9 @@ export async function sendPush(userIds: string[], message: PushMessage) {
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
       .in("user_id", ids);
-    const subs = (data as { id: string; endpoint: string; p256dh: string; auth: string }[] | null) ?? [];
+    const subs = ((data as { id: string; endpoint: string; p256dh: string; auth: string }[] | null) ?? []).filter(
+      (s) => isPushServiceEndpoint(s.endpoint)
+    );
 
     const { title, body, url, tag } = message;
     const payload = JSON.stringify({ title, body, url, tag });
@@ -106,15 +129,22 @@ export async function familyMemberIds(): Promise<string[]> {
   return [...new Set([...parents, ...guardians])];
 }
 
-// Called on sign-out: drops the subscription for the device signing out, so
-// a shared phone doesn't keep getting the previous person's alerts.
+// Called on sign-out, while still signed in: drops the subscription for the
+// device signing out, so a shared phone doesn't keep getting the previous
+// person's alerts. Uses the member's own client, so RLS only lets it delete
+// their own row whatever the cookie says.
 export async function forgetThisDevicesPush() {
   try {
     const jar = await cookies();
     const endpoint = jar.get(PUSH_ENDPOINT_COOKIE)?.value;
     if (!endpoint) return;
     jar.delete(PUSH_ENDPOINT_COOKIE);
-    await createAdminClient().from("push_subscriptions").delete().eq("endpoint", endpoint);
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint).eq("user_id", user.id);
   } catch (e) {
     console.error("forgetThisDevicesPush failed", e);
   }

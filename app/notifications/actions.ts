@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DEMO_EMAIL } from "@/lib/demoAccount";
-import { PUSH_ENDPOINT_COOKIE } from "@/lib/push";
+import { PUSH_ENDPOINT_COOKIE, isPushServiceEndpoint } from "@/lib/push";
 
 export interface PushSubscriptionInput {
   endpoint: string;
@@ -29,7 +29,15 @@ export async function savePushSubscription(sub: PushSubscriptionInput, userAgent
   const profile = me as { approved_at: string | null; disabled_at: string | null } | null;
   if (!profile?.approved_at || profile.disabled_at) throw new Error("Your account isn't active.");
 
-  if (!sub?.endpoint?.startsWith("https://") || !sub.keys?.p256dh || !sub.keys?.auth) {
+  if (
+    typeof sub?.endpoint !== "string" ||
+    sub.endpoint.length > 1000 ||
+    !isPushServiceEndpoint(sub.endpoint) ||
+    typeof sub.keys?.p256dh !== "string" ||
+    typeof sub.keys?.auth !== "string" ||
+    sub.keys.p256dh.length > 200 ||
+    sub.keys.auth.length > 100
+  ) {
     throw new Error("That browser sent an invalid subscription.");
   }
 
@@ -43,7 +51,7 @@ export async function savePushSubscription(sub: PushSubscriptionInput, userAgent
         endpoint: sub.endpoint,
         p256dh: sub.keys.p256dh,
         auth: sub.keys.auth,
-        user_agent: userAgent.slice(0, 300) || null,
+        user_agent: String(userAgent ?? "").slice(0, 300) || null,
       },
       { onConflict: "endpoint" }
     );
