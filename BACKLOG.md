@@ -574,3 +574,36 @@
       (landing page, signup, the interest form) and from /privacy itself
 - [ ] Ask new members to agree to the Terms (and Privacy Policy) at signup,
       and record when each person agreed
+
+## Payments
+- [x] Payments (2026-09-27, 0067_payments.sql): Treasurer flag (admins set
+      it on a profile); charges (season/dues/regatta/travel/other) with due
+      date; bill a squad, everyone rowing, or picked rowers; families sign
+      rowers up for an open season themselves; treasurer discounts (% or $,
+      any/one charge, any/one rower, optional end date) applied at sign-up
+      or billing, plus per-bill adjustments; cash/check recording, waive,
+      cancel, CSV export; "You owe" banner on home.
+- [x] Card payments via Stripe Checkout on each club's own connected Stripe
+      account: pay in full, or N automatic payments every K days (Stripe
+      subscription cancelled after the last one). Card fee covered by club
+      or payer (club default, per-charge override). A 1% "Convenience fee"
+      is added on top for the payer and goes to BoathouseOS as the
+      application fee. Signed webhook at /api/stripe/webhook.
+- [x] Apparel (/apparel): in-stock items with per-size counts, and order
+      windows with a deadline and a size-by-size list for the vendor; mark
+      paid (cash/check), picked up, cancelled. External team store link
+      stays on /store.
+- [ ] Stripe account: Todd to create at stripe.com, then add
+      STRIPE_SECRET_KEY (sk_test_ first) and STRIPE_WEBHOOK_SECRET to Vercel
+      and .env.local; add a Connect webhook (events on connected accounts)
+      for checkout.session.completed, invoice.paid, charge.refunded,
+      account.updated. Then test end to end in test mode.
+- [ ] Check card-network and state rules before going live: a % convenience
+      fee and payer-covered card fees (surcharging) are both regulated
+      (disclosure, caps, no surcharge on debit, some states restrict).
+- [ ] Terms/refund policy before live payments (see Terms and Conditions).
+- [ ] Payment-plan emails/reminders and a failed-installment alert for the
+      treasurer (Stripe retries failed installments on its own).
+- [ ] Clubs pay BoathouseOS: Stripe Billing subscription tiered by roster
+      size, after multi-club Phase 1.
+
