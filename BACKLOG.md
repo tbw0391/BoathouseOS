@@ -564,3 +564,13 @@
       resolved/reopen or delete
 - [x] Site Maintenance: same flow for boathouse/facility issues, no boat
       picker needed
+
+## Terms and Conditions
+- [ ] Write the Terms and Conditions (Terms of Service) for BoathouseOS:
+      acceptable use, accounts and member approval, content clubs and
+      members post (photos, messages), minors on the roster, liability,
+      and ending an account. Have a lawyer review before public launch.
+- [ ] Public /terms page styled like /privacy, linked from the same places
+      (landing page, signup, the interest form) and from /privacy itself
+- [ ] Ask new members to agree to the Terms (and Privacy Policy) at signup,
+      and record when each person agreed
