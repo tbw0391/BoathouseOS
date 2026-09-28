@@ -15,6 +15,15 @@ import {
 import { LINEUP_SECTIONS } from "@/lib/lineupSections";
 import { DEFAULT_THEME_COLORS, isHexColor, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES } from "@/lib/alertSettings";
+import { OAR_COLORS_KEY } from "@/lib/oarSheet";
+import {
+  PROFILE_BUTTONS,
+  PROFILE_BUTTONS_KEY,
+  PROFILE_GROUPS,
+  PROFILE_KNOWN_KEY,
+  profileButtonsFor,
+  type ProfileGroup,
+} from "@/lib/profileButtons";
 
 export async function updateLineupSectionVisibility(formData: FormData) {
   const supabase = await createClient();
@@ -173,4 +182,76 @@ export async function updateNavAccess(access: Record<NavRole, string[]>) {
 
   revalidatePath("/");
   revalidatePath("/admin");
+}
+
+// Which shortcut buttons each group sees on their own profile.
+export async function updateProfileButtons(access: Record<ProfileGroup, string[]>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if ((callerProfile as { role: string } | null)?.role !== "admin") {
+    throw new Error("Only admins can change which profile buttons are shown.");
+  }
+
+  const clean: Record<string, string[]> = { [PROFILE_KNOWN_KEY]: PROFILE_BUTTONS.map((b) => b.href) };
+  for (const { group } of PROFILE_GROUPS) {
+    const allowed = new Set(profileButtonsFor(group).map((b) => b.href));
+    const list = Array.isArray(access?.[group]) ? access[group] : [];
+    clean[group] = [...new Set(list.filter((href) => typeof href === "string" && allowed.has(href)))];
+  }
+
+  const { error } = await supabase
+    .from("club_settings")
+    .upsert({ key: PROFILE_BUTTONS_KEY, value: JSON.stringify(clean) }, { onConflict: "key" });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/roster", "layout");
+  revalidatePath("/admin");
+}
+
+// The club's oar tape colors and the most rings on an oar, for oar sheets.
+export async function updateOarSettings(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if ((callerProfile as { role: string } | null)?.role !== "admin") {
+    throw new Error("Only admins can change oar colors.");
+  }
+
+  const colors = [
+    ...new Set(
+      String(formData.get("colors") ?? "")
+        .split(",")
+        .map((c) => c.trim())
+        .filter((c) => c.length > 0 && c.length <= 30)
+        .map((c) => c[0].toUpperCase() + c.slice(1))
+    ),
+  ].slice(0, 20);
+  if (colors.length === 0) throw new Error("Enter at least one tape color.");
+  const maxRings = Math.trunc(Number(formData.get("max_rings")));
+  if (!Number.isFinite(maxRings) || maxRings < 1 || maxRings > 20) throw new Error("Rings must be 1 to 20.");
+
+  const { error } = await supabase
+    .from("club_settings")
+    .upsert({ key: OAR_COLORS_KEY, value: JSON.stringify({ colors, maxRings }) }, { onConflict: "key" });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin");
+  revalidatePath("/oar-sheet", "layout");
 }

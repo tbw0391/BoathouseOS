@@ -5,12 +5,14 @@ import { NeedRow } from "./NeedRow";
 import { SignupControl } from "./SignupControl";
 import { ImportNeedsForm } from "./ImportNeedsForm";
 import { EventIcon } from "@/components/EventIcon";
+import { markRegattaPrepSeen } from "@/lib/regattaPrep";
 
 export default async function VolunteerPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (user) await markRegattaPrepSeen(supabase, user.id, "volunteer");
 
   const { data: callerProfile } = await supabase
     .from("profiles")

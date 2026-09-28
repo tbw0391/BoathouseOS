@@ -19,6 +19,7 @@ import { WishlistSignupControl } from "./WishlistSignupControl";
 import { PublishControl } from "./PublishControl";
 import { ClearFoodListButton } from "./ClearFoodListButton";
 import { EventIcon } from "@/components/EventIcon";
+import { markRegattaPrepSeen } from "@/lib/regattaPrep";
 
 const STATUS_LABEL: Record<FoodTentStatus["status"], string> = {
   draft: "Draft",
@@ -31,6 +32,7 @@ export default async function FoodTentPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (user) await markRegattaPrepSeen(supabase, user.id, "food_tent");
 
   const { data: callerProfile } = await supabase
     .from("profiles")

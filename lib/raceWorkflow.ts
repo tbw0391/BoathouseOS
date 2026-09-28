@@ -9,6 +9,7 @@ import {
 } from "@/lib/lineupCategories";
 import type { LineupCategory } from "@/lib/database.types";
 import { bowFromRaceName } from "@/lib/raceDay";
+import { notifyOarSheetCaptain } from "@/lib/oarSheetAlerts";
 
 // The shared steps behind getting races and boats onto a regatta, used by
 // the Lineups actions and the Head of the Cuyahoga page alike so every path
@@ -381,5 +382,6 @@ export async function buildLineupForRace(
     eventId: race.event_id,
     userId,
   });
+  await notifyOarSheetCaptain(supabase, lineupId);
   return lineupId;
 }

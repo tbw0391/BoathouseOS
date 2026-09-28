@@ -2,15 +2,28 @@
 
 import { useState, useTransition } from "react";
 import { Check } from "lucide-react";
-import { NAV_ROLES, navSectionsFor, type NavRole } from "@/lib/navSections";
-import { updateNavAccess } from "./actions";
 
-// Pick a type of user, then tap which home-screen buttons they get.
-export function RoleButtonsForm({ initialAccess }: { initialAccess: Record<NavRole, string[]> }) {
-  const [role, setRole] = useState<NavRole>("rower");
+type Button = { href: string; label: string };
+
+// Pick a type of user, then tap which buttons they get. Used for both the
+// home screen and the profile page.
+export function RoleButtonsForm({
+  groups,
+  buttonsByGroup,
+  initialAccess,
+  onSave,
+  savedMessage,
+}: {
+  groups: { key: string; label: string }[];
+  buttonsByGroup: Record<string, Button[]>;
+  initialAccess: Record<string, string[]>;
+  onSave: (access: Record<string, string[]>) => Promise<void>;
+  savedMessage: string;
+}) {
+  const [role, setRole] = useState(groups[0].key);
   const [access, setAccess] = useState(() =>
-    Object.fromEntries(NAV_ROLES.map(({ role: r }) => [r, new Set(initialAccess[r])])) as Record<
-      NavRole,
+    Object.fromEntries(groups.map(({ key }) => [key, new Set(initialAccess[key] ?? [])])) as Record<
+      string,
       Set<string>
     >
   );
@@ -19,7 +32,7 @@ export function RoleButtonsForm({ initialAccess }: { initialAccess: Record<NavRo
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const sections = navSectionsFor(role);
+  const sections = buttonsByGroup[role] ?? [];
   const on = access[role];
 
   function toggle(href: string) {
@@ -43,37 +56,35 @@ export function RoleButtonsForm({ initialAccess }: { initialAccess: Record<NavRo
     setError(null);
     startTransition(async () => {
       try {
-        await updateNavAccess(
-          Object.fromEntries(NAV_ROLES.map(({ role: r }) => [r, [...access[r]]])) as Record<NavRole, string[]>
-        );
+        await onSave(Object.fromEntries(groups.map(({ key }) => [key, [...access[key]]])));
         setDirty(false);
-        setMessage("Saved. Everyone sees the change next time they open the home screen.");
+        setMessage(savedMessage);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Couldn't save.");
       }
     });
   }
 
-  const roleLabel = NAV_ROLES.find((r) => r.role === role)!.label;
+  const roleLabel = groups.find((g) => g.key === role)!.label;
 
   return (
     <div className="flex flex-col gap-4 max-w-md">
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Type of user">
-        {NAV_ROLES.map((r) => (
+        {groups.map((r) => (
           <button
-            key={r.role}
+            key={r.key}
             type="button"
             role="tab"
-            aria-selected={r.role === role}
-            onClick={() => setRole(r.role)}
+            aria-selected={r.key === role}
+            onClick={() => setRole(r.key)}
             className={`rounded-lg border-2 px-3 py-1.5 text-sm font-medium ${
-              r.role === role
+              r.key === role
                 ? "border-[var(--color-primary)] bg-[var(--color-secondary)] text-white"
                 : "border-gray-300 hover:border-[var(--color-primary)]"
             }`}
           >
             {r.label}
-            <span className="ml-1.5 text-xs opacity-75">{access[r.role].size}</span>
+            <span className="ml-1.5 text-xs opacity-75">{access[r.key].size}</span>
           </button>
         ))}
       </div>
@@ -120,7 +131,7 @@ export function RoleButtonsForm({ initialAccess }: { initialAccess: Record<NavRo
         disabled={isPending || !dirty}
         className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors disabled:opacity-50"
       >
-        {isPending ? "Saving..." : dirty ? "Save all roles" : "Saved"}
+        {isPending ? "Saving..." : dirty ? "Save all groups" : "Saved"}
       </button>
       {message && <p className="text-sm text-green-700">{message}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}

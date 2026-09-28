@@ -113,7 +113,7 @@ export function PracticeCheckIn({
         <button
           onClick={() => setPickingReason(true)}
           disabled={isPending}
-          className="w-full flex items-center justify-center gap-2 rounded-lg border-2 border-gray-400 px-6 py-3 font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-6 py-3 font-medium text-white disabled:opacity-60"
         >
           <CircleX className="w-5 h-5" aria-hidden />
           I won&apos;t be at practice

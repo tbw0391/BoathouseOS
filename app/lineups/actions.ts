@@ -13,6 +13,7 @@ import type { LineupCategory } from "@/lib/database.types";
 import { getSelectedClubSlug } from "@/lib/demoClubs";
 import { clubRaces, crewNamesIn, crewTimerFeedUrl, fetchCrewTimerFeed, type Feed } from "@/lib/crewtimer";
 import { hotcRaceCategory, hotcRaceName } from "@/lib/hotc";
+import { notifyOarSheetCaptain } from "@/lib/oarSheetAlerts";
 import {
   boatLineupDefaults,
   buildLineupForRace,
@@ -252,6 +253,7 @@ export async function createLineup(formData: FormData) {
   if (seatsError) throw new Error(seatsError.message);
 
   await createLaunchRecoveryTasks(supabase, { lineupId, eventId, userId: user.id });
+  await notifyOarSheetCaptain(supabase, lineupId);
 
   revalidatePath("/lineups");
   revalidatePath("/");
@@ -688,12 +690,15 @@ export async function assignSeat(seatId: string, rowerId: string | null) {
   const supabase = await createClient();
   await requireManager(supabase);
 
-  const { error } = await supabase
+  const { data: seat, error } = await supabase
     .from("lineup_seats")
     .update({ rower_id: rowerId })
-    .eq("id", seatId);
+    .eq("id", seatId)
+    .select("lineup_id")
+    .single();
 
   if (error) throw new Error(error.message);
+  if (rowerId && seat) await notifyOarSheetCaptain(supabase, seat.lineup_id, { onlySeatId: seatId });
 
   revalidatePath("/lineups");
   revalidatePath("/");

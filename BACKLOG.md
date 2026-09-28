@@ -47,8 +47,17 @@
       later. Board Member intentionally excluded from self-select (2026-09-20
       decision: admin assigns it via the existing profile-page toggle, not
       something people pick for themselves)
-- [ ] Role-specific profile view: parents, coaches, board members, and rowers
-      each see different buttons/actions on their profile (buttons TBD per role)
+- [x] Role-specific profile view (2026-09-28): shortcut buttons on your own
+      profile, chosen per group by an admin in Admin Settings → "Profile
+      buttons" (same tap picker as the home-screen buttons). Groups: Rower,
+      Coxswain, Parent, Coach, Admin, plus Board Member, whose buttons are
+      added on top of their usual group's. Coach-area pages, Manage Payments
+      and Admin Settings can only be given to the roles that can open them.
+      Sensible defaults until an admin saves. Stored in club_settings
+      "profile_buttons". Only shows on your own profile. Members can
+      "Arrange" their own buttons with tap arrows (saved per member in
+      profiles.profile_button_order, migration 0094); "Reset" goes back to
+      the club order, and buttons an admin adds later go at the end.
 - [x] Permanently delete a member (admin-only, only offered once already
       soft-removed): actually deletes the profile row, their own messages,
       photos they uploaded, and their login (if any) from the database.
@@ -302,6 +311,24 @@
       task, same assignees. Falls back to creating a fresh lineup-tied pair
       only if the race never got tasks in the first place.
 
+- [x] Oar sheets (2026-09-28): each regatta boat gets an oar sheet at
+      /oar-sheet/<lineup> (also linked from every boat card on Lineups).
+      Oars are named by tape color + rings ("3 Green"); the club's colors
+      and most rings are set in Admin Settings → Oar tape. The boat's cox —
+      or stroke seat in boats with no cox — taps a color and rings for each
+      seat (or "whole boat one color", bow = 1 ring), and picks anyone on
+      the roster for Launch and Recovery (the boat's auto-created tasks).
+      An oar already picked for another boat at the same regatta gets a
+      warning. The cox/stroke gets a phone alert when they're put in a
+      regatta boat (lineup built for a race, or seat assigned) and a home
+      banner until every seat has an oar and Launch/Recovery each have
+      someone; the people picked get an alert, and the "You're on Launch"
+      banner now shows for any role (was rowers/coxes only). New alert
+      switches: "Oar sheet to fill in", "Launch / Recovery pick". Coaches
+      and admins can edit any sheet. Needs 0095_oar_sheets.sql (lineup_oars
+      table, is_lineup_captain(), and a policy letting the captain assign
+      their own boat's tasks).
+
 ## Volunteer needs
 - [x] Post volunteer needs (title, slots needed, notes), tied to a regatta —
       managed by admin/coach, and tent leader too (2026-09-22: extended to
@@ -361,6 +388,24 @@
       alerts parents with a "signups are open" banner
       (food_tent_status table + food_tent_items.published column,
       0047_food_tent_publish_workflow.sql)
+- [x] "Signups are open" home banner goes away once clicked (2026-09-28):
+      tapping its Food Tent or Volunteer Needs button hides that event's
+      banner (remembered in a signup_call_seen cookie, so per device), not
+      just after actually signing up. The regatta-week popup still counts
+      them as not signed up.
+- [x] Trim the home page's "{regatta} is coming up — get ready" buttons
+      (2026-09-28): each only shows while there's something to do.
+      - "Sign up for the food tent" / "Sign up for a volunteer slot": gone
+        once the person has opened that page (by any route).
+      - "Check the lineups": only once a boat for that regatta has crew in
+        it, and gone once the person opens that regatta's lineups (the
+        button now goes straight to /lineups/<regatta>).
+      - "Read coaches' messages": only while the coaches' chat has a message
+        they haven't read.
+      The whole block hides when nothing's left. Visits are remembered per
+      person in the database (regatta_prep_seen, 0096), so it clears on
+      every device. Until 0096 is applied, food tent/volunteer/lineups
+      buttons just keep showing as before.
 - [x] Clear a regatta's food list (2026-09-27): "Clear food list" for
       admins/coaches/tent leaders removes that regatta's items, signups,
       and publish status. The regatta itself stays on the schedule (deleting
@@ -373,6 +418,16 @@
 - [x] Anyone can post a photo (top-left camera icon on every page, plus a
       Photos tile on the home page)
 - [x] Tag roster members in a photo
+- [ ] Tag a whole boat in a photo (asked 2026-09-28): when adding a photo,
+      pick one of that day's boats (the lineups for that day's regatta or
+      practice) and everyone in that boat's lineup gets tagged at once,
+      rowers and cox. It has to follow the lineups: the tags are the
+      people in the lineup for that day, not the boat's usual crew. Should
+      still be able to untag someone or add extra people after picking.
+- [x] A real "Add photo" button (2026-09-28): the Photos page's plain
+      "Choose File" box is now a big "Add photo" button in the club colors
+      (camera icon) that opens the camera/photo picker, then shows a
+      preview of the picked photo with "Change photo".
 - [x] A tagged member sees the photo on their own bio page
 - [x] Photo comments / likes (2026-09-27, 0078_photo_likes_and_comments.sql):
       heart with count (hover shows who), comments under each photo (author
@@ -411,8 +466,6 @@
       history + delete on the `/announcements` page instead of a banner on
       their own home page. New `coach_announcements` table
       (0051_coach_announcements.sql), audience-scoped via RLS.
-
-## Banners
 - [x] Birthday banner (2026-09-27): the birthday person gets a "Happy
       birthday" banner; everyone else sees "It's X's birthday today!"
       linking to their bio. Eastern date; Feb 29 shows on Feb 28 otherwise.

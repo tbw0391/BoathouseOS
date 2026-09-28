@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { SeatFiller } from "./SeatFiller";
 import { assignSeat } from "./actions";
@@ -61,6 +62,15 @@ export function LineupDetail({
           </ul>
         )}
       </div>
+
+      {lineup.event_id && lineup.boat_id && (
+        <Link
+          href={`/oar-sheet/${lineup.id}`}
+          className="mt-3 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
+        >
+          Oar sheet →
+        </Link>
+      )}
     </div>
   );
 }

@@ -26,6 +26,13 @@ import { PaperworkChip } from "@/components/PaperworkEditor";
 import { requiredFor, type PaperworkRecord } from "@/lib/paperwork";
 import { clubDateKey } from "@/lib/raceDay";
 import type { EmergencyInfo } from "@/lib/database.types";
+import {
+  PROFILE_BUTTONS_KEY,
+  orderProfileButtons,
+  profileButtonsForMember,
+  resolveProfileButtons,
+} from "@/lib/profileButtons";
+import { ProfileShortcuts } from "./ProfileShortcuts";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -79,6 +86,25 @@ export default async function BioPage({
   const canRemove = !isSelf && (callerRole === "admin" || callerRole === "coach");
   const showCheckIn = isSelf && (callerRole === "admin" || callerRole === "coach");
   const checkInLabel = showCheckIn ? await getTodaysCheckInLabel(profile.id) : null;
+
+  // Shortcut buttons on your own profile, picked per group in /admin.
+  let shortcuts: { href: string; label: string }[] = [];
+  if (isSelf) {
+    const { data: setting } = await supabase
+      .from("club_settings")
+      .select("key, value")
+      .eq("key", PROFILE_BUTTONS_KEY)
+      .maybeSingle();
+    const row = setting as { key: string; value: string | null } | null;
+    shortcuts = orderProfileButtons(
+      profileButtonsForMember(
+        resolveProfileButtons(new Map(row ? [[row.key, row.value]] : [])),
+        profile.role,
+        profile.is_board_member
+      ),
+      profile.profile_button_order ?? null
+    );
+  }
 
   // Emergency info: the member, their guardians, coaches and admins (the
   // same check the database applies).
@@ -270,6 +296,10 @@ export default async function BioPage({
         <div className="mt-4 max-w-md">
           <CheckInButton checkedInAt={checkInLabel} />
         </div>
+      )}
+
+      {shortcuts.length > 0 && (
+        <ProfileShortcuts buttons={shortcuts} isCustom={Boolean(profile.profile_button_order?.length)} />
       )}
 
       {profile.disabled_at && (

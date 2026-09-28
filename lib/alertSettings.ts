@@ -38,6 +38,16 @@ export const ALERT_TYPES = [
     detail: "Phone alert to the crew and their parents 15 minutes before a race's launch time.",
   },
   {
+    kind: "oar_sheet",
+    label: "Oar sheet to fill in",
+    detail: "Phone alert to a regatta boat's cox (or stroke, with no cox) when they're put in the boat.",
+  },
+  {
+    kind: "launch_recovery",
+    label: "Launch / Recovery pick",
+    detail: "Phone alert to whoever a cox picks to launch or recover their boat.",
+  },
+  {
     kind: "food_draft",
     label: "Food list draft ready",
     detail: "Phone alert to tent leaders when the week-out draft is waiting.",

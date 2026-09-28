@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BoatSide, Role, Team } from "@/lib/database.types";
+import { PROFILE_BUTTONS } from "@/lib/profileButtons";
 
 const VALID_ROLES: Role[] = ["rower", "coxswain", "coach", "parent", "admin"];
 
@@ -371,4 +372,27 @@ export async function setTreasurer(profileId: string, isTreasurer: boolean) {
 
   revalidatePath(`/roster/${profileId}`);
   revalidatePath("/roster");
+}
+
+// Your own order for the shortcut buttons on your profile. Null resets to
+// the club's default order.
+export async function saveProfileButtonOrder(order: string[] | null) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const known = new Set(PROFILE_BUTTONS.map((b) => b.href));
+  const clean = Array.isArray(order)
+    ? [...new Set(order.filter((href) => typeof href === "string" && known.has(href)))]
+    : null;
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ profile_button_order: clean?.length ? clean : null })
+    .eq("id", user.id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/roster/${user.id}`);
 }

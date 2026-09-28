@@ -33,6 +33,7 @@ import { CourseEditor } from "../CourseEditor";
 import { TrailerList } from "../TrailerList";
 import { TravelTab, type RoomView, type VehicleView } from "../TravelTab";
 import type { LatLng } from "@/lib/course";
+import { markRegattaPrepSeen } from "@/lib/regattaPrep";
 
 // Trip details, rides and rooms, plus who the viewer can sign up (themself
 // and any rower they're a guardian of) and who can be given a room.
@@ -152,6 +153,7 @@ export default async function EventRacesPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (user) await markRegattaPrepSeen(supabase, user.id, "lineups", [eventId]);
 
   const { data: callerProfile } = await supabase
     .from("profiles")

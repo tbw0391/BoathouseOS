@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { captainSeat, oarSheetComplete } from "@/lib/oarSheet";
+import { regattaPrepSeen } from "@/lib/regattaPrep";
+import { SignupCallLink } from "@/components/SignupCallLink";
+import { SIGNUP_CALL_SEEN_COOKIE, parseSignupCallSeen } from "@/lib/signupCallSeen";
 import {
   Users,
   Calendar,
@@ -143,6 +147,13 @@ type SentLineupNotice = Omit<LineupBanner, "rowerName"> & {
 type CoachTaskBanner = {
   taskTypeName: string;
   boatName: string | null;
+  raceName: string | null;
+  eventTitle: string;
+};
+
+type OarSheetBanner = {
+  lineupId: string;
+  boatName: string;
   raceName: string | null;
   eventTitle: string;
 };
@@ -638,16 +649,84 @@ async function loadSignupCallBanners(
     }));
 }
 
-// Coach Tasks (e.g. Launch/Recovery) assignment: shown only to the rower/
-// coxswain themselves, not their parent — unlike the lineup banner, this is
-// just "which boat am I on the hook for," not something a parent needs to
-// track on their behalf.
+// A regatta boat's cox (or stroke, with no cox) is asked to fill in its oar
+// sheet — an oar for every seat, and someone on Launch and Recovery — until
+// it's done.
+async function loadOarSheetBanners(
+  supabase: SupabaseServerClient,
+  userId: string,
+): Promise<OarSheetBanner[]> {
+  const { data: mySeatRows } = await supabase
+    .from("lineup_seats")
+    .select("lineup_id")
+    .eq("rower_id", userId)
+    .in("seat_role", ["rower", "coxswain"]);
+  const lineupIds = [
+    ...new Set(((mySeatRows as { lineup_id: string }[] | null) ?? []).map((s) => s.lineup_id)),
+  ];
+  if (lineupIds.length === 0) return [];
+
+  const { data: lineupRows } = await supabase
+    .from("lineups")
+    .select("id, boat_id, boat_name, race_name, event_id")
+    .in("id", lineupIds)
+    .not("boat_id", "is", null);
+  const lineups =
+    (lineupRows as Pick<Lineup, "id" | "boat_id" | "boat_name" | "race_name" | "event_id">[] | null) ?? [];
+  const eventIds = [...new Set(lineups.map((l) => l.event_id).filter((id): id is string => !!id))];
+  if (eventIds.length === 0) return [];
+
+  const { data: eventRows } = await supabase
+    .from("schedule_events")
+    .select("*")
+    .in("id", eventIds)
+    .eq("event_type", "regatta")
+    .gte("starts_at", startOfToday());
+  const eventById = new Map(((eventRows as ScheduleEvent[] | null) ?? []).map((e) => [e.id, e]));
+  const upcoming = lineups.filter((l) => l.event_id && eventById.has(l.event_id));
+  if (upcoming.length === 0) return [];
+  const ids = upcoming.map((l) => l.id);
+
+  const [{ data: seatRows }, { data: oarRows }, { data: taskRows }] = await Promise.all([
+    supabase.from("lineup_seats").select("lineup_id, seat_number, seat_role, rower_id").in("lineup_id", ids),
+    supabase.from("lineup_oars").select("lineup_id, seat_number").in("lineup_id", ids),
+    supabase.from("coach_tasks").select("id, lineup_id").in("lineup_id", ids),
+  ]);
+  const seats =
+    (seatRows as { lineup_id: string; seat_number: number; seat_role: string; rower_id: string | null }[] | null) ?? [];
+  const oars = (oarRows as { lineup_id: string; seat_number: number }[] | null) ?? [];
+  const tasks = (taskRows as { id: string; lineup_id: string }[] | null) ?? [];
+  const { data: assignmentRows } = tasks.length
+    ? await supabase.from("coach_task_assignments").select("task_id").in("task_id", tasks.map((t) => t.id))
+    : { data: [] };
+  const assignedTaskIds = new Set(((assignmentRows as { task_id: string }[] | null) ?? []).map((a) => a.task_id));
+
+  return upcoming
+    .filter((l) => {
+      const boatSeats = seats.filter((s) => s.lineup_id === l.id);
+      if (captainSeat(boatSeats)?.rower_id !== userId) return false;
+      return !oarSheetComplete(
+        boatSeats,
+        oars.filter((o) => o.lineup_id === l.id),
+        tasks.filter((t) => t.lineup_id === l.id).map((t) => ({ assigned: assignedTaskIds.has(t.id) ? 1 : 0 })),
+      );
+    })
+    .map((l) => ({
+      lineupId: l.id,
+      boatName: l.boat_name,
+      raceName: l.race_name,
+      eventTitle: eventById.get(l.event_id!)!.title,
+    }));
+}
+
+// Coach Tasks (e.g. Launch/Recovery) assignment: shown to whoever is
+// assigned, whatever their role — a cox can put a parent on Launch from the
+// oar sheet. Only to that person, not their parent: it's "which boat am I
+// on the hook for," not something to track on someone's behalf.
 async function loadCoachTaskBanners(
   supabase: SupabaseServerClient,
-  opts: { userId: string; isRowerOrCoxswain: boolean },
+  userId: string,
 ): Promise<CoachTaskBanner[]> {
-  const { userId, isRowerOrCoxswain } = opts;
-  if (!isRowerOrCoxswain) return [];
 
   const { data: assignmentRows } = await supabase
     .from("coach_task_assignments")
@@ -893,6 +972,7 @@ export default async function Home() {
   let foodPrepBanners: FoodPrepBanner[] = [];
   let signupCallBanners: SignupCallBanner[] = [];
   let announcementBanners: AnnouncementBanner[] = [];
+  let oarSheetBanners: OarSheetBanner[] = [];
   let birthdaysToday: BirthdayPerson[] = [];
   let myPrs: PrBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
@@ -905,6 +985,7 @@ export default async function Home() {
   let unreadCount = 0;
   let unreadScheduleCount = 0;
   let coachChatHref = "/messages";
+  let getReady = { foodTent: false, volunteer: false, lineups: false, coachMessages: false };
   let isAdmin = false;
   let viewerRole: NavRole | null = null;
   let isCoachOrAdmin = false;
@@ -1108,6 +1189,46 @@ export default async function Home() {
         (e) => forecastDayFor(e) !== null,
       ) ?? null;
 
+    // The "get ready" buttons each go away once followed: Food Tent and
+    // Volunteer once visited, Lineups only once boats have crews and until
+    // viewed, coaches' messages only while there's one unread.
+    if (upcomingRegatta) {
+      const coachGroupId = (coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id ?? null;
+      const [seen, { data: crewedLineups }, { data: coachMembership }] = await Promise.all([
+        regattaPrepSeen(supabase, user.id, upcomingRegatta.id),
+        supabase
+          .from("lineups")
+          .select("id, lineup_seats!inner(rower_id)")
+          .eq("event_id", upcomingRegatta.id)
+          .not("lineup_seats.rower_id", "is", null)
+          .limit(1),
+        coachGroupId
+          ? supabase
+              .from("chat_group_members")
+              .select("last_read_at")
+              .eq("group_id", coachGroupId)
+              .eq("user_id", user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
+      const lastRead = (coachMembership as { last_read_at: string } | null)?.last_read_at;
+      const { count: coachUnread } =
+        coachGroupId && lastRead
+          ? await supabase
+              .from("messages")
+              .select("id", { count: "exact", head: true })
+              .eq("group_id", coachGroupId)
+              .neq("sender_id", user.id)
+              .gt("created_at", lastRead)
+          : { count: 0 };
+      getReady = {
+        foodTent: !seen.has("food_tent"),
+        volunteer: !seen.has("volunteer"),
+        lineups: (crewedLineups ?? []).length > 0 && !seen.has("lineups"),
+        coachMessages: (coachUnread ?? 0) > 0,
+      };
+    }
+
     householdUserIds = [user.id];
     if (isParent) {
       // Spouses are linked one-directionally, so check both: the caller's
@@ -1135,6 +1256,7 @@ export default async function Home() {
       foodBanners,
       lineupBannerResults,
       coachTaskBannerResults,
+      oarSheetBannerResults,
       pendingRaceBannerResults,
       familyLinkRows,
       foodPrepBannerResults,
@@ -1151,7 +1273,8 @@ export default async function Home() {
         isCoachOrAdmin,
         householdUserIds,
       }),
-      loadCoachTaskBanners(supabase, { userId: user.id, isRowerOrCoxswain }),
+      loadCoachTaskBanners(supabase, user.id),
+      loadOarSheetBanners(supabase, user.id),
       isCoachOrAdmin ? loadPendingRaceBanners(supabase) : Promise.resolve([]),
       supabase
         .from("family_links")
@@ -1176,6 +1299,7 @@ export default async function Home() {
     upcomingRegattaForecast = forecastResult;
     lineupBanners = lineupBannerResults;
     coachTaskBanners = coachTaskBannerResults;
+    oarSheetBanners = oarSheetBannerResults;
     pendingRaceBanners = pendingRaceBannerResults;
     foodPrepBanners = foodPrepBannerResults;
     announcementBanners = announcementBannerResults;
@@ -1227,6 +1351,14 @@ export default async function Home() {
     : null;
 
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
+  // Banners already clicked through to Food Tent / Volunteer Needs stay
+  // hidden (the regatta-week popup still counts them as not signed up).
+  const signupCallSeen = new Set(
+    parseSignupCallSeen((await cookies()).get(SIGNUP_CALL_SEEN_COOKIE)?.value),
+  );
+  const visibleSignupCallBanners = signupCallBanners.filter(
+    (b) => !signupCallSeen.has(b.eventId),
+  );
   const demoProfile = DEMO_PROFILES.find((p) => p.email === user?.email) ?? null;
   const hotcSchedule = demoClub ? await getHotcSchedule(demoClub) : null;
   if (isCoachOrAdmin) await syncHotcResults(supabase, hotcSchedule);
@@ -1526,9 +1658,9 @@ export default async function Home() {
         </div>
       )}
 
-      {signupCallBanners.length > 0 && (
+      {visibleSignupCallBanners.length > 0 && (
         <div className="w-full flex flex-col gap-2">
-          {signupCallBanners.map((b, i) => (
+          {visibleSignupCallBanners.map((b, i) => (
             <div
               key={i}
               className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm flex flex-col gap-2"
@@ -1539,19 +1671,21 @@ export default async function Home() {
                 {b.hasVolunteerNeeds ? " and a volunteer slot" : ""}.
               </p>
               <div className="flex gap-2">
-                <Link
+                <SignupCallLink
                   href="/food-tent"
+                  eventId={b.eventId}
                   className="text-xs bg-white text-[var(--color-primary)] rounded px-2 py-1 font-medium"
                 >
                   Food Tent
-                </Link>
+                </SignupCallLink>
                 {b.hasVolunteerNeeds && (
-                  <Link
+                  <SignupCallLink
                     href="/volunteer"
+                    eventId={b.eventId}
                     className="text-xs bg-white text-[var(--color-primary)] rounded px-2 py-1 font-medium"
                   >
                     Volunteer Needs
-                  </Link>
+                  </SignupCallLink>
                 )}
               </div>
             </div>
@@ -1597,41 +1731,49 @@ export default async function Home() {
         </div>
       )}
 
-      {upcomingRegatta && (
+      {upcomingRegatta && Object.values(getReady).some(Boolean) && (
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm font-medium text-gray-600">
             {upcomingRegatta.title} is coming up on{" "}
             {new Date(upcomingRegatta.starts_at).toLocaleDateString()} — get
             ready:
           </p>
-          <Link
-            href="/food-tent"
-            className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
-          >
-            <Tent className="w-5 h-5 shrink-0" />
-            Sign up for the food tent
-          </Link>
-          <Link
-            href="/volunteer"
-            className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
-          >
-            <HelpingHand className="w-5 h-5 shrink-0" />
-            Sign up for a volunteer slot
-          </Link>
-          <Link
-            href="/lineups"
-            className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
-          >
-            <Waves className="w-5 h-5 shrink-0" />
-            Check the lineups
-          </Link>
-          <Link
-            href={coachChatHref}
-            className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
-          >
-            <MessageCircle className="w-5 h-5 shrink-0" />
-            Read coaches&apos; messages
-          </Link>
+          {getReady.foodTent && (
+            <Link
+              href="/food-tent"
+              className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
+            >
+              <Tent className="w-5 h-5 shrink-0" />
+              Sign up for the food tent
+            </Link>
+          )}
+          {getReady.volunteer && (
+            <Link
+              href="/volunteer"
+              className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
+            >
+              <HelpingHand className="w-5 h-5 shrink-0" />
+              Sign up for a volunteer slot
+            </Link>
+          )}
+          {getReady.lineups && (
+            <Link
+              href={`/lineups/${upcomingRegatta.id}`}
+              className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
+            >
+              <Waves className="w-5 h-5 shrink-0" />
+              Check the lineups
+            </Link>
+          )}
+          {getReady.coachMessages && (
+            <Link
+              href={coachChatHref}
+              className="flex items-center gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
+            >
+              <MessageCircle className="w-5 h-5 shrink-0" />
+              Read coaches&apos; messages
+            </Link>
+          )}
         </div>
       )}
 
@@ -1731,6 +1873,22 @@ export default async function Home() {
                 Sent to {n.recipientNames.length}: {n.recipientNames.join(", ")}
               </p>
             </div>
+          ))}
+        </div>
+      )}
+
+      {oarSheetBanners.length > 0 && (
+        <div className="w-full flex flex-col gap-2">
+          {oarSheetBanners.map((b) => (
+            <Link
+              key={b.lineupId}
+              href={`/oar-sheet/${b.lineupId}`}
+              className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
+            >
+              🚣 Fill in the oar sheet for <strong>{b.boatName}</strong>
+              {b.raceName && <> ({b.raceName})</>} at {b.eventTitle}: pick
+              the oars and who does Launch and Recovery.
+            </Link>
           ))}
         </div>
       )}

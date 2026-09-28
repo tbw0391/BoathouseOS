@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { addPhoto } from "./actions";
 
@@ -17,6 +18,18 @@ export function PhotoUploadForm({ userId, roster }: { userId: string; roster: Ro
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview);
+  }, [preview]);
+
+  function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    setPreview(file ? URL.createObjectURL(file) : null);
+    setError(null);
+  }
 
   function toggleTag(id: string) {
     setTaggedIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
@@ -55,6 +68,7 @@ export function PhotoUploadForm({ userId, roster }: { userId: string; roster: Ro
           setCaption("");
           setTaggedIds([]);
           fileInput.value = "";
+          setPreview(null);
           router.refresh();
         } catch (err) {
           setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -74,7 +88,29 @@ export function PhotoUploadForm({ userId, roster }: { userId: string; roster: Ro
     >
       <h2 className="text-sm font-medium">Add a photo</h2>
 
-      <input type="file" name="file" accept="image/*" className="text-sm" />
+      <input ref={fileRef} type="file" name="file" accept="image/*" onChange={pickFile} className="sr-only" />
+      {preview ? (
+        <div className="flex flex-col gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local preview of an unsent file */}
+          <img src={preview} alt="Photo to post" className="w-full max-h-72 object-contain rounded-lg border" />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="self-start text-sm text-gray-600 underline"
+          >
+            Change photo
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-accent)] text-white px-6 py-4 text-lg font-bold transition-colors"
+        >
+          <Camera className="w-6 h-6" aria-hidden />
+          Add photo
+        </button>
+      )}
 
       <input
         placeholder="Caption (optional)"

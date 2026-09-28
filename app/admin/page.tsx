@@ -1,12 +1,28 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { NAV_ACCESS_KEY, NAV_VISIBILITY_OPTIONS, resolveNavAccess } from "@/lib/navSections";
+import {
+  NAV_ACCESS_KEY,
+  NAV_ROLES,
+  NAV_VISIBILITY_OPTIONS,
+  navSectionsFor,
+  resolveNavAccess,
+} from "@/lib/navSections";
+import {
+  PROFILE_BUTTONS_KEY,
+  PROFILE_GROUPS,
+  profileButtonsFor,
+  resolveProfileButtons,
+} from "@/lib/profileButtons";
 import { RoleButtonsForm } from "./RoleButtonsForm";
 import { LINEUP_SECTIONS, resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { THEME_COLOR_LABELS, parseThemeColors, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES, parseAlertSettings } from "@/lib/alertSettings";
+import { OAR_COLORS_KEY, parseOarSettings } from "@/lib/oarSheet";
 import {
   updateAlertSettings,
+  updateNavAccess,
+  updateOarSettings,
+  updateProfileButtons,
   updateLineupSectionVisibility,
   updateThemeColors,
   resetThemeColors,
@@ -40,9 +56,11 @@ export default async function AdminPage() {
       "nav_visibility",
       "nav_disabled_hrefs",
       NAV_ACCESS_KEY,
+      PROFILE_BUTTONS_KEY,
       "theme_colors",
       "lineup_section_visibility",
       ALERT_SETTINGS_KEY,
+      OAR_COLORS_KEY,
     ]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
@@ -50,6 +68,7 @@ export default async function AdminPage() {
   const themeColors = parseThemeColors(settingsByKey.get("theme_colors"));
   const lineupSectionVisibility = resolveLineupSectionVisibility(settingsByKey);
   const alertsEnabled = parseAlertSettings(settingsByKey.get(ALERT_SETTINGS_KEY));
+  const oarSettings = parseOarSettings(settingsByKey.get(OAR_COLORS_KEY));
 
   return (
     <div className="min-h-screen p-8">
@@ -95,7 +114,26 @@ export default async function AdminPage() {
       <p className="text-sm text-gray-500 mb-4">
         Pick a type of user, then choose which buttons they see on the home screen.
       </p>
-      <RoleButtonsForm initialAccess={resolveNavAccess(settingsByKey)} />
+      <RoleButtonsForm
+        groups={NAV_ROLES.map(({ role, label }) => ({ key: role, label }))}
+        buttonsByGroup={Object.fromEntries(NAV_ROLES.map(({ role }) => [role, navSectionsFor(role)]))}
+        initialAccess={resolveNavAccess(settingsByKey)}
+        onSave={updateNavAccess}
+        savedMessage="Saved. Everyone sees the change next time they open the home screen."
+      />
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">Profile buttons</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Pick a group, then choose which shortcut buttons they see on their own profile. Board
+        members get their usual group&apos;s buttons plus the Board Member ones.
+      </p>
+      <RoleButtonsForm
+        groups={PROFILE_GROUPS.map(({ group, label }) => ({ key: group, label }))}
+        buttonsByGroup={Object.fromEntries(PROFILE_GROUPS.map(({ group }) => [group, profileButtonsFor(group)]))}
+        initialAccess={resolveProfileButtons(settingsByKey)}
+        onSave={updateProfileButtons}
+        savedMessage="Saved. Everyone sees the change next time they open their profile."
+      />
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Alerts</h2>
       <p className="text-sm text-gray-500 mb-6">
@@ -124,6 +162,41 @@ export default async function AdminPage() {
             </div>
           </div>
         ))}
+        <button
+          type="submit"
+          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          Save
+        </button>
+      </form>
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">Oar tape</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Oars are named by their tape color and number of rings (&quot;3 Green&quot;). Coxes pick
+        from these on each boat&apos;s oar sheet.
+      </p>
+      <form action={updateOarSettings} className="flex flex-col gap-3 max-w-sm">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Tape colors</span>
+          <input
+            name="colors"
+            defaultValue={oarSettings.colors.join(", ")}
+            className="border rounded-lg px-3 py-2"
+            placeholder="Blue, Green, Red"
+          />
+          <span className="text-xs text-gray-500">Separate with commas.</span>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Most rings on an oar</span>
+          <input
+            name="max_rings"
+            type="number"
+            min={1}
+            max={20}
+            defaultValue={oarSettings.maxRings}
+            className="border rounded-lg px-3 py-2 w-24"
+          />
+        </label>
         <button
           type="submit"
           className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"

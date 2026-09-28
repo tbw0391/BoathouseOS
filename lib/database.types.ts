@@ -33,6 +33,7 @@ export interface Profile {
   us_rowing_number: string | null;
   spouse_id: string | null;
   walk_up_song: string | null;
+  profile_button_order: string[] | null;
   terms_accepted_at: string | null;
   terms_version: string | null;
   // Email important alerts when phone alerts are off (0092).
