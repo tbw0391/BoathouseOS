@@ -375,6 +375,35 @@ export async function setTreasurer(profileId: string, isTreasurer: boolean) {
   revalidatePath("/roster");
 }
 
+export async function setApparelChair(profileId: string, isApparelChair: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const callerRole = (callerProfile as { role: string } | null)?.role;
+  if (callerRole !== "admin") {
+    throw new Error("Only admins can set the apparel chair.");
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ is_apparel_chair: isApparelChair })
+    .eq("id", profileId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/roster/${profileId}`);
+  revalidatePath("/roster");
+}
+
 // Your own order for the shortcut buttons on your profile. Null resets to
 // the club's default order.
 export async function saveProfileButtonOrder(order: string[] | null) {

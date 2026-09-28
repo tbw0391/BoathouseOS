@@ -24,11 +24,12 @@ export default async function ApparelPage({ searchParams }: { searchParams: Prom
 
   const { data: meData } = await supabase
     .from("profiles")
-    .select("id, role, is_treasurer, spouse_id, display_name")
+    .select("id, role, is_treasurer, is_apparel_chair, spouse_id, display_name")
     .eq("id", user.id)
     .single();
-  const me = meData as Pick<Profile, "id" | "role" | "is_treasurer" | "spouse_id" | "display_name">;
+  const me = meData as Pick<Profile, "id" | "role" | "is_treasurer" | "is_apparel_chair" | "spouse_id" | "display_name">;
   const isTreasurer = me.role === "admin" || me.is_treasurer;
+  const canManage = isTreasurer || me.is_apparel_chair;
 
   const nowIso = new Date().toISOString();
   const [
@@ -91,7 +92,7 @@ export default async function ApparelPage({ searchParams }: { searchParams: Prom
     <div className="min-h-screen p-8 max-w-2xl flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Apparel</h1>
-        {isTreasurer && (
+        {canManage && (
           <Link href="/apparel/manage" className="text-sm font-medium text-[var(--color-primary)] underline">
             Manage apparel →
           </Link>

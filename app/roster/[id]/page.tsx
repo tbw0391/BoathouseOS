@@ -12,6 +12,7 @@ import {
   setBoardMember,
   setTentLeader,
   setTreasurer,
+  setApparelChair,
   setRemoved,
   permanentlyDeleteProfile,
   resetMemberPassword,
@@ -219,7 +220,7 @@ export default async function BioPage({
         ← Roster
       </Link>
 
-      <div className="mt-4 flex items-start gap-4">
+      <div className="mt-4 flex flex-wrap items-start gap-4">
         {profile.photo_url ? (
           <StorageImage
             src={profile.photo_url}
@@ -241,13 +242,14 @@ export default async function BioPage({
             {profile.is_board_member && " · Board Member"}
             {profile.is_tent_leader && " · Tent Leader"}
             {profile.is_treasurer && " · Treasurer"}
+            {profile.is_apparel_chair && " · Apparel Chair"}
           </p>
         </div>
-        <div className="ml-auto flex flex-col items-end gap-2">
+        <div className="w-full sm:w-52 sm:ml-auto flex flex-col gap-2">
           {canEdit && (
             <Link
               href={`/roster/${id}?edit=1`}
-              className="text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2"
+              className="w-full text-center text-sm bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-2"
             >
               Edit
             </Link>
@@ -274,6 +276,14 @@ export default async function BioPage({
               onLabel="Make treasurer"
               offLabel="Remove as treasurer"
               onToggle={setTreasurer.bind(null, profile.id)}
+            />
+          )}
+          {isCallerAdmin && (
+            <RoleToggle
+              initialValue={profile.is_apparel_chair}
+              onLabel="Make apparel chair"
+              offLabel="Remove as apparel chair"
+              onToggle={setApparelChair.bind(null, profile.id)}
             />
           )}
           {canRemove && (
@@ -310,7 +320,7 @@ export default async function BioPage({
       )}
 
       {isCallerAdmin && profile.disabled_at && (
-        <div className="mt-2">
+        <div className="mt-2 w-full sm:w-52">
           <PermanentlyDeleteButton
             name={profile.display_name}
             onDelete={permanentlyDeleteProfile.bind(null, profile.id)}

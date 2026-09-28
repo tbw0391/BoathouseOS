@@ -21,11 +21,12 @@ export default async function ManageApparelPage() {
   } = await supabase.auth.getUser();
   const { data: meData } = await supabase
     .from("profiles")
-    .select("role, is_treasurer")
+    .select("role, is_treasurer, is_apparel_chair")
     .eq("id", user?.id ?? "")
     .single();
-  const me = meData as Pick<Profile, "role" | "is_treasurer"> | null;
-  if (me?.role !== "admin" && !me?.is_treasurer) notFound();
+  const me = meData as Pick<Profile, "role" | "is_treasurer" | "is_apparel_chair"> | null;
+  const canTakePayment = me?.role === "admin" || !!me?.is_treasurer;
+  if (!canTakePayment && !me?.is_apparel_chair) notFound();
 
   const [
     { data: productRows },
@@ -109,7 +110,7 @@ export default async function ManageApparelPage() {
                 {o.window_id ? " · group order" : " · from stock"}
               </p>
             </div>
-            <OrderActions id={o.id} status={o.status} />
+            <OrderActions id={o.id} status={o.status} canTakePayment={canTakePayment} />
           </div>
         ))}
       </section>

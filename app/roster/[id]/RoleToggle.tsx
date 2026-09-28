@@ -31,11 +31,11 @@ export function RoleToggle({
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col gap-1">
       <button
         onClick={handleToggle}
         disabled={isPending}
-        className="text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2 disabled:opacity-50"
+        className="w-full text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2 disabled:opacity-50"
       >
         {value ? offLabel : onLabel}
       </button>

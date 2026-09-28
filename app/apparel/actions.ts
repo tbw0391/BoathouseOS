@@ -25,14 +25,30 @@ async function requireTreasurer() {
   return { supabase, user };
 }
 
+// The apparel chair runs the store alongside the treasurer and admins; only
+// money (marking an order paid) stays with the treasurer.
+async function requireApparelManager() {
+  const { supabase, user } = await requireUser();
+  const { data } = await supabase
+    .from("profiles")
+    .select("role, is_treasurer, is_apparel_chair")
+    .eq("id", user.id)
+    .single();
+  const me = data as Pick<Profile, "role" | "is_treasurer" | "is_apparel_chair"> | null;
+  if (me?.role !== "admin" && !me?.is_treasurer && !me?.is_apparel_chair) {
+    throw new Error("Only the apparel chair, treasurer or an admin can do that.");
+  }
+  return { supabase, user };
+}
+
 function revalidateApparel() {
   revalidatePath("/apparel", "layout");
 }
 
-// --- Treasurer: products, stock, order windows, orders ---
+// --- Apparel chair / treasurer: products, stock, order windows, orders ---
 
 export async function createProduct(formData: FormData) {
-  const { supabase } = await requireTreasurer();
+  const { supabase } = await requireApparelManager();
   const name = String(formData.get("name") ?? "").trim();
   const price = parseMoney(String(formData.get("price") ?? ""));
   const sizes = String(formData.get("sizes") ?? "")
@@ -67,14 +83,14 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function setProductActive(productId: string, active: boolean) {
-  const { supabase } = await requireTreasurer();
+  const { supabase } = await requireApparelManager();
   const { error } = await supabase.from("products").update({ active }).eq("id", productId);
   if (error) throw new Error(error.message);
   revalidateApparel();
 }
 
 export async function setStock(productId: string, size: string, quantity: number) {
-  const { supabase } = await requireTreasurer();
+  const { supabase } = await requireApparelManager();
   if (!Number.isInteger(quantity) || quantity < 0) throw new Error("Stock must be 0 or more.");
   const { error } = await supabase
     .from("product_stock")
@@ -84,7 +100,7 @@ export async function setStock(productId: string, size: string, quantity: number
 }
 
 export async function createOrderWindow(formData: FormData) {
-  const { supabase } = await requireTreasurer();
+  const { supabase } = await requireApparelManager();
   const title = String(formData.get("title") ?? "").trim();
   const closes = String(formData.get("closes_on") ?? "");
   const productIds = formData.getAll("product_ids").map(String).filter(Boolean);
@@ -108,7 +124,7 @@ export async function createOrderWindow(formData: FormData) {
 }
 
 export async function closeOrderWindow(windowId: string) {
-  const { supabase } = await requireTreasurer();
+  const { supabase } = await requireApparelManager();
   const { error } = await supabase
     .from("order_windows")
     .update({ closes_at: new Date().toISOString() })
@@ -118,16 +134,14 @@ export async function closeOrderWindow(windowId: string) {
 }
 
 export async function setOrderStatus(orderId: string, status: "picked_up" | "cancelled" | "paid") {
-  const { supabase } = await requireTreasurer();
   if (status === "paid") {
+    await requireTreasurer();
     await markOrderPaid(createAdminClient(), orderId);
     revalidateApparel();
     return;
   }
-  const { error } = await supabase
-    .from("orders")
-    .update({ status, picked_up_at: status === "picked_up" ? new Date().toISOString() : null })
-    .eq("id", orderId);
+  const { supabase } = await requireApparelManager();
+  const { error } = await supabase.rpc("set_order_handout", { order_id: orderId, new_status: status });
   if (error) throw new Error(error.message);
   revalidateApparel();
 }

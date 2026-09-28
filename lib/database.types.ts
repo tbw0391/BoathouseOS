@@ -30,6 +30,8 @@ export interface Profile {
   is_board_member: boolean;
   is_tent_leader: boolean;
   is_treasurer: boolean;
+  // Runs the apparel store (0097).
+  is_apparel_chair: boolean;
   us_rowing_number: string | null;
   spouse_id: string | null;
   walk_up_song: string | null;
@@ -128,6 +130,9 @@ export interface Lineup {
   club_slug: string | null;
   // From the heat sheet (0083).
   bow_number: string | null;
+  // The tracked boat crossed the start / reached the finish (0098).
+  race_started_at: string | null;
+  race_finished_at: string | null;
 }
 
 export interface Boat {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { captainSeat, oarSheetComplete } from "@/lib/oarSheet";
 import { regattaPrepSeen } from "@/lib/regattaPrep";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { SignupCallLink } from "@/components/SignupCallLink";
 import { SIGNUP_CALL_SEEN_COOKIE, parseSignupCallSeen } from "@/lib/signupCallSeen";
 import {
@@ -106,6 +107,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/rookie-parent": Sprout,
   "/payments": CreditCard,
   "/apparel": Shirt,
+  "/apparel/manage": Shirt,
   "/volunteer": HelpingHand,
   "/photos": Camera,
   "/messages": MessageCircle,
@@ -156,6 +158,14 @@ type OarSheetBanner = {
   boatName: string;
   raceName: string | null;
   eventTitle: string;
+};
+
+type RacingBanner = {
+  lineupId: string;
+  boatName: string;
+  raceName: string | null;
+  finished: boolean;
+  place: number | null;
 };
 
 type PendingRaceBanner = {
@@ -649,6 +659,29 @@ async function loadSignupCallBanners(
     }));
 }
 
+// Club boats racing right now (crossed the start, per the GPS trigger in
+// 0098), and ones that finished in the last hour, with their place once in.
+async function loadRacingBanners(supabase: SupabaseServerClient): Promise<RacingBanner[]> {
+  const { data } = await supabase
+    .from("lineups")
+    .select("id, boat_name, race_name, place, race_started_at, race_finished_at")
+    .gte("race_started_at", startOfToday())
+    .order("race_started_at", { ascending: false });
+  const hourAgo = Date.now() - 60 * 60 * 1000;
+  return (
+    (data as Pick<Lineup, "id" | "boat_name" | "race_name" | "place" | "race_started_at" | "race_finished_at">[] | null) ??
+    []
+  )
+    .filter((l) => !l.race_finished_at || new Date(l.race_finished_at).getTime() > hourAgo)
+    .map((l) => ({
+      lineupId: l.id,
+      boatName: l.boat_name,
+      raceName: l.race_name,
+      finished: !!l.race_finished_at,
+      place: l.place,
+    }));
+}
+
 // A regatta boat's cox (or stroke, with no cox) is asked to fill in its oar
 // sheet — an oar for every seat, and someone on Launch and Recovery — until
 // it's done.
@@ -973,6 +1006,7 @@ export default async function Home() {
   let signupCallBanners: SignupCallBanner[] = [];
   let announcementBanners: AnnouncementBanner[] = [];
   let oarSheetBanners: OarSheetBanner[] = [];
+  let racingBanners: RacingBanner[] = [];
   let birthdaysToday: BirthdayPerson[] = [];
   let myPrs: PrBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
@@ -992,6 +1026,7 @@ export default async function Home() {
   let isParent = false;
   let isRowerOrCoxswain = false;
   let isFoodTentManager = false;
+  let isApparelChair = false;
   let isGlobalAdmin = false;
   let pendingApprovalCount = 0;
   let checkInLabel: string | null = null;
@@ -1025,7 +1060,7 @@ export default async function Home() {
       getUnreadScheduleCount(user.id),
       supabase
         .from("profiles")
-        .select("role, spouse_id, is_tent_leader, email_alerts")
+        .select("role, spouse_id, is_tent_leader, is_apparel_chair, email_alerts")
         .eq("id", user.id)
         .single(),
       supabase
@@ -1063,7 +1098,7 @@ export default async function Home() {
 
     const caller = callerResult.data as Pick<
       Profile,
-      "role" | "spouse_id" | "is_tent_leader" | "email_alerts"
+      "role" | "spouse_id" | "is_tent_leader" | "is_apparel_chair" | "email_alerts"
     > | null;
     const callerRole = caller?.role;
     emailAlertsOn = caller?.email_alerts ?? true;
@@ -1073,6 +1108,7 @@ export default async function Home() {
     isParent = callerRole === "parent";
     isRowerOrCoxswain = callerRole === "rower" || callerRole === "coxswain";
     isFoodTentManager = isCoachOrAdmin || Boolean(caller?.is_tent_leader);
+    isApparelChair = Boolean(caller?.is_apparel_chair);
 
     if (isCoachOrAdmin) checkInLabel = await getTodaysCheckInLabel(user.id);
     if (isRowerOrCoxswain) myAttendance = await getMyAttendanceToday(user.id);
@@ -1257,6 +1293,7 @@ export default async function Home() {
       lineupBannerResults,
       coachTaskBannerResults,
       oarSheetBannerResults,
+      racingBannerResults,
       pendingRaceBannerResults,
       familyLinkRows,
       foodPrepBannerResults,
@@ -1275,6 +1312,7 @@ export default async function Home() {
       }),
       loadCoachTaskBanners(supabase, user.id),
       loadOarSheetBanners(supabase, user.id),
+      loadRacingBanners(supabase),
       isCoachOrAdmin ? loadPendingRaceBanners(supabase) : Promise.resolve([]),
       supabase
         .from("family_links")
@@ -1300,6 +1338,7 @@ export default async function Home() {
     lineupBanners = lineupBannerResults;
     coachTaskBanners = coachTaskBannerResults;
     oarSheetBanners = oarSheetBannerResults;
+    racingBanners = racingBannerResults;
     pendingRaceBanners = pendingRaceBannerResults;
     foodPrepBanners = foodPrepBannerResults;
     announcementBanners = announcementBannerResults;
@@ -1777,6 +1816,38 @@ export default async function Home() {
         </div>
       )}
 
+      {racingBanners.length > 0 && (
+        <div className="w-full flex flex-col gap-2">
+          {racingBanners.some((b) => !b.finished) && <AutoRefresh seconds={15} />}
+          {racingBanners.map((b) =>
+            b.finished ? (
+              <Link
+                key={b.lineupId}
+                href="/race-day"
+                className="w-full flex items-center gap-2 bg-[var(--color-secondary)] text-white rounded-lg px-4 py-3 text-sm"
+              >
+                🏁 <strong>{b.boatName}</strong> finished
+                {b.raceName && <> {b.raceName}</>}
+                {b.place != null && (
+                  <>
+                    {" "}— {placeEmoji(b.place)} {ordinalPlace(b.place)}
+                  </>
+                )}
+              </Link>
+            ) : (
+              <Link
+                key={b.lineupId}
+                href="/on-water"
+                className="w-full flex items-center gap-2 bg-green-600 text-white rounded-lg px-4 py-3 font-semibold"
+              >
+                🚣 {b.boatName} is racing now{b.raceName && <span className="font-normal"> · {b.raceName}</span>}
+                <span className="ml-auto text-sm font-normal underline">Watch live</span>
+              </Link>
+            ),
+          )}
+        </div>
+      )}
+
       {lightningHold && (
         <Link href="/water" className="w-full flex items-center gap-2 bg-red-700 text-white rounded-lg px-4 py-3 font-semibold">
           <CloudLightning className="w-5 h-5 shrink-0" />
@@ -1963,6 +2034,11 @@ export default async function Home() {
                   { href: "/todo", label: "To-do List" },
                   { href: "/admin", label: "Admin Settings" },
                 ]
+              : [],
+          )
+          .concat(
+            isAdmin || isApparelChair
+              ? [{ href: "/apparel/manage", label: "Manage Apparel" }]
               : [],
           )
           .concat(

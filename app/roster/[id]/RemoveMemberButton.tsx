@@ -32,14 +32,14 @@ export function RemoveMemberButton({
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col gap-1">
       <button
         onClick={handleClick}
         disabled={isPending}
         className={
           removed
-            ? "text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2 disabled:opacity-50"
-            : "text-sm border-2 border-red-600 text-red-600 rounded px-3 py-2 disabled:opacity-50"
+            ? "w-full text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2 disabled:opacity-50"
+            : "w-full text-sm border-2 border-red-600 text-red-600 rounded px-3 py-2 disabled:opacity-50"
         }
       >
         {removed ? "Restore to roster" : "Remove from roster"}

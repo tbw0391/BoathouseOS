@@ -198,11 +198,19 @@ export function CloseWindowButton({ id }: { id: string }) {
   );
 }
 
-export function OrderActions({ id, status }: { id: string; status: "pending" | "paid" | "picked_up" | "cancelled" }) {
+export function OrderActions({
+  id,
+  status,
+  canTakePayment,
+}: {
+  id: string;
+  status: "pending" | "paid" | "picked_up" | "cancelled";
+  canTakePayment: boolean;
+}) {
   const [, startTransition] = useTransition();
   return (
     <div className="flex gap-3 shrink-0">
-      {status === "pending" && (
+      {status === "pending" && canTakePayment && (
         <button type="button" className={small} onClick={() => startTransition(() => setOrderStatus(id, "paid"))}>
           Mark paid (cash/check)
         </button>

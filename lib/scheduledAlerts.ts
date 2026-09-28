@@ -189,6 +189,44 @@ async function paperworkAlerts(admin: Admin) {
   }
 }
 
+// A tracked regatta boat crossed the start (set on its lineup by the
+// location_pings trigger in 0098, which also calls this right away): tell
+// the crew's parents and the boat's followers.
+async function raceStartAlerts(admin: Admin) {
+  const { data } = await admin
+    .from("lineups")
+    .select("id, boat_id, boat_name, race_name")
+    .gte("race_started_at", new Date(Date.now() - 20 * 60 * 1000).toISOString());
+  const races =
+    (data as Pick<Lineup, "id" | "boat_id" | "boat_name" | "race_name">[] | null) ?? [];
+  const fresh = await claim(admin, "race_started", races.map((r) => r.id));
+
+  for (const r of races.filter((x) => fresh.has(x.id))) {
+    const [{ data: seats }, { data: followers }] = await Promise.all([
+      admin.from("lineup_seats").select("rower_id").eq("lineup_id", r.id),
+      r.boat_id
+        ? admin.from("on_water_follows").select("profile_id").eq("boat_id", r.boat_id)
+        : Promise.resolve({ data: [] }),
+    ]);
+    const crew = ((seats as { rower_id: string | null }[] | null) ?? [])
+      .map((x) => x.rower_id)
+      .filter((id): id is string => !!id);
+    await sendPush(
+      [
+        ...(await guardianIdsFor(crew)),
+        ...((followers as { profile_id: string }[] | null) ?? []).map((f) => f.profile_id),
+      ].filter((id) => !crew.includes(id)),
+      {
+        kind: "race_started",
+        title: `${r.boat_name} is racing now`,
+        body: `${r.race_name ?? "Their race"} just started. Tap to watch live.`,
+        url: "/on-water",
+        tag: `race-${r.id}`,
+      }
+    );
+  }
+}
+
 export async function runScheduledAlerts() {
   const admin = createAdminClient();
   const results = await Promise.allSettled([
@@ -196,6 +234,7 @@ export async function runScheduledAlerts() {
     paymentDueAlerts(admin),
     launchSoonAlerts(admin),
     paperworkAlerts(admin),
+    raceStartAlerts(admin),
   ]);
   const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
   for (const f of failures) console.error("Scheduled alert failed", f.reason);
