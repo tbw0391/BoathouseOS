@@ -542,10 +542,9 @@
       calls, launch reminders, schedule changes, payments and paperwork are
       emailed via Resend to members with no phone-alert device; members can
       untick it on home.
-- [ ] Email setup: create a Resend account, verify the boathouseos.app
-      domain (DNS records), add RESEND_API_KEY and EMAIL_FROM (e.g.
-      "BoathouseOS <alerts@boathouseos.app>") to Vercel, redeploy. Until
-      then no emails go out and the home-page email checkbox stays hidden.
+- [x] Email setup (2026-09-28): Resend account, boathouseos.app domain
+      verified, RESEND_API_KEY and EMAIL_FROM in Vercel; the home-page email
+      checkbox shows. Next: point Supabase Auth's custom SMTP at Resend.
 
 ## Safety
 - [x] Water Conditions (2026-09-28, /water, 0087): live USGS gauge (flow,
