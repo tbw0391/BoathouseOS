@@ -491,10 +491,9 @@
       (families; bills on an automatic plan skipped). Each sent once
       (scheduled_alerts_sent). Failed installments alert the family and
       treasurer from the Stripe webhook (invoice.payment_failed).
-- [ ] Scheduled alerts setup: pick a long random secret, add it to Vercel
-      as CRON_SECRET, and run
-      `select vault.create_secret('<secret>', 'cron_secret');` in Supabase.
-      Also add invoice.payment_failed to the Stripe webhook's events.
+- [x] Scheduled alerts setup (2026-09-28): CRON_SECRET in Vercel matches
+      the cron_secret vault secret; the 5-minute job gets 200s. The Stripe
+      webhook was created with invoice.payment_failed included.
 - [x] Parents follow boats (2026-09-27, 0080): "Tell me when these boats go
       out" tap buttons on On the Water; followers get the boat-on-the-water
       alert too.
