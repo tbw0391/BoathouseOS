@@ -52,7 +52,9 @@ export function StripeConnectButton({ label }: { label: string }) {
         onClick={() =>
           startTransition(async () => {
             try {
-              window.location.assign(await connectStripe());
+              const result = await connectStripe();
+              if ("error" in result) setError(result.error);
+              else window.location.assign(result.url);
             } catch (e) {
               setError(e instanceof Error ? e.message : "Couldn't reach Stripe.");
             }

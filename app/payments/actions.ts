@@ -1,5 +1,6 @@
 "use server";
 
+import type Stripe from "stripe";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -234,11 +235,22 @@ export async function setDefaultFeeMode(mode: FeeMode) {
 }
 
 // Starts (or resumes) Stripe's sign-up for the club's own Stripe account and
-// returns the Stripe page to send the treasurer to.
-export async function connectStripe(): Promise<string> {
+// returns the Stripe page to send the treasurer to. Stripe's own error comes
+// back as { error } rather than thrown, since production hides thrown
+// messages and Stripe's usually say exactly what to fix in its dashboard.
+export async function connectStripe(): Promise<{ url: string } | { error: string }> {
   await requireTreasurer();
   const stripe = getStripe();
-  if (!stripe) throw new Error("Stripe isn't set up for BoathouseOS yet (no Stripe key on the server).");
+  if (!stripe) return { error: "Stripe isn't set up for BoathouseOS yet (no Stripe key on the server)." };
+  try {
+    return { url: await startStripeOnboarding(stripe) };
+  } catch (e) {
+    console.error("connectStripe", e);
+    return { error: e instanceof Error ? e.message : "Couldn't reach Stripe." };
+  }
+}
+
+async function startStripeOnboarding(stripe: Stripe): Promise<string> {
   const admin = createAdminClient();
   const settings = await getPaymentSettings(admin);
 
