@@ -4,6 +4,8 @@ import { PhotoUploadForm } from "./PhotoUploadForm";
 import { deletePhoto } from "./actions";
 import { PhotoSocial } from "./PhotoSocial";
 import { StorageImage } from "@/components/StorageImage";
+import { clubDateKey } from "@/lib/raceDay";
+import { boatsByDay } from "@/lib/photoBoats";
 
 export default async function PhotosPage() {
   const supabase = await createClient();
@@ -25,6 +27,44 @@ export default async function PhotosPage() {
     .is("disabled_at", null)
     .order("display_name", { ascending: true });
   const roster = (rosterData as Pick<Profile, "id" | "display_name">[] | null) ?? [];
+
+  // Boats from the last two weeks, by day, so a photo can tag a whole
+  // crew at once — straight from that day's lineup, not the boat's usual crew.
+  const { data: recentEvents } = await supabase
+    .from("schedule_events")
+    .select("id, title, starts_at")
+    .gte("starts_at", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
+    .lte("starts_at", new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+  const eventById = new Map(
+    ((recentEvents as { id: string; title: string; starts_at: string }[] | null) ?? []).map((e) => [e.id, e])
+  );
+  const { data: recentLineups } = eventById.size
+    ? await supabase
+        .from("lineups")
+        .select("id, event_id, boat_name, race_name, race_time, lineup_seats(rower_id)")
+        .in("event_id", [...eventById.keys()])
+    : { data: [] };
+  const boatDays = boatsByDay(
+    (
+      (recentLineups as {
+        id: string;
+        event_id: string;
+        boat_name: string;
+        race_name: string | null;
+        race_time: string | null;
+        lineup_seats: { rower_id: string | null }[];
+      }[] | null) ?? []
+    ).map((l) => {
+      const event = eventById.get(l.event_id)!;
+      return {
+        lineupId: l.id,
+        dateKey: clubDateKey(l.race_time ?? event.starts_at),
+        eventTitle: event.title,
+        label: l.race_name ? `${l.boat_name} · ${l.race_name}` : l.boat_name,
+        memberIds: l.lineup_seats.map((s) => s.rower_id).filter((id): id is string => !!id),
+      };
+    })
+  );
 
   const { data: photosData } = await supabase
     .from("photos")
@@ -51,7 +91,7 @@ export default async function PhotosPage() {
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-4">Photos</h1>
 
-      {user && <PhotoUploadForm userId={user.id} roster={roster} />}
+      {user && <PhotoUploadForm userId={user.id} roster={roster} boatDays={boatDays} todayKey={clubDateKey(new Date())} />}
 
       {photos.length === 0 ? (
         <p className="text-sm text-gray-500">No photos yet.</p>

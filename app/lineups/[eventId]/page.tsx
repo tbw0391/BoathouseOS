@@ -34,6 +34,7 @@ import { TrailerList } from "../TrailerList";
 import { TravelTab, type RoomView, type VehicleView } from "../TravelTab";
 import type { LatLng } from "@/lib/course";
 import { markRegattaPrepSeen } from "@/lib/regattaPrep";
+import { DeleteRegattaButton } from "../DeleteRegattaButton";
 
 // Trip details, rides and rooms, plus who the viewer can sign up (themself
 // and any rower they're a guardian of) and who can be given a room.
@@ -384,6 +385,11 @@ export default async function EventRacesPage({
       </Link>
       <h1 className="text-2xl font-bold mt-4">{typedEvent.title}</h1>
       <p className="text-sm text-gray-500 mb-4">{new Date(typedEvent.starts_at).toLocaleDateString()}</p>
+      {canManage && typedEvent.event_type === "regatta" && (
+        <div className="mb-4">
+          <DeleteRegattaButton eventId={eventId} title={typedEvent.title} />
+        </div>
+      )}
 
       <nav className="flex flex-wrap gap-2 mb-6">
         {tabs.map((t) => (

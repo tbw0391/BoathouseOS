@@ -735,3 +735,18 @@ export async function saveCourse(eventId: string, start: CoursePoint, finish: Co
 
   revalidatePath(`/lineups/${eventId}`);
 }
+
+// Deletes a regatta and everything hung off it (races, boats, results,
+// food tent, volunteer slots, trailer and travel lists all cascade).
+export async function deleteRegatta(eventId: string) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+  if (!eventId) throw new Error("Missing regatta.");
+
+  const { error } = await supabase.from("schedule_events").delete().eq("id", eventId).eq("event_type", "regatta");
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/lineups");
+  revalidatePath("/schedule", "layout");
+  revalidatePath("/");
+}

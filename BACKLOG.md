@@ -47,6 +47,11 @@
       later. Board Member intentionally excluded from self-select (2026-09-20
       decision: admin assigns it via the existing profile-page toggle, not
       something people pick for themselves)
+- [ ] Member profile buttons all the same size (asked 2026-09-28): the
+      stack on the right of a member's profile (Edit, Make board member /
+      tent leader / treasurer, Remove from roster, Reset password) are each
+      as wide as their own text, so they look ragged. Give them one width
+      (e.g. full width of the column) and the same height.
 - [x] Role-specific profile view (2026-09-28): shortcut buttons on your own
       profile, chosen per group by an admin in Admin Settings → "Profile
       buttons" (same tap picker as the home-screen buttons). Groups: Rower,
@@ -87,6 +92,11 @@
 - [x] List upcoming/past events, split into Regattas and Practice
 - [x] Create/delete event (coach/admin), including recurrence (weekly/monthly/yearly)
 - [x] Edit an existing event (title, times, location, description, recurrence)
+- [x] Delete a regatta from its own page (2026-09-28): "Delete regatta"
+      under the title on /lineups/<regatta> (coaches/admins), with a
+      two-tap warning spelling out that its races, boats, oar sheets,
+      results and medals, food tent, volunteer, trailer and travel lists
+      go with it. Before this it was only on Schedule → Regattas.
 - [ ] RSVP (attending / not attending) per event (not now — Todd will pick it up later)
 - [x] Calendar view (2026-09-27): month grid on /schedule under the Regattas/
       Practice tiles. Dots per day by type; tap a day to list what's on it
@@ -418,12 +428,12 @@
 - [x] Anyone can post a photo (top-left camera icon on every page, plus a
       Photos tile on the home page)
 - [x] Tag roster members in a photo
-- [ ] Tag a whole boat in a photo (asked 2026-09-28): when adding a photo,
-      pick one of that day's boats (the lineups for that day's regatta or
-      practice) and everyone in that boat's lineup gets tagged at once,
-      rowers and cox. It has to follow the lineups: the tags are the
-      people in the lineup for that day, not the boat's usual crew. Should
-      still be able to untag someone or add extra people after picking.
+- [x] Tag a whole boat in a photo (2026-09-28): the Add photo form lists
+      the boats from the last two weeks by day (Today, Yesterday, Sat Sep
+      26...). Tapping a boat tags everyone seated in that day's lineup
+      (rowers and cox — it follows the lineup, not the boat's usual crew);
+      tapping it again untags them. Tagged people show as chips with an x
+      to untag one, and anyone else can still be added from the list.
 - [x] A real "Add photo" button (2026-09-28): the Photos page's plain
       "Choose File" box is now a big "Add photo" button in the club colors
       (camera icon) that opens the camera/photo picker, then shows a

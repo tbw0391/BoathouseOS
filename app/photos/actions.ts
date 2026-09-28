@@ -14,7 +14,7 @@ export async function addPhoto(formData: FormData) {
 
   const url = String(formData.get("url") ?? "").trim();
   const caption = String(formData.get("caption") ?? "").trim() || null;
-  const taggedIds = formData.getAll("tagged_profile_ids").map(String).filter(Boolean);
+  const taggedIds = [...new Set(formData.getAll("tagged_profile_ids").map(String).filter(Boolean))];
 
   if (!url) throw new Error("Missing photo.");
 

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Camera } from "lucide-react";
+import { Camera, X } from "lucide-react";
+import { dayLabel, type PhotoBoatDay } from "@/lib/photoBoats";
 import { createClient } from "@/lib/supabase/client";
 import { addPhoto } from "./actions";
 
@@ -11,7 +12,17 @@ interface RosterOption {
   display_name: string;
 }
 
-export function PhotoUploadForm({ userId, roster }: { userId: string; roster: RosterOption[] }) {
+export function PhotoUploadForm({
+  userId,
+  roster,
+  boatDays,
+  todayKey,
+}: {
+  userId: string;
+  roster: RosterOption[];
+  boatDays: PhotoBoatDay[];
+  todayKey: string;
+}) {
   const router = useRouter();
   const [caption, setCaption] = useState("");
   const [taggedIds, setTaggedIds] = useState<string[]>([]);
@@ -20,6 +31,19 @@ export function PhotoUploadForm({ userId, roster }: { userId: string; roster: Ro
   const [isPending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [boatDay, setBoatDay] = useState(boatDays[0]?.dateKey ?? null);
+  const nameById = new Map(roster.map((m) => [m.id, m.display_name]));
+  const dayBoats = boatDays.find((d) => d.dateKey === boatDay)?.boats ?? [];
+
+  // Tapping a boat tags its whole crew from that day's lineup; tapping it
+  // again (once they're all tagged) takes them back off.
+  function toggleBoat(memberIds: string[]) {
+    setTaggedIds((prev) =>
+      memberIds.every((id) => prev.includes(id))
+        ? prev.filter((id) => !memberIds.includes(id))
+        : [...prev, ...memberIds.filter((id) => !prev.includes(id))]
+    );
+  }
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
@@ -119,8 +143,73 @@ export function PhotoUploadForm({ userId, roster }: { userId: string; roster: Ro
         className="border rounded px-3 py-2 text-sm"
       />
 
+      {boatDays.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-gray-600">Tag a whole boat</p>
+          <div className="flex flex-wrap gap-2">
+            {boatDays.map((d) => (
+              <button
+                key={d.dateKey}
+                type="button"
+                onClick={() => setBoatDay(d.dateKey)}
+                aria-pressed={boatDay === d.dateKey}
+                className={`rounded-lg border-2 px-3 py-1.5 text-sm ${
+                  boatDay === d.dateKey
+                    ? "border-[var(--color-primary)] bg-[var(--color-secondary)] text-white font-medium"
+                    : "border-gray-300"
+                }`}
+              >
+                {dayLabel(d.dateKey, todayKey)}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {dayBoats.map((b) => {
+              const allTagged = b.memberIds.every((id) => taggedIds.includes(id));
+              return (
+                <button
+                  key={b.lineupId}
+                  type="button"
+                  onClick={() => toggleBoat(b.memberIds)}
+                  aria-pressed={allTagged}
+                  className={`rounded-lg border-2 px-3 py-2 text-left text-sm ${
+                    allTagged ? "border-[var(--color-primary)] bg-[var(--color-secondary)] text-white" : "border-gray-300"
+                  }`}
+                >
+                  <span className="block font-medium">{b.label}</span>
+                  <span className={`block text-xs ${allTagged ? "text-white/80" : "text-gray-500"}`}>
+                    {b.eventTitle} · {b.memberIds.length} {b.memberIds.length === 1 ? "person" : "people"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {taggedIds.length > 0 && (
+        <div className="flex flex-wrap gap-2" aria-label="Tagged">
+          {taggedIds.map((id) => (
+            <span
+              key={id}
+              className="flex items-center gap-1 rounded-full bg-[var(--color-secondary)] text-white pl-3 pr-1 py-1 text-sm"
+            >
+              {nameById.get(id) ?? "Unknown"}
+              <button
+                type="button"
+                onClick={() => toggleTag(id)}
+                aria-label={`Untag ${nameById.get(id) ?? "this person"}`}
+                className="p-1 rounded-full hover:bg-white/20"
+              >
+                <X className="w-3.5 h-3.5" aria-hidden />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-col gap-1">
-        <p className="text-sm text-gray-600">Tag people (optional)</p>
+        <p className="text-sm text-gray-600">{boatDays.length > 0 ? "Tag other people (optional)" : "Tag people (optional)"}</p>
         <div className="max-h-40 overflow-y-auto border rounded p-2 flex flex-col gap-1">
           {roster.map((member) => (
             <label key={member.id} className="flex items-center gap-2 text-sm">
