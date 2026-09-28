@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import RacingScull from "@/components/icons/RacingScull";
 import { PushToggle } from "@/components/PushToggle";
+import { EmailAlertsToggle } from "@/components/EmailAlertsToggle";
 import { RegattaWeekPopup, type RegattaWeekLink } from "@/components/RegattaWeekPopup";
 import { ALERT_SETTINGS_KEY, parseAlertSettings } from "@/lib/alertSettings";
 import { DEMO_PROFILES, isDemoEmail } from "@/lib/demoAccount";
@@ -896,6 +897,8 @@ export default async function Home() {
   let myPrs: PrBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
   let raceDayToday: ScheduleEvent | null = null;
+  let emailAlertsOn = true;
+  const emailBackupOn = !!process.env.RESEND_API_KEY && !!process.env.EMAIL_FROM;
   let lightningHold: { last_strike_at: string } | null = null;
   let practiceCall: { status: string; note: string | null } | null = null;
   let upcomingRegattaForecast: EventForecast | null = null;
@@ -941,7 +944,7 @@ export default async function Home() {
       getUnreadScheduleCount(user.id),
       supabase
         .from("profiles")
-        .select("role, spouse_id, is_tent_leader")
+        .select("role, spouse_id, is_tent_leader, email_alerts")
         .eq("id", user.id)
         .single(),
       supabase
@@ -979,9 +982,10 @@ export default async function Home() {
 
     const caller = callerResult.data as Pick<
       Profile,
-      "role" | "spouse_id" | "is_tent_leader"
+      "role" | "spouse_id" | "is_tent_leader" | "email_alerts"
     > | null;
     const callerRole = caller?.role;
+    emailAlertsOn = caller?.email_alerts ?? true;
     viewerRole = (callerRole as NavRole | undefined) ?? null;
     isAdmin = callerRole === "admin";
     isCoachOrAdmin = callerRole === "admin" || callerRole === "coach";
@@ -1781,6 +1785,7 @@ export default async function Home() {
       )}
 
       {user && <PushToggle isDemo={isDemoEmail(user.email)} />}
+      {user && !isDemoEmail(user.email) && emailBackupOn && <EmailAlertsToggle initial={emailAlertsOn} />}
 
       {regattaWeek && (
         <RegattaWeekPopup

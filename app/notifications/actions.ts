@@ -87,3 +87,14 @@ export async function isPushSubscriptionMine(endpoint: string): Promise<boolean>
     .eq("endpoint", endpoint);
   return (count ?? 0) > 0;
 }
+
+// Whether important alerts are emailed when this member has no phone alerts.
+export async function setEmailAlerts(on: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+  const { error } = await supabase.from("profiles").update({ email_alerts: on }).eq("id", user.id);
+  if (error) throw new Error(error.message);
+}

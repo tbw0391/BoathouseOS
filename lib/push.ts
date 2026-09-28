@@ -3,7 +3,9 @@ import { cookies } from "next/headers";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { ALERT_SETTINGS_KEY, parseAlertSettings, type AlertKind } from "@/lib/alertSettings";
+import { ALERT_SETTINGS_KEY, EMAIL_BACKUP_KINDS, parseAlertSettings, type AlertKind } from "@/lib/alertSettings";
+import { alertEmail, emailConfigured, sendEmails } from "@/lib/email";
+import { isDemoEmail } from "@/lib/demoAccount";
 
 // Phone/browser push alerts. Needs NEXT_PUBLIC_VAPID_PUBLIC_KEY and
 // VAPID_PRIVATE_KEY (generate a pair with `npx web-push generate-vapid-keys`);
@@ -54,12 +56,13 @@ function configure(): boolean {
   return true;
 }
 
-// Sends to every device these people turned alerts on for. Never throws:
-// alerts are a nice-to-have on top of whatever action triggered them.
+// Sends to every device these people turned alerts on for, and emails the
+// important kinds to anyone with no device (see EMAIL_BACKUP_KINDS). Never
+// throws: alerts are a nice-to-have on top of whatever action triggered them.
 export async function sendPush(userIds: string[], message: PushMessage) {
   try {
     const ids = [...new Set(userIds)];
-    if (ids.length === 0 || !configure()) return;
+    if (ids.length === 0) return;
 
     const admin = createAdminClient();
     const { data: setting } = await admin
@@ -71,30 +74,52 @@ export async function sendPush(userIds: string[], message: PushMessage) {
 
     const { data } = await admin
       .from("push_subscriptions")
-      .select("id, endpoint, p256dh, auth")
+      .select("id, user_id, endpoint, p256dh, auth")
       .in("user_id", ids);
-    const subs = ((data as { id: string; endpoint: string; p256dh: string; auth: string }[] | null) ?? []).filter(
+    const subs = ((data as { id: string; user_id: string; endpoint: string; p256dh: string; auth: string }[] | null) ?? []).filter(
       (s) => isPushServiceEndpoint(s.endpoint)
     );
 
     const { title, body, url, tag } = message;
-    const payload = JSON.stringify({ title, body, url, tag });
-    const gone: string[] = [];
-    await Promise.allSettled(
-      subs.map((s) =>
-        webpush
-          .sendNotification(
-            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-            payload,
-            { TTL: 60 * 60 * 24 }
-          )
-          .catch((e: { statusCode?: number }) => {
-            // The person turned alerts off or uninstalled the app.
-            if (e.statusCode === 404 || e.statusCode === 410) gone.push(s.id);
-          })
-      )
-    );
-    if (gone.length > 0) await admin.from("push_subscriptions").delete().in("id", gone);
+    if (subs.length > 0 && configure()) {
+      const payload = JSON.stringify({ title, body, url, tag });
+      const gone: string[] = [];
+      await Promise.allSettled(
+        subs.map((s) =>
+          webpush
+            .sendNotification(
+              { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+              payload,
+              { TTL: 60 * 60 * 24 }
+            )
+            .catch((e: { statusCode?: number }) => {
+              // The person turned alerts off or uninstalled the app.
+              if (e.statusCode === 404 || e.statusCode === 410) gone.push(s.id);
+            })
+        )
+      );
+      if (gone.length > 0) await admin.from("push_subscriptions").delete().in("id", gone);
+    }
+
+    if (EMAIL_BACKUP_KINDS.includes(message.kind) && emailConfigured()) {
+      const withDevice = new Set(configure() ? subs.map((s) => s.user_id) : []);
+      const noDevice = ids.filter((id) => !withDevice.has(id));
+      if (noDevice.length > 0) {
+        const { data: people } = await admin
+          .from("profiles")
+          .select("email")
+          .in("id", noDevice)
+          .eq("email_alerts", true)
+          .not("approved_at", "is", null)
+          .is("disabled_at", null);
+        const emails = ((people as { email: string | null }[] | null) ?? [])
+          .map((p) => p.email?.trim())
+          .filter((e): e is string => !!e && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) && !isDemoEmail(e));
+        const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.boathouseos.app";
+        const { html, text } = alertEmail(title, body, `${site}${url}`);
+        await sendEmails(emails, title, html, text);
+      }
+    }
   } catch (e) {
     console.error("sendPush failed", e);
   }

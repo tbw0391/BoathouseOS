@@ -35,6 +35,8 @@ export interface Profile {
   walk_up_song: string | null;
   terms_accepted_at: string | null;
   terms_version: string | null;
+  // Email important alerts when phone alerts are off (0092).
+  email_alerts: boolean;
 }
 
 export interface ProfileTeam {

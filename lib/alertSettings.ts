@@ -61,6 +61,17 @@ export const ALERT_TYPES = [
 
 export type AlertKind = (typeof ALERT_TYPES)[number]["kind"];
 
+// Important enough to email people who haven't turned on phone alerts.
+export const EMAIL_BACKUP_KINDS: AlertKind[] = [
+  "lightning_hold",
+  "practice_call",
+  "launch_soon",
+  "schedule_change",
+  "payment_due",
+  "payment_failed",
+  "paperwork_expiring",
+];
+
 export const ALERT_SETTINGS_KEY = "alert_settings";
 
 export function parseAlertSettings(raw: string | null | undefined): Record<AlertKind, boolean> {

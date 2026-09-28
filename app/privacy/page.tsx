@@ -141,6 +141,10 @@ export default function PrivacyPage() {
             <strong>Vercel</strong> hosts the app and keeps short-lived server logs.
           </li>
           <li>
+            <strong>Resend</strong> delivers alert emails (to members who haven&apos;t turned on
+            phone alerts) and receives the email address and the alert&apos;s text.
+          </li>
+          <li>
             <strong>Stripe</strong> processes card payments for your club. When you pay by card,
             Stripe receives your card details and the payment amount, and your club&apos;s Stripe
             account records the payment. Stripe&apos;s own privacy policy covers what it does
