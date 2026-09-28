@@ -116,8 +116,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // api/stripe/webhook and api/cron are skipped: they're called signed out
+  // api/stripe/webhook, api/cron and api/calendar are skipped: they're called signed out
   // and check their own signature/secret. worker-*.js is the push handler the service
   // worker imports, which has to load for signed-out visitors too.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|icons|branding|sw.js|workbox-.*|worker-.*|api/stripe/webhook|api/cron).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|icons|branding|sw.js|workbox-.*|worker-.*|api/stripe/webhook|api/cron|api/calendar).*)'],
 };

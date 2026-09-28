@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { CalendarEvent } from "@/lib/scheduleCalendar";
 import { MarkViewed } from "./MarkViewed";
 import { ScheduleCalendar } from "./ScheduleCalendar";
+import { CalendarSubscribe } from "./CalendarSubscribe";
+import { headers } from "next/headers";
 
 export default async function SchedulePage() {
   const supabase = await createClient();
@@ -37,6 +39,10 @@ export default async function SchedulePage() {
 
       <div className="mt-8">
         <ScheduleCalendar events={events} />
+      </div>
+
+      <div className="mt-8">
+        <CalendarSubscribe host={(await headers()).get("host") ?? "boathouseos.app"} />
       </div>
     </div>
   );
