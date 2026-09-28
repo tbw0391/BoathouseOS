@@ -2,44 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { NAV_SECTIONS, NAV_VISIBILITY_OPTIONS, type NavVisibility } from "@/lib/navSections";
+import {
+  NAV_ACCESS_KEY,
+  NAV_ROLES,
+  NAV_VISIBILITY_OPTIONS,
+  navSectionsFor,
+  type NavRole,
+  type NavVisibility,
+} from "@/lib/navSections";
 import { LINEUP_SECTIONS } from "@/lib/lineupSections";
 import { DEFAULT_THEME_COLORS, isHexColor, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES } from "@/lib/alertSettings";
-
-export async function updateNavToggles(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
-
-  const { data: callerProfile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if ((callerProfile as { role: string } | null)?.role !== "admin") {
-    throw new Error("Only admins can change which buttons are shown.");
-  }
-
-  const visibilityByHref: Record<string, NavVisibility> = {};
-  for (const s of NAV_SECTIONS) {
-    const raw = String(formData.get(`visibility:${s.href}`) ?? "everyone");
-    visibilityByHref[s.href] = (NAV_VISIBILITY_OPTIONS as string[]).includes(raw)
-      ? (raw as NavVisibility)
-      : "everyone";
-  }
-
-  const { error } = await supabase
-    .from("club_settings")
-    .upsert({ key: "nav_visibility", value: JSON.stringify(visibilityByHref) }, { onConflict: "key" });
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/");
-  revalidatePath("/admin");
-}
 
 export async function updateLineupSectionVisibility(formData: FormData) {
   const supabase = await createClient();
@@ -161,6 +134,39 @@ export async function updateAlertSettings(formData: FormData) {
     .from("club_settings")
     .upsert({ key: ALERT_SETTINGS_KEY, value: JSON.stringify(enabled) }, { onConflict: "key" });
 
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
+// Which home-screen buttons each type of user sees.
+export async function updateNavAccess(access: Record<NavRole, string[]>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  const { data: callerProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if ((callerProfile as { role: string } | null)?.role !== "admin") {
+    throw new Error("Only admins can change which buttons are shown.");
+  }
+
+  const clean: Record<string, string[]> = {};
+  for (const { role } of NAV_ROLES) {
+    const allowed = new Set(navSectionsFor(role).map((s) => s.href));
+    const list = Array.isArray(access?.[role]) ? access[role] : [];
+    clean[role] = [...new Set(list.filter((href) => typeof href === "string" && allowed.has(href)))];
+  }
+
+  const { error } = await supabase
+    .from("club_settings")
+    .upsert({ key: NAV_ACCESS_KEY, value: JSON.stringify(clean) }, { onConflict: "key" });
   if (error) throw new Error(error.message);
 
   revalidatePath("/");

@@ -411,6 +411,12 @@
       existing home-page button grid (not a replacement). Also enables
       `viewport-fit: cover` so its safe-area padding actually applies on
       notched phones.
+- [x] Home-screen buttons per role (2026-09-27): Admin Settings → Home
+      screen buttons — tap Rower / Coxswain / Parent / Coach / Admin, then tap
+      which buttons that role sees; "Save all roles". Stored in club_settings
+      "nav_access" ({role: [hrefs]}); until first saved it's derived from the
+      old per-button nav_visibility. Coach page stays coach/admin only.
+      Hides buttons only; the pages themselves keep their own access checks.
 - [x] Role-based UI (hide admin-only actions from rowers/parents): checked
       2026-09-27, every page already gates its admin controls by role.
 - [x] In-app unread indicators: home page badges for unread messages and for

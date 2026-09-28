@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { NAV_SECTIONS, NAV_VISIBILITY_OPTIONS, resolveNavVisibility } from "@/lib/navSections";
+import { NAV_ACCESS_KEY, NAV_VISIBILITY_OPTIONS, resolveNavAccess } from "@/lib/navSections";
+import { RoleButtonsForm } from "./RoleButtonsForm";
 import { LINEUP_SECTIONS, resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { THEME_COLOR_LABELS, parseThemeColors, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES, parseAlertSettings } from "@/lib/alertSettings";
 import {
   updateAlertSettings,
-  updateNavToggles,
   updateLineupSectionVisibility,
   updateThemeColors,
   resetThemeColors,
@@ -39,6 +39,7 @@ export default async function AdminPage() {
     .in("key", [
       "nav_visibility",
       "nav_disabled_hrefs",
+      NAV_ACCESS_KEY,
       "theme_colors",
       "lineup_section_visibility",
       ALERT_SETTINGS_KEY,
@@ -46,7 +47,6 @@ export default async function AdminPage() {
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
   );
-  const visibilityByHref = resolveNavVisibility(settingsByKey);
   const themeColors = parseThemeColors(settingsByKey.get("theme_colors"));
   const lineupSectionVisibility = resolveLineupSectionVisibility(settingsByKey);
   const alertsEnabled = parseAlertSettings(settingsByKey.get(ALERT_SETTINGS_KEY));
@@ -92,41 +92,10 @@ export default async function AdminPage() {
       </form>
 
       <h2 className="text-lg font-semibold mb-2">Home screen buttons</h2>
-      <p className="text-sm text-gray-500 mb-6">
-        Control who sees each button on the home screen: everyone, coaches only, admins only, or
-        off for everyone — handy for features you&apos;re still setting up.
+      <p className="text-sm text-gray-500 mb-4">
+        Pick a type of user, then choose which buttons they see on the home screen.
       </p>
-
-      <form action={updateNavToggles} className="flex flex-col gap-3 max-w-sm">
-        {NAV_SECTIONS.map((s) => {
-          const current = visibilityByHref[s.href] ?? "everyone";
-          return (
-            <div key={s.href} className="border rounded-lg px-4 py-3 text-sm flex flex-col gap-2">
-              <span className="font-medium">{s.label}</span>
-              <div className="flex gap-4">
-                {NAV_VISIBILITY_OPTIONS.map((option) => (
-                  <label key={option} className="flex items-center gap-1.5 text-xs text-gray-600">
-                    <input
-                      type="radio"
-                      name={`visibility:${s.href}`}
-                      value={option}
-                      defaultChecked={current === option}
-                      className="w-4 h-4"
-                    />
-                    {VISIBILITY_LABEL[option]}
-                  </label>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-        <button
-          type="submit"
-          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
-        >
-          Save
-        </button>
-      </form>
+      <RoleButtonsForm initialAccess={resolveNavAccess(settingsByKey)} />
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Alerts</h2>
       <p className="text-sm text-gray-500 mb-6">

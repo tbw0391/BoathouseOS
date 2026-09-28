@@ -63,7 +63,7 @@ import {
 } from "@/lib/celebrations";
 import { getUnreadScheduleCount } from "@/lib/schedule";
 import { forecastDayFor, getOrRefreshEventForecast } from "@/lib/weather";
-import { NAV_SECTIONS, resolveNavVisibility } from "@/lib/navSections";
+import { NAV_ACCESS_KEY, NAV_SECTIONS, resolveNavAccess, type NavRole } from "@/lib/navSections";
 import { QrCodes } from "@/app/global-admin/qr/QrCodes";
 import {
   DEMO_CLUB_COOKIE,
@@ -863,6 +863,7 @@ export default async function Home() {
         "team_store_featured_items",
         "nav_visibility",
         "nav_disabled_hrefs",
+        NAV_ACCESS_KEY,
         ALERT_SETTINGS_KEY,
       ]),
   ]);
@@ -875,7 +876,7 @@ export default async function Home() {
   const featuredItems = parseStoreItems(
     settingsByKey.get("team_store_featured_items") ?? null,
   );
-  const navVisibilityByHref = resolveNavVisibility(settingsByKey);
+  const navAccess = resolveNavAccess(settingsByKey);
 
   let banners: FoodTentBanner[] = [];
   let lineupBanners: LineupBanner[] = [];
@@ -893,6 +894,7 @@ export default async function Home() {
   let unreadScheduleCount = 0;
   let coachChatHref = "/messages";
   let isAdmin = false;
+  let viewerRole: NavRole | null = null;
   let isCoachOrAdmin = false;
   let isParent = false;
   let isRowerOrCoxswain = false;
@@ -971,6 +973,7 @@ export default async function Home() {
       "role" | "spouse_id" | "is_tent_leader"
     > | null;
     const callerRole = caller?.role;
+    viewerRole = (callerRole as NavRole | undefined) ?? null;
     isAdmin = callerRole === "admin";
     isCoachOrAdmin = callerRole === "admin" || callerRole === "coach";
     isParent = callerRole === "parent";
@@ -1728,13 +1731,9 @@ export default async function Home() {
       )}
 
       <div className="w-full grid grid-cols-3 gap-4">
-        {NAV_SECTIONS.filter((s) => s.href !== "/coach" || isCoachOrAdmin)
-          .filter((s) => {
-            const visibility = navVisibilityByHref[s.href] ?? "everyone";
-            if (isAdmin) return true; // admins always see every tile, off/admins-only ones greyed or noted below
-            if (visibility === "coaches") return isCoachOrAdmin;
-            return visibility === "everyone";
-          })
+        {NAV_SECTIONS.filter((s) =>
+          viewerRole ? navAccess[viewerRole].includes(s.href) : false,
+        )
           .concat(
             isAdmin
               ? [
@@ -1756,32 +1755,10 @@ export default async function Home() {
                 : s.href === "/schedule"
                   ? unreadScheduleCount
                   : 0;
-            const visibility = navVisibilityByHref[s.href] ?? "everyone";
-
-            if (visibility === "off") {
-              return (
-                <div
-                  key={s.href}
-                  title="Turned off for everyone — re-enable it in Admin Settings"
-                  className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-gray-300 px-4 py-6 font-medium text-gray-400 grayscale opacity-50"
-                >
-                  <Icon className="w-6 h-6" />
-                  {s.label}
-                </div>
-              );
-            }
-
             return (
               <Link
                 key={s.href}
                 href={s.href}
-                title={
-                  visibility === "admins"
-                    ? "Visible to admins only"
-                    : visibility === "coaches"
-                      ? "Visible to coaches and admins only"
-                      : undefined
-                }
                 className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[var(--color-primary)] px-4 py-6 font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
               >
                 <Icon className="w-6 h-6" />

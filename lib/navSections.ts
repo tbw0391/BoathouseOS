@@ -57,3 +57,53 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   { href: "/schedule", label: "Schedule" },
   { href: "/suggestions", label: "Suggestions" },
 ];
+
+// Per-role home-screen buttons, set from /admin: pick a type of user, then
+// which buttons they see. Stored in club_settings "nav_access" as
+// { role: [href, ...] }. Until it's saved once, it's worked out from the
+// older per-button "nav_visibility" setting above.
+export type NavRole = "rower" | "coxswain" | "parent" | "coach" | "admin";
+export const NAV_ROLES: { role: NavRole; label: string }[] = [
+  { role: "rower", label: "Rower" },
+  { role: "coxswain", label: "Coxswain" },
+  { role: "parent", label: "Parent" },
+  { role: "coach", label: "Coach" },
+  { role: "admin", label: "Admin" },
+];
+export const NAV_ACCESS_KEY = "nav_access";
+
+// Pages that only work for some roles, whatever the setting says.
+export const NAV_ROLE_LIMITS: Record<string, NavRole[]> = {
+  "/coach": ["coach", "admin"],
+};
+
+export function navSectionsFor(role: NavRole): NavSectionDef[] {
+  return NAV_SECTIONS.filter((s) => !NAV_ROLE_LIMITS[s.href] || NAV_ROLE_LIMITS[s.href].includes(role));
+}
+
+export function resolveNavAccess(settingsByKey: Map<string, string | null>): Record<NavRole, string[]> {
+  let saved: Partial<Record<NavRole, unknown>> = {};
+  try {
+    saved = JSON.parse(settingsByKey.get(NAV_ACCESS_KEY) ?? "{}") ?? {};
+  } catch {
+    saved = {};
+  }
+  const visibility = resolveNavVisibility(settingsByKey);
+  const legacyAllows = (role: NavRole, href: string) => {
+    const v = visibility[href] ?? "everyone";
+    if (v === "everyone") return true;
+    if (v === "coaches") return role === "coach" || role === "admin";
+    if (v === "admins") return role === "admin";
+    return false;
+  };
+
+  const access = {} as Record<NavRole, string[]>;
+  for (const { role } of NAV_ROLES) {
+    const allowed = navSectionsFor(role).map((s) => s.href);
+    const list = saved[role];
+    access[role] = Array.isArray(list)
+      ? allowed.filter((href) => list.includes(href))
+      : allowed.filter((href) => legacyAllows(role, href));
+  }
+  return access;
+}
