@@ -35,8 +35,8 @@ as $$
   select coalesce(round(sum(m))::integer, 0) from d where s > 0 and m / s <= 8;
 $$;
 
-revoke execute on function public.session_meters(uuid) from public, anon;
-grant execute on function public.session_meters(uuid) to authenticated;
+-- Only the trigger below uses it.
+revoke execute on function public.session_meters(uuid) from public, anon, authenticated;
 
 create or replace function public.set_session_meters()
 returns trigger
