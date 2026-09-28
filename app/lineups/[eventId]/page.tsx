@@ -23,6 +23,58 @@ import { resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { parseStarredLines } from "@/lib/scheduleStars";
 import type { RaceBoxItem, RaceBoxState } from "../raceBoxTypes";
 import { EventRacesView } from "../EventRacesView";
+import { CourseEditor } from "../CourseEditor";
+import type { LatLng } from "@/lib/course";
+
+type EventRow = Pick<
+  ScheduleEvent,
+  "id" | "title" | "location" | "starts_at" | "start_lat" | "start_lng" | "finish_lat" | "finish_lng"
+>;
+
+function pointsOf(e: EventRow) {
+  return {
+    start: e.start_lat != null && e.start_lng != null ? { lat: e.start_lat, lng: e.start_lng } : null,
+    finish: e.finish_lat != null && e.finish_lng != null ? { lat: e.finish_lat, lng: e.finish_lng } : null,
+  };
+}
+
+// This regatta's start and finish. With none set yet, borrows the course
+// from the latest other regatta at the same location (courses rarely move
+// year to year). The map opens on the regatta's weather location otherwise.
+async function courseFor(supabase: Awaited<ReturnType<typeof createClient>>, event: EventRow) {
+  const own = pointsOf(event);
+  let borrowedFrom: string | null = null;
+  let { start, finish } = own;
+
+  if (!start && !finish && event.location) {
+    const { data } = await supabase
+      .from("schedule_events")
+      .select("id, title, location, starts_at, start_lat, start_lng, finish_lat, finish_lng")
+      .eq("location", event.location)
+      .neq("id", event.id)
+      .or("start_lat.not.is.null,finish_lat.not.is.null")
+      .order("starts_at", { ascending: false })
+      .limit(1);
+    const other = (data as EventRow[] | null)?.[0];
+    if (other) {
+      ({ start, finish } = pointsOf(other));
+      borrowedFrom = `${other.title} (${new Date(other.starts_at).getFullYear()})`;
+    }
+  }
+
+  let center: LatLng = { lat: 39.8, lng: -82.9 };
+  if (!start && !finish) {
+    const { data: forecast } = await supabase
+      .from("event_forecasts")
+      .select("latitude, longitude")
+      .eq("event_id", event.id)
+      .maybeSingle();
+    const f = forecast as { latitude: number | null; longitude: number | null } | null;
+    if (f?.latitude != null && f.longitude != null) center = { lat: f.latitude, lng: f.longitude };
+  }
+
+  return { start, finish, borrowedFrom, center };
+}
 
 export default async function EventRacesPage({
   params,
@@ -34,7 +86,8 @@ export default async function EventRacesPage({
   const { eventId } = await params;
   // Set when arriving from the Regatta page's "Add boat", to open that race.
   const { race: selectedRaceId, tab: tabParam } = await searchParams;
-  const tab = tabParam === "jobs" || tabParam === "results" ? tabParam : "races";
+  const tab =
+    tabParam === "jobs" || tabParam === "results" || tabParam === "course" ? tabParam : "races";
   const supabase = await createClient();
   const {
     data: { user },
@@ -232,7 +285,10 @@ export default async function EventRacesPage({
     { id: "races", label: needBoat > 0 ? `Races (${needBoat} need a boat)` : `Races (${items.length})` },
     { id: "jobs", label: "Jobs" },
     { id: "results", label: finished.length > 0 ? `Results (${finished.length})` : "Results" },
+    { id: "course", label: "Course" },
   ];
+
+  const course = tab === "course" ? await courseFor(supabase, typedEvent) : null;
 
   return (
     <div className="min-h-screen p-8">
@@ -273,6 +329,18 @@ export default async function EventRacesPage({
       )}
 
       {tab === "jobs" && <EventTasks eventId={eventId} canManage={canManage} />}
+
+      {course && (
+        <CourseEditor
+          key={`${course.start?.lat},${course.start?.lng},${course.finish?.lat},${course.finish?.lng}`}
+          eventId={eventId}
+          canManage={canManage}
+          savedStart={course.start}
+          savedFinish={course.finish}
+          borrowedFrom={course.borrowedFrom}
+          center={course.center}
+        />
+      )}
 
       {tab === "results" && (
         <div className="flex flex-col gap-2 max-w-lg">

@@ -129,6 +129,18 @@
       public JSON feed (lib/crewtimer.ts, shared with the HOTC demo), not
       page scraping; race name, start time and a best-guess category come
       along. Only CrewTimer's feed host is ever fetched.
+- [x] Regatta start and finish (2026-09-27, 0082_regatta_course.sql):
+      Course tab on each regatta's page. Coaches/admins place each pin by
+      tapping the map, "I'm standing here" (phone GPS), or typing
+      coordinates (decimal or degrees-minutes-seconds, lib/course.ts).
+      Everyone else sees the map. A regatta with no course borrows the
+      latest one at the same location. CrewTimer and RegattaCentral don't
+      publish course coordinates; Todd (USRowing ref) may get official
+      ones for Head of the Ohio.
+- [ ] Racing banner (suggestion from 2026-09-26): use the start/finish plus
+      On the Water tracking to flip a boat's banner lineup → racing →
+      result, alert followers when it crosses the start, refresh every
+      10-15 s while racing.
 - [ ] RegattaCentral: pick a regatta from RegattaCentral's list when adding
       one to the schedule, with its details and races filled in. Needs
       RegattaCentral's permission/API access rather than scraping.

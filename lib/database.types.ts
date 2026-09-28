@@ -62,6 +62,11 @@ export interface ScheduleEvent {
   recurrence: ScheduleRecurrence;
   // Regatta logo, shown inside the medal badges on rowers' bios.
   artwork_url: string | null;
+  // Race course, set on the regatta's Course tab (0082).
+  start_lat: number | null;
+  start_lng: number | null;
+  finish_lat: number | null;
+  finish_lng: number | null;
   created_by: string | null;
   created_at: string;
 }

@@ -698,3 +698,35 @@ export async function assignSeat(seatId: string, rowerId: string | null) {
   revalidatePath("/lineups");
   revalidatePath("/");
 }
+
+export type CoursePoint = { lat: number; lng: number } | null;
+
+function validPoint(p: CoursePoint): CoursePoint {
+  if (!p) return null;
+  const { lat, lng } = p;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    throw new Error("That spot isn't a valid map position.");
+  }
+  return { lat, lng };
+}
+
+// A regatta's start and finish, from the Course tab. Either can be cleared.
+export async function saveCourse(eventId: string, start: CoursePoint, finish: CoursePoint) {
+  const supabase = await createClient();
+  await requireManager(supabase);
+  const s = validPoint(start);
+  const f = validPoint(finish);
+
+  const { error } = await supabase
+    .from("schedule_events")
+    .update({
+      start_lat: s?.lat ?? null,
+      start_lng: s?.lng ?? null,
+      finish_lat: f?.lat ?? null,
+      finish_lng: f?.lng ?? null,
+    })
+    .eq("id", eventId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/lineups/${eventId}`);
+}
