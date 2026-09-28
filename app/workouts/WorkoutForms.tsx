@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ERG_PIECES } from "@/lib/erg";
+import { ERG_PIECES, tidyErgTime } from "@/lib/erg";
 import { deleteWorkout, importConcept2, logWorkout } from "./actions";
 
 const chip = (active: boolean) =>
@@ -77,7 +77,14 @@ export function LogWorkoutForm({ profileId, today }: { profileId: string; today:
         {!timed && (
           <label className="flex flex-col gap-1">
             Time
-            <input value={time} onChange={(e) => setTime(e.target.value)} placeholder="6:45.2" inputMode="decimal" className="w-28 border rounded px-2 py-1" />
+            <input
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              onBlur={() => setTime((t) => tidyErgTime(t))}
+              placeholder="6.45.2"
+              inputMode="decimal"
+              className="w-28 border rounded px-2 py-1"
+            />
           </label>
         )}
         {(timed || pieceIdx === "other") && (

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { formatErgTime } from "@/lib/erg";
+import { formatErgTime, tidyErgTime } from "@/lib/erg";
 import { swapBoats } from "@/lib/seatRacing";
 import { addPiece, createSeatRace, deletePiece, deleteSeatRace, setPieceTimes } from "./actions";
 
@@ -109,7 +109,8 @@ export function PieceEditor({
             <input
               value={boat.value}
               onChange={(e) => boat.set(e.target.value)}
-              placeholder="Time"
+              onBlur={() => boat.set(tidyErgTime(boat.value))}
+              placeholder="6.45.2"
               inputMode="decimal"
               className="mt-1 w-24 border rounded px-2 py-1"
             />

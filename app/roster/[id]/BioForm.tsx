@@ -287,6 +287,7 @@ export function BioForm({
           <input
             name="erg_2k_time"
             placeholder="e.g. 6:45.2"
+            inputMode="decimal"
             defaultValue={profile.erg_2k_time ?? ""}
             className="border rounded px-3 py-2 text-sm"
           />
@@ -295,6 +296,7 @@ export function BioForm({
           <input
             name="erg_5k_time"
             placeholder="e.g. 18:20.5"
+            inputMode="decimal"
             defaultValue={profile.erg_5k_time ?? ""}
             className="border rounded px-3 py-2 text-sm"
           />

@@ -10,9 +10,25 @@ export const ERG_PIECES: { label: string; distance?: number; seconds?: number }[
   { label: "60 min", seconds: 3600 },
 ];
 
-// "6:45.2", "1:02:03", "95.5" -> seconds; anything else -> null.
-export function parseErgTime(text: string): number | null {
+// Phones' number pad has "." but no ":", so dots can stand in for colons.
+// Erg times only go to tenths, so a one-digit last part is tenths and every
+// other dot is a colon: "6.45.2" -> "6:45.2", "1.02.03" -> "1:02:03",
+// "6.45" -> "6:45". "95.5" stays 95.5 seconds.
+export function normalizeErgTimeText(text: string): string {
   const t = text.trim();
+  if (t.includes(":") || !t.includes(".")) return t;
+  const parts = t.split(".");
+  const last = parts[parts.length - 1];
+  if (last.length === 1) {
+    return parts.length === 2 ? t : `${parts.slice(0, -1).join(":")}.${last}`;
+  }
+  return parts.join(":");
+}
+
+// "6:45.2", "1:02:03", "95.5" (or the dotted forms above) -> seconds;
+// anything else -> null.
+export function parseErgTime(text: string): number | null {
+  const t = normalizeErgTimeText(text);
   const m = t.match(/^(?:(\d{1,2}):)?(?:(\d{1,3}):)?(\d{1,2}(?:\.\d+)?)$/);
   if (!m) return null;
   const parts = [m[1], m[2]].filter((x) => x !== undefined).map(Number);
@@ -137,4 +153,11 @@ export function parseConcept2Csv(text: string): ImportedWorkout[] {
     });
   }
   return out.filter((w) => w.distanceM != null || w.timeSeconds != null);
+}
+
+// What a time box shows once you leave it: "6.45.2" -> "6:45.2". Left as
+// typed if it isn't a time, so the save can say what's wrong.
+export function tidyErgTime(text: string): string {
+  const seconds = parseErgTime(text);
+  return seconds == null ? text : formatErgTime(seconds);
 }

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BoatSide, Role, Team } from "@/lib/database.types";
 import { PROFILE_BUTTONS } from "@/lib/profileButtons";
+import { tidyErgTime } from "@/lib/erg";
 
 const VALID_ROLES: Role[] = ["rower", "coxswain", "coach", "parent", "admin"];
 
@@ -42,8 +43,8 @@ export async function updateBio(profileId: string, formData: FormData) {
   const boatSide = (boatSideRaw || null) as BoatSide | null;
   const teams = formData.getAll("team") as Team[];
   const photoUrl = String(formData.get("photo_url") ?? "").trim() || null;
-  const erg2kTime = String(formData.get("erg_2k_time") ?? "").trim() || null;
-  const erg5kTime = String(formData.get("erg_5k_time") ?? "").trim() || null;
+  const erg2kTime = tidyErgTime(String(formData.get("erg_2k_time") ?? "").trim()) || null;
+  const erg5kTime = tidyErgTime(String(formData.get("erg_5k_time") ?? "").trim()) || null;
   const usRowingNumber = String(formData.get("us_rowing_number") ?? "").trim() || null;
 
   if (!firstName || !lastName) {

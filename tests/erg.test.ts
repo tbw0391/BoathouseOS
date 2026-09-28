@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ergWatts,
   formatErgTime,
+  tidyErgTime,
   parseConcept2Csv,
   parseErgTime,
   split500,
@@ -59,5 +60,21 @@ describe("parseConcept2Csv", () => {
 
   it("returns nothing for a file that isn't a logbook export", () => {
     expect(parseConcept2Csv("name,email\nA,b@c.d")).toEqual([]);
+  });
+});
+
+describe("dots for colons (phone number pad)", () => {
+  it("reads dotted times", () => {
+    expect(parseErgTime("6.45.2")).toBe(405.2);
+    expect(parseErgTime("6.45")).toBe(405);
+    expect(parseErgTime("1.02.03")).toBe(3723);
+    expect(parseErgTime("18.20.5")).toBe(1100.5);
+    expect(parseErgTime("95.5")).toBe(95.5);
+    expect(parseErgTime("6:45.2")).toBe(405.2);
+  });
+
+  it("tidies a dotted time for display", () => {
+    expect(tidyErgTime("6.45.2")).toBe("6:45.2");
+    expect(tidyErgTime("nope")).toBe("nope");
   });
 });

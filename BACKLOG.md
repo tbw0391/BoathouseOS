@@ -358,6 +358,12 @@
       own signup — matching the food tent item's confirm copy.
 
 ## Workouts
+- [x] Fixed (2026-09-28): couldn't type an erg time on a phone — the time
+      boxes (Workouts, Seat Racing) open the number pad, which has "." but
+      no ":". Dots now stand in for colons: 6.45.2 -> 6:45.2, 18.20.5 ->
+      18:20.5 (a one-digit last part is tenths). The box tidies it to
+      6:45.2 when you leave it. Profile 2K/5K boxes use the number pad too
+      and save tidied, so dotted times count toward PRs.
 - [x] Erg workouts (2026-09-28, 0090_erg_workouts.sql): log pieces with
       tap-to-pick distances (2K, 5K, 6K, 1K, 500m, 30/60 min, other); history
       with split and rate; 2K/5K progress chart (faster is higher); Concept2
