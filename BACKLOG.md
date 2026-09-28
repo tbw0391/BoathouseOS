@@ -633,6 +633,10 @@
       picker needed
 
 ## Terms and Conditions
+- [ ] Terms are PAUSED for testing (2026-09-27): `TERMS_REQUIRED = false` in
+      lib/terms.ts turns off the agree pop-up and the signup checkbox (the
+      /terms page stays up). Set it back to true before real clubs sign up;
+      anyone who joined while paused gets the pop-up then.
 - [x] Terms of Service draft (2026-09-27): public /terms — clubs and
       members, accounts, under-18s, acceptable use, content, payments and
       refunds, On the Water isn't a safety system, the demo, liability,

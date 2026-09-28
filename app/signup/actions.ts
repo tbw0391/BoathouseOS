@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp } from "@/lib/clientIp";
 import type { Team } from "@/lib/database.types";
-import { TERMS_VERSION } from "@/lib/terms";
+import { TERMS_REQUIRED, TERMS_VERSION } from "@/lib/terms";
 
 const SELF_SIGNUP_ROLES = ["rower", "coxswain", "parent"] as const;
 type SelfSignupRole = (typeof SELF_SIGNUP_ROLES)[number];
@@ -33,7 +33,7 @@ export async function signUp(formData: FormData) {
   if (!email || !password || !firstName || !lastName) {
     throw new Error("First name, last name, email, and password are required.");
   }
-  if (formData.get("agree_terms") !== "on") {
+  if (TERMS_REQUIRED && formData.get("agree_terms") !== "on") {
     throw new Error("Please agree to the Terms of Service and Privacy Policy.");
   }
   if (password.length < 8) {
@@ -89,11 +89,13 @@ export async function signUp(formData: FormData) {
   // Record the Terms agreement separately, so a database without the terms
   // columns yet (0075) still lets people sign up; they'll get the agree
   // pop-up later instead.
-  const { error: termsError } = await admin
-    .from("profiles")
-    .update({ terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION })
-    .eq("id", created.user.id);
-  if (termsError) console.error("Couldn't record terms agreement", termsError.message);
+  if (TERMS_REQUIRED) {
+    const { error: termsError } = await admin
+      .from("profiles")
+      .update({ terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION })
+      .eq("id", created.user.id);
+    if (termsError) console.error("Couldn't record terms agreement", termsError.message);
+  }
 
   if (teams.length > 0) {
     const { error: teamsError } = await admin

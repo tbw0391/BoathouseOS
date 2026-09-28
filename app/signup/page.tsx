@@ -1,5 +1,6 @@
 "use client";
 
+import { TERMS_REQUIRED } from "@/lib/terms";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -117,6 +118,7 @@ export default function SignupPage() {
           </div>
         </div>
 
+        {TERMS_REQUIRED && (
         <label className="flex items-start gap-2 text-sm text-gray-600">
           <input type="checkbox" name="agree_terms" required className="mt-1" />
           <span>
@@ -131,6 +133,7 @@ export default function SignupPage() {
             .
           </span>
         </label>
+        )}
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
