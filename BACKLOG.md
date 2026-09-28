@@ -145,6 +145,22 @@
       one to the schedule, with its details and races filled in. Needs
       RegattaCentral's permission/API access rather than scraping.
 
+## Race Day, travel and trailer
+- [x] Race Day page (2026-09-28, /race-day, 0083): each race's launch time
+      (race time minus the club's 30-90 min setting, admins), bow number
+      (coaches enter; CrewTimer "(Bow N)" names fill it in), crew with
+      bow/stroke/cox, on-the-water badge, results. Rowers see theirs,
+      parents their rowers', coaches all. Home banner on race day; "Launch
+      at …" alert to crew and parents shortly before launch.
+- [x] Travel tab on each regatta (2026-09-28, 0086): trip times, meeting
+      spot, hotel, notes; buses (coaches) and cars (anyone offers theirs)
+      with seats members claim for themselves or their rower; rooming list
+      coaches build.
+- [x] Trailer tab on each regatta (2026-09-28, 0085): coaches build the
+      list (every racing boat with oars in one tap, gear presets, copy the
+      last regatta's); anyone ticks items packed to go / packed for home.
+- [x] Course tab: start and finish pins (see Race Results).
+
 ## Lineups
 - [x] Create a lineup/boat for an event (boat name, boat class from a
       standard list — 1x/2x/2-/4+/4x/4-/8+ — auto-generates the right seats)
@@ -305,7 +321,16 @@
       own signup — matching the food tent item's confirm copy.
 
 ## Workouts
-- [ ] Content TBD (button/route scaffolded, waiting on requirements)
+- [x] Erg workouts (2026-09-28, 0090_erg_workouts.sql): log pieces with
+      tap-to-pick distances (2K, 5K, 6K, 1K, 500m, 30/60 min, other); history
+      with split and rate; 2K/5K progress chart (faster is higher); Concept2
+      logbook CSV import (skips duplicates). A 2K/5K test updates the
+      profile time so PR celebrations still fire. Coaches get team rankings
+      (best 2K/5K, split, watts, Concept2 weight-adjusted) by squad. Parents
+      see and log their rowers'.
+- [ ] Concept2 automatic sync: needs a Concept2 Logbook API app
+      (log.concept2.com/developers) — client id/secret, then OAuth per rower.
+      CSV import covers it until then.
 
 ## Rookie Parent
 - [x] Rookie Parent tile/button (2026-09-27): /rookie-parent with buttons
@@ -508,6 +533,53 @@
       plan if photo volume grows.
 - [x] Admin-only "To-do List" tile (/todo) that reads and renders this
       BACKLOG.md file right in the app, so Todd doesn't have to open the repo
+
+- [x] Calendar feed (2026-09-28, 0084): Schedule > "Add to my phone's
+      calendar" gives each member a private webcal link: events with
+      repeats, standing practices (skipping regatta/practice days), and
+      their races (parents: their rowers'; coaches: all) with launch time.
+      Club time with DST rules. "Make a new link" replaces it.
+- [x] Email backup for alerts (2026-09-28, 0092): lightning, practice
+      calls, launch reminders, schedule changes, payments and paperwork are
+      emailed via Resend to members with no phone-alert device; members can
+      untick it on home.
+- [ ] Email setup: create a Resend account, verify the boathouseos.app
+      domain (DNS records), add RESEND_API_KEY and EMAIL_FROM (e.g.
+      "BoathouseOS <alerts@boathouseos.app>") to Vercel, redeploy. Until
+      then no emails go out and the home-page email checkbox stays hidden.
+
+## Safety
+- [x] Water Conditions (2026-09-28, /water, 0087): live USGS gauge (flow,
+      level, water temp where the gauge has it) and nearest NWS station
+      (air temp, wind) against the club's limits, incl. the cold-water rule
+      (air + water < 100°F). Admins set the gauge (demo: 03049500,
+      Allegheny at Natrona) and limits. Coaches make the day's call (on,
+      extra care, land, cancelled) and start/clear lightning holds with a
+      30-minute countdown; both alert everyone and show on home.
+- [x] Emergency info (2026-09-28, 0088): contacts, allergies, medications,
+      notes on each profile; only self, guardians, coaches, admins (RLS via
+      can_act_for). Coach > Emergency Info: tap-to-call list, on-the-water
+      first, missing contacts flagged.
+- [x] Paperwork (2026-09-28, 0089): USRowing membership, waiver, swim test
+      (rowers/coxes), SafeSport and background check (coaches/admins). Coach
+      > Paperwork shows who needs attention; members update theirs on the
+      profile; a coach/admin save marks it checked. Reminders 30 days before
+      and on the day.
+
+## Coaching tools
+- [x] Seat racing (2026-09-28, 0091): Coach > Seat Racing. Two boats, tap
+      rowers in, enter times, pick one from each boat to swap; each swap's
+      swing and a running net per rower.
+- [x] Boat usage (2026-09-28, 0093): each On the Water outing's distance
+      from its GPS track (bad fixes skipped); Boats page shows outings, km,
+      hours per boat over 12 months and km since service with a service
+      interval and "Serviced today".
+
+## Regatta management (separate product, later)
+- [ ] A regatta management tool for hosting regattas (entries, heat sheets,
+      timing, results, referee tools like penalty locations and marshaling)
+      — Todd is a certified USRowing referee. Build separately from
+      BoathouseOS, not inside it.
 
 ## Suggestions
 - [x] Suggestion box: anyone can submit an idea from a "Suggestions" tile on

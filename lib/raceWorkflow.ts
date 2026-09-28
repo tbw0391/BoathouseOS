@@ -8,6 +8,7 @@ import {
   categoryForRace,
 } from "@/lib/lineupCategories";
 import type { LineupCategory } from "@/lib/database.types";
+import { bowFromRaceName } from "@/lib/raceDay";
 
 // The shared steps behind getting races and boats onto a regatta, used by
 // the Lineups actions and the Head of the Cuyahoga page alike so every path
@@ -361,6 +362,7 @@ export async function buildLineupForRace(
     race_name: race.race_name,
     race_time: race.race_time,
     club_slug: race.club_slug,
+    bow_number: bowFromRaceName(race.race_name),
     created_by: userId,
   });
   if (error) throw new Error(error.message);

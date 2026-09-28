@@ -53,3 +53,9 @@ export function seatLabel(seat: { seat_number: number; seat_role: string }, rowe
   if (rowerSeats > 1 && seat.seat_number === rowerSeats) return "Stroke";
   return `${seat.seat_number}`;
 }
+
+// "Race 39: Mens Rec 4+ (Bow 265)" -> "265" (CrewTimer imports put the bow
+// number in the race name).
+export function bowFromRaceName(raceName: string | null | undefined): string | null {
+  return raceName?.match(/\(Bow\s+([A-Za-z0-9-]{1,10})\)\s*$/i)?.[1] ?? null;
+}

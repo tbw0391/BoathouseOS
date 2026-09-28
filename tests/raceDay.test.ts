@@ -6,6 +6,7 @@ import {
   pickRaceDayEvent,
   raceIsOver,
   seatLabel,
+  bowFromRaceName,
 } from "@/lib/raceDay";
 
 describe("launch time", () => {
@@ -65,5 +66,13 @@ describe("seatLabel", () => {
     expect(seatLabel({ seat_number: 8, seat_role: "rower" }, 8)).toBe("Stroke");
     expect(seatLabel({ seat_number: 9, seat_role: "coxswain" }, 8)).toBe("Cox");
     expect(seatLabel({ seat_number: 1, seat_role: "rower" }, 1)).toBe("1");
+  });
+});
+
+describe("bowFromRaceName", () => {
+  it("reads the bow number CrewTimer imports add", () => {
+    expect(bowFromRaceName("Race 39: Mens Rec 4+ (1500) (Bow 265)")).toBe("265");
+    expect(bowFromRaceName("Men's 8+ Grand Final")).toBeNull();
+    expect(bowFromRaceName(null)).toBeNull();
   });
 });
