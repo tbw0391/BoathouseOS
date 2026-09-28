@@ -4,6 +4,8 @@ import { LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { AddBoatForm } from "./AddBoatForm";
 import { BoatsGrid } from "./BoatsGrid";
 import { LineupTemplatesSection } from "@/app/lineups/LineupTemplatesSection";
+import { BoatUsageTable } from "./BoatUsageTable";
+import { boatUsage, type Outing } from "@/lib/boatUsage";
 
 // Cox first, then seats in order — same as a race lineup.
 function seatOrder(a: LineupTemplateSeat, b: LineupTemplateSeat) {
@@ -25,9 +27,15 @@ export default async function BoatsPage() {
     supabase.auth.getUser(),
     supabase
       .from("boats")
-      .select("id, name, boat_class, category, notes, hull_color, rig, created_by, created_at")
+      .select("id, name, boat_class, category, notes, hull_color, rig, created_by, created_at, service_every_km, last_service_at")
       .order("name", { ascending: true }),
   ]);
+  const yearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+  const { data: outingRows } = await supabase
+    .from("on_water_sessions")
+    .select("boat_id, started_at, ended_at, meters")
+    .not("boat_id", "is", null)
+    .not("ended_at", "is", null);
 
   const boats = (data as Boat[] | null) ?? [];
 
@@ -123,6 +131,19 @@ export default async function BoatsPage() {
           canManage={canManage}
           crewSeatsByBoatId={crewSeatsByBoatId}
           crewRosterByBoatId={crewRosterByBoatId}
+        />
+      )}
+
+      {canManage && boats.length > 0 && (
+        <BoatUsageTable
+          canManage={canManage}
+          rows={boats.map((b) => ({
+            id: b.id,
+            name: b.name,
+            serviceEveryKm: b.service_every_km,
+            lastServiceAt: b.last_service_at,
+            usage: boatUsage(b, (outingRows as Outing[] | null) ?? [], yearAgo),
+          }))}
         />
       )}
 

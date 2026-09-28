@@ -139,6 +139,9 @@ export interface Boat {
   rig: string | null;
   created_by: string | null;
   created_at: string;
+  // Service by distance (0093).
+  service_every_km: number | null;
+  last_service_at: string | null;
 }
 
 export type SeatRole = 'rower' | 'coxswain' | 'coach';
