@@ -444,10 +444,9 @@
       the last 30 min. Admin switch: "Boat on the water". Practices without
       a lineup only reach the coxswain's family; a per-boat "follow"
       option for parents could come later.
-- [ ] Push setup: generate VAPID keys (`npx web-push generate-vapid-keys`),
-      add NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to Vercel
-      (Production) and .env.local, redeploy. Until then the prompt stays
-      hidden and nothing is sent.
+- [x] Push setup (2026-09-27): VAPID keys generated and added to Vercel
+      (Production) and .env.local. NEXT_PUBLIC_VAPID_PUBLIC_KEY is baked in
+      at build time, so a redeploy is needed after changing it.
 - [x] Scheduled alerts (2026-09-27, 0080_scheduled_alerts.sql): pg_cron +
       pg_net call /api/cron/alerts every 5 min (lib/scheduledAlerts.ts):
       "food list draft ready" to tent leaders/coaches/admins; "payment due"
