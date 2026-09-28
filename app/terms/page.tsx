@@ -111,8 +111,8 @@ export default function TermsPage() {
             stores your card number.
           </li>
           <li>
-            Before you pay, the app shows the total, including any card processing fee your club
-            passes on and BoathouseOS&apos;s convenience fee.
+            Before you pay, the app shows the total, including the card processing fee and
+            BoathouseOS&apos;s convenience fee.
           </li>
           <li>
             If you choose a payment plan, the remaining payments are charged to your card

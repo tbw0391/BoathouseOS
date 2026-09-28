@@ -6,10 +6,8 @@ import {
   createCharge,
   createDiscount,
   deleteDiscount,
-  setDefaultFeeMode,
   setDiscountActive,
 } from "../actions";
-import type { FeeMode } from "@/lib/database.types";
 
 function Choice({
   selected,
@@ -68,25 +66,6 @@ export function StripeConnectButton({ label }: { label: string }) {
   );
 }
 
-export function FeeModePicker({ value }: { value: FeeMode }) {
-  const [mode, setMode] = useState(value);
-  const [, startTransition] = useTransition();
-  function pick(next: FeeMode) {
-    setMode(next);
-    startTransition(() => setDefaultFeeMode(next));
-  }
-  return (
-    <div className="flex flex-wrap gap-2">
-      <Choice selected={mode === "club"} onClick={() => pick("club")}>
-        Club covers card fees
-      </Choice>
-      <Choice selected={mode === "payer"} onClick={() => pick("payer")}>
-        Payer covers card fees
-      </Choice>
-    </div>
-  );
-}
-
 const KINDS = [
   { id: "season", label: "Season" },
   { id: "dues", label: "Dues" },
@@ -99,7 +78,6 @@ export function NewChargeForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState("season");
-  const [feeMode, setFeeMode] = useState("");
   const [installments, setInstallments] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -135,7 +113,6 @@ export function NewChargeForm() {
         </button>
       </div>
       <input type="hidden" name="kind" value={kind} />
-      <input type="hidden" name="fee_mode" value={feeMode} />
       <div className="flex flex-wrap gap-2">
         {KINDS.map((k) => (
           <Choice key={k.id} selected={kind === k.id} onClick={() => setKind(k.id)}>
@@ -150,21 +127,6 @@ export function NewChargeForm() {
         Due date (optional)
         <input type="date" name="due_date" className={`${input} text-black`} />
       </label>
-
-      <div className="flex flex-col gap-1.5">
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Card fees</p>
-        <div className="flex flex-wrap gap-2">
-          <Choice selected={feeMode === ""} onClick={() => setFeeMode("")}>
-            Club default
-          </Choice>
-          <Choice selected={feeMode === "club"} onClick={() => setFeeMode("club")}>
-            Club covers
-          </Choice>
-          <Choice selected={feeMode === "payer"} onClick={() => setFeeMode("payer")}>
-            Payer covers
-          </Choice>
-        </div>
-      </div>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="signup_open" defaultChecked={kind === "season"} />

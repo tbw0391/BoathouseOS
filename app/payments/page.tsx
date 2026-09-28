@@ -8,7 +8,6 @@ import {
   amountPaid,
   applicableDiscount,
   billTotal,
-  feeModeFor,
   formatMoney,
   installmentAmounts,
 } from "@/lib/payments";
@@ -84,12 +83,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
     .filter((c) => c.signup_open)
     .flatMap((c) => rowers.filter((r) => !billedKey.has(`${c.id}:${r.id}`)).map((r) => ({ charge: c, rower: r })));
 
-  function feeNote(charge: Charge) {
-    const pct = PLATFORM_FEE_BPS / 100;
-    return feeModeFor(charge, settings.default_fee_mode) === "payer"
-      ? `Plus a ${pct}% ${CONVENIENCE_FEE_LABEL.toLowerCase()} and the card processing fee.`
-      : `Plus a ${pct}% ${CONVENIENCE_FEE_LABEL.toLowerCase()}.`;
-  }
+  const feeNote = `Plus a ${PLATFORM_FEE_BPS / 100}% ${CONVENIENCE_FEE_LABEL.toLowerCase()} and the card processing fee.`;
 
   function planLabel(charge: Charge, totalCents: number) {
     if (!charge.allow_installments) return null;
@@ -137,7 +131,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
                     <strong>{formatMoney(total)}</strong>
                   )}
                 </p>
-                <p className="text-xs text-gray-500 mb-3">{feeNote(charge)}</p>
+                <p className="text-xs text-gray-500 mb-3">{feeNote}</p>
                 <PayButtons
                   mode="signup"
                   chargeId={charge.id}
@@ -204,7 +198,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
                     planLabel={paidSoFar === 0 ? planLabel(charge, balance) : null}
                     online={online}
                   />
-                  {online && <p className="text-xs text-gray-500 mt-1">{feeNote(charge)}</p>}
+                  {online && <p className="text-xs text-gray-500 mt-1">{feeNote}</p>}
                 </div>
               )}
             </div>

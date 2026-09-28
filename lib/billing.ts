@@ -7,7 +7,6 @@ import {
   amountPaid,
   applicableDiscount,
   billTotal,
-  feeModeFor,
   installmentAmounts,
   payerSurcharge,
   platformFee,
@@ -114,14 +113,13 @@ export async function startBillCheckout(
   const remaining = await billBalance(admin, bill);
   if (remaining <= 0) throw new Error("This bill is already paid.");
 
-  const payerCovers = feeModeFor(charge, settings.default_fee_mode) === "payer";
   const name = `${charge.title} — ${rowerName}`;
   const returnUrl = `${origin}/payments`;
   const account = { stripeAccount: settings.stripe_account_id };
 
   if (plan === "full") {
     const convenience = platformFee(remaining);
-    const surcharge = payerCovers ? payerSurcharge(remaining + convenience) : 0;
+    const surcharge = payerSurcharge(remaining + convenience);
     const session = await stripe.checkout.sessions.create(
       {
         mode: "payment",
@@ -158,7 +156,7 @@ export async function startBillCheckout(
   const amounts = installmentAmounts(remaining, charge.installment_count);
   const base = amounts[amounts.length - 1];
   const firstExtra = amounts[0] - base;
-  const gross = (net: number) => net + platformFee(net) + (payerCovers ? payerSurcharge(net + platformFee(net)) : 0);
+  const gross = (net: number) => net + platformFee(net) + payerSurcharge(net + platformFee(net));
   const baseGross = gross(base);
   const baseSurcharge = baseGross - base - platformFee(base);
   const firstExtraGross = gross(amounts[0]) - baseGross;
@@ -176,9 +174,7 @@ export async function startBillCheckout(
             unit_amount: baseGross,
             recurring: { interval: "day", interval_count: charge.installment_interval_days },
             product_data: {
-              name: `${name} (${charge.installment_count} payments, incl. ${CONVENIENCE_FEE_LABEL.toLowerCase()}${
-                payerCovers ? " and card fee" : ""
-              })`,
+              name: `${name} (${charge.installment_count} payments, incl. ${CONVENIENCE_FEE_LABEL.toLowerCase()} and card fee)`,
             },
           },
         },
@@ -235,7 +231,7 @@ export async function startOrderCheckout(
     throw new Error("Online payments aren't set up yet.");
   }
   const convenience = platformFee(order.total_cents);
-  const surcharge = settings.default_fee_mode === "payer" ? payerSurcharge(order.total_cents + convenience) : 0;
+  const surcharge = payerSurcharge(order.total_cents + convenience);
   const session = await stripe.checkout.sessions.create(
     {
       mode: "payment",

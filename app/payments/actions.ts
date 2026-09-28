@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, siteOrigin } from "@/lib/stripe";
 import { createBills, getPaymentSettings, refreshBillStatus, startBillCheckout } from "@/lib/billing";
 import { parseMoney } from "@/lib/payments";
-import type { Bill, Charge, FeeMode, Profile, Team } from "@/lib/database.types";
+import type { Bill, Charge, Profile, Team } from "@/lib/database.types";
 
 const CHARGE_KINDS: Charge["kind"][] = ["season", "dues", "regatta", "travel", "apparel", "other"];
 
@@ -45,7 +45,6 @@ export async function createCharge(formData: FormData) {
   if (!CHARGE_KINDS.includes(kind)) throw new Error("Pick what kind of charge this is.");
   if (!amount) throw new Error("Enter an amount, like 250 or 250.00.");
 
-  const feeModeRaw = String(formData.get("fee_mode") ?? "");
   const installments = formData.get("allow_installments") === "on";
   const count = Number(formData.get("installment_count") ?? 4);
   const intervalDays = Number(formData.get("installment_interval_days") ?? 30);
@@ -62,7 +61,6 @@ export async function createCharge(formData: FormData) {
       amount_cents: amount,
       description: String(formData.get("description") ?? "").trim() || null,
       due_date: String(formData.get("due_date") ?? "") || null,
-      fee_mode: feeModeRaw === "club" || feeModeRaw === "payer" ? feeModeRaw : null,
       signup_open: formData.get("signup_open") === "on",
       allow_installments: installments,
       installment_count: installments ? count : 4,
@@ -225,14 +223,6 @@ export async function deleteDiscount(discountId: string) {
 }
 
 // --- Treasurer: settings and Stripe ---
-
-export async function setDefaultFeeMode(mode: FeeMode) {
-  const { supabase } = await requireTreasurer();
-  if (mode !== "club" && mode !== "payer") throw new Error("Pick club or payer.");
-  const { error } = await supabase.from("payment_settings").update({ default_fee_mode: mode }).eq("id", true);
-  if (error) throw new Error(error.message);
-  revalidatePayments();
-}
 
 // Starts (or resumes) Stripe's sign-up for the club's own Stripe account and
 // returns the Stripe page to send the treasurer to. Stripe's own error comes

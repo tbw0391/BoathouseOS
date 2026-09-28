@@ -761,8 +761,8 @@
       cancel, CSV export; "You owe" banner on home.
 - [x] Card payments via Stripe Checkout on each club's own connected Stripe
       account: pay in full, or N automatic payments every K days (Stripe
-      subscription cancelled after the last one). Card fee covered by club
-      or payer (club default, per-charge override). A 1% "Convenience fee"
+      subscription cancelled after the last one). The payer always covers
+      the card fee (2026-09-28; the club-covers option was removed). A 1% "Convenience fee"
       is added on top for the payer and goes to BoathouseOS as the
       application fee. Signed webhook at /api/stripe/webhook.
 - [x] Apparel (/apparel): in-stock items with per-size counts, and order

@@ -89,7 +89,6 @@ export default async function ChargePage({ params }: { params: Promise<{ chargeI
           {charge.due_date && ` · due ${new Date(`${charge.due_date}T12:00:00`).toLocaleDateString()}`}
           {charge.allow_installments &&
             ` · ${charge.installment_count} payments every ${charge.installment_interval_days} days allowed`}
-          {charge.fee_mode && ` · ${charge.fee_mode === "payer" ? "payer" : "club"} covers card fees`}
         </p>
         {charge.description && <p className="text-sm text-gray-600 mt-1">{charge.description}</p>}
         <div className="mt-2">

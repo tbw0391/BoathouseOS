@@ -1,7 +1,7 @@
 // Money math shared by the payments pages, server actions and the Stripe
 // webhook. Everything is integer cents.
 
-import type { Bill, Charge, Discount, FeeMode, Payment } from "@/lib/database.types";
+import type { Bill, Charge, Discount, Payment } from "@/lib/database.types";
 
 // BoathouseOS's convenience fee on each card payment to a club, in basis
 // points (100 = 1%). Added on top for the payer as its own "Convenience fee"
@@ -36,10 +36,6 @@ export function payerSurcharge(netCents: number): number {
 // The convenience fee on a payment of `netCents`.
 export function platformFee(netCents: number): number {
   return Math.round((netCents * PLATFORM_FEE_BPS) / 10000);
-}
-
-export function feeModeFor(charge: Pick<Charge, "fee_mode">, defaultFeeMode: FeeMode): FeeMode {
-  return charge.fee_mode ?? defaultFeeMode;
 }
 
 function easternToday(): string {

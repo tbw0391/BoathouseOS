@@ -7,7 +7,6 @@ import type { Bill, Charge, Discount, Payment, PaymentSettings, Profile } from "
 import { CHARGE_KIND_LABELS, CONVENIENCE_FEE_LABEL, PLATFORM_FEE_BPS, billTotal, formatMoney } from "@/lib/payments";
 import {
   DiscountRowActions,
-  FeeModePicker,
   NewChargeForm,
   NewDiscountForm,
   StripeConnectButton,
@@ -155,11 +154,10 @@ export default async function ManagePaymentsPage() {
           </>
         )}
         <div className="flex flex-col gap-1.5 pt-2 border-t">
-          <p className="text-sm font-medium">Card processing fees (about 2.9% + 30¢)</p>
-          <FeeModePicker value={settings.default_fee_mode} />
+          <p className="text-sm font-medium">Card fees</p>
           <p className="text-xs text-gray-500">
-            The default for new charges; each charge can override it. Families also pay a {PLATFORM_FEE_BPS / 100}%{" "}
-            {CONVENIENCE_FEE_LABEL.toLowerCase()} on card payments.
+            Families paying by card pay the card processing fee (about 2.9% + 30¢) plus a {PLATFORM_FEE_BPS / 100}%{" "}
+            {CONVENIENCE_FEE_LABEL.toLowerCase()} on top of the bill, so the club receives the full amount.
           </p>
         </div>
       </section>
