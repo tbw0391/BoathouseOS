@@ -546,6 +546,14 @@
       verified, RESEND_API_KEY and EMAIL_FROM in Vercel; the home-page email
       checkbox shows. Next: point Supabase Auth's custom SMTP at Resend.
 
+- [ ] Text message (SMS) alerts via Twilio (started 2026-09-28): Todd is
+      setting up the Twilio account, number and toll-free (or 10DLC)
+      verification. Then: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and
+      TWILIO_FROM_NUMBER in Vercel; an SMS sender like lib/email.ts for the
+      urgent alerts (lightning, practice calls, launch times); an opt-in
+      checkbox with consent recorded; STOP opt-outs recorded; texting
+      wording in Terms and Privacy; minors' texts go to parents (Safe Sport).
+
 ## Safety
 - [x] Water Conditions (2026-09-28, /water, 0087): live USGS gauge (flow,
       level, water temp where the gauge has it) and nearest NWS station
