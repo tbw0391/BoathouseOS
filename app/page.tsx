@@ -30,7 +30,7 @@ import RacingScull from "@/components/icons/RacingScull";
 import { PushToggle } from "@/components/PushToggle";
 import { RegattaWeekPopup, type RegattaWeekLink } from "@/components/RegattaWeekPopup";
 import { ALERT_SETTINGS_KEY, parseAlertSettings } from "@/lib/alertSettings";
-import { DEMO_EMAIL } from "@/lib/demoAccount";
+import { DEMO_PROFILES, isDemoEmail } from "@/lib/demoAccount";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AnnouncementAudience,
@@ -1204,6 +1204,7 @@ export default async function Home() {
     : null;
 
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
+  const demoProfile = DEMO_PROFILES.find((p) => p.email === user?.email) ?? null;
   const hotcSchedule = demoClub ? await getHotcSchedule(demoClub) : null;
   if (isCoachOrAdmin) await syncHotcResults(supabase, hotcSchedule);
   const hotcOver =
@@ -1240,6 +1241,14 @@ export default async function Home() {
         <Link href="/choose-club" className="text-sm text-gray-600 underline">
           See it in your club&apos;s colors →
         </Link>
+      )}
+      {demoProfile && (
+        <p className="-mt-6 text-xs text-gray-500">
+          Viewing as {demoProfile.label} ·{" "}
+          <Link href="/choose-profile" className="underline">
+            Switch
+          </Link>
+        </p>
       )}
 
       {user && isCoachOrAdmin && <CheckInButton checkedInAt={checkInLabel} />}
@@ -1720,7 +1729,7 @@ export default async function Home() {
         </div>
       )}
 
-      {user && <PushToggle isDemo={user.email === DEMO_EMAIL} />}
+      {user && <PushToggle isDemo={isDemoEmail(user.email)} />}
 
       {regattaWeek && (
         <RegattaWeekPopup

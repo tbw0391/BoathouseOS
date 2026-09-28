@@ -6,7 +6,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { ServiceWorkerUpdater } from "@/components/ServiceWorkerUpdater";
 import { TermsGate } from "@/components/TermsGate";
 import { TERMS_REQUIRED, TERMS_VERSION } from "@/lib/terms";
-import { DEMO_EMAIL } from "@/lib/demoAccount";
+import { isDemoEmail } from "@/lib/demoAccount";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getThemeColors } from "@/lib/theme";
@@ -72,7 +72,7 @@ export default async function RootLayout({
   // Approved members who haven't agreed to the current Terms. Queried on its
   // own so a missing column (migration not applied yet) just skips the gate.
   let needsTerms = false;
-  if (TERMS_REQUIRED && user && user.email !== DEMO_EMAIL) {
+  if (TERMS_REQUIRED && user && !isDemoEmail(user.email)) {
     const { data: termsData, error: termsError } = await supabase
       .from("profiles")
       .select("terms_version, approved_at")

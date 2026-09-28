@@ -3,6 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
+import { isDemoEmail } from "@/lib/demoAccount";
+import { createClient } from "@/lib/supabase/server";
 
 // Per-browser, so each demo visitor sees their own club.
 export async function chooseDemoClub(slug: string | null) {
@@ -18,5 +20,10 @@ export async function chooseDemoClub(slug: string | null) {
   } else {
     cookieStore.delete(DEMO_CLUB_COOKIE);
   }
-  redirect("/");
+  // Demo visitors pick which type of member to look around as next.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  redirect(isDemoEmail(user?.email) ? "/choose-profile" : "/");
 }

@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { DEMO_EMAIL } from "@/lib/demoAccount";
+import { isDemoEmail } from "@/lib/demoAccount";
 import { PUSH_ENDPOINT_COOKIE, isPushServiceEndpoint } from "@/lib/push";
 
 export interface PushSubscriptionInput {
@@ -19,7 +19,7 @@ export async function savePushSubscription(sub: PushSubscriptionInput, userAgent
   if (!user) throw new Error("Not signed in.");
   // Everyone trying the demo shares this account, so they'd get each
   // other's alerts.
-  if (user.email === DEMO_EMAIL) throw new Error("Alerts are off in the demo.");
+  if (isDemoEmail(user.email)) throw new Error("Alerts are off in the demo.");
 
   const { data: me } = await supabase
     .from("profiles")

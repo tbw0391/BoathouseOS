@@ -588,6 +588,14 @@
       to boathouseos.app now land on (deep links still go to /login).
       Tagline, "Try the demo" as the main button, feature cards, the
       interest form, and a sign-in link.
+- [x] Demo: pick a type of user (2026-09-27): after picking a club, demo
+      visitors pick Admin, Coach, Rower, Coxswain or Parent on
+      /choose-profile and are signed into that shared demo account
+      (lib/demoAccount.ts DEMO_PROFILES; each created the first time it's
+      picked, role/removal put back on every sign-in, the demo parent is
+      linked to the demo rower). "Viewing as … · Switch" on home.
+- [x] Demo clubs (2026-09-27): added the 48 new clubs from the 2026 Head
+      of the Ohio entry list (95 total), blades from RegattaCentral.
 - [ ] Landing page follow-ups: real screenshots of the app (Todd will add
       phone shots of Lineups, a Regatta race, and home in club colors to
       public/branding/screens/), maybe a
