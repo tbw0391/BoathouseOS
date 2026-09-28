@@ -582,3 +582,46 @@ export interface TrailerItem {
   created_by: string | null;
   created_at: string;
 }
+
+export interface RegattaTravel {
+  event_id: string;
+  depart_at: string | null;
+  depart_from: string | null;
+  return_at: string | null;
+  hotel_name: string | null;
+  hotel_address: string | null;
+  notes: string | null;
+  updated_at: string;
+}
+
+export interface TravelVehicle {
+  id: string;
+  event_id: string;
+  label: string;
+  driver_id: string | null;
+  seats: number;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface TravelRider {
+  vehicle_id: string;
+  event_id: string;
+  profile_id: string;
+  added_by: string | null;
+}
+
+export interface TravelRoom {
+  id: string;
+  event_id: string;
+  label: string;
+  capacity: number;
+  created_at: string;
+}
+
+export interface TravelRoomMember {
+  room_id: string;
+  event_id: string;
+  profile_id: string;
+}

@@ -17,6 +17,11 @@ import type {
   Race,
   ScheduleEvent,
   TrailerItem,
+  RegattaTravel,
+  TravelRider,
+  TravelRoom,
+  TravelRoomMember,
+  TravelVehicle,
 } from "@/lib/database.types";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
@@ -26,7 +31,54 @@ import type { RaceBoxItem, RaceBoxState } from "../raceBoxTypes";
 import { EventRacesView } from "../EventRacesView";
 import { CourseEditor } from "../CourseEditor";
 import { TrailerList } from "../TrailerList";
+import { TravelTab, type RoomView, type VehicleView } from "../TravelTab";
 import type { LatLng } from "@/lib/course";
+
+// Trip details, rides and rooms, plus who the viewer can sign up (themself
+// and any rower they're a guardian of) and who can be given a room.
+async function travelFor(supabase: Awaited<ReturnType<typeof createClient>>, eventId: string, userId: string) {
+  const [{ data: tripRow }, { data: vehicleRows }, { data: riderRows }, { data: roomRows }, { data: memberRows }, { data: linkRows }, { data: rosterRows }] =
+    await Promise.all([
+      supabase.from("regatta_travel").select("*").eq("event_id", eventId).maybeSingle(),
+      supabase.from("travel_vehicles").select("*").eq("event_id", eventId).order("created_at"),
+      supabase.from("travel_riders").select("*").eq("event_id", eventId),
+      supabase.from("travel_rooms").select("*").eq("event_id", eventId).order("created_at"),
+      supabase.from("travel_room_members").select("*").eq("event_id", eventId),
+      supabase.from("family_links").select("rower_id").eq("guardian_id", userId),
+      supabase
+        .from("profiles")
+        .select("id, display_name, role")
+        .is("disabled_at", null)
+        .not("approved_at", "is", null)
+        .order("display_name"),
+    ]);
+  const people = (rosterRows as { id: string; display_name: string; role: string }[] | null) ?? [];
+  const nameById = new Map(people.map((p) => [p.id, p.display_name]));
+  const person = (id: string) => ({ id, name: nameById.get(id) ?? "Someone" });
+  const riders = (riderRows as TravelRider[] | null) ?? [];
+  const members = (memberRows as TravelRoomMember[] | null) ?? [];
+
+  const vehicles: VehicleView[] = ((vehicleRows as TravelVehicle[] | null) ?? []).map((v) => ({
+    ...v,
+    driverName: v.driver_id ? (nameById.get(v.driver_id) ?? null) : null,
+    riders: riders.filter((r) => r.vehicle_id === v.id).map((r) => person(r.profile_id)),
+  }));
+  const rooms: RoomView[] = ((roomRows as TravelRoom[] | null) ?? []).map((r) => ({
+    ...r,
+    members: members.filter((m) => m.room_id === r.id).map((m) => person(m.profile_id)),
+  }));
+  const kids = ((linkRows as { rower_id: string }[] | null) ?? []).map((l) => person(l.rower_id));
+
+  return {
+    trip: (tripRow as RegattaTravel | null) ?? null,
+    vehicles,
+    rooms,
+    myPeople: [person(userId), ...kids],
+    roster: people
+      .filter((p) => ["rower", "coxswain", "coach"].includes(p.role))
+      .map((p) => ({ id: p.id, name: p.display_name })),
+  };
+}
 
 type EventRow = Pick<
   ScheduleEvent,
@@ -89,7 +141,11 @@ export default async function EventRacesPage({
   // Set when arriving from the Regatta page's "Add boat", to open that race.
   const { race: selectedRaceId, tab: tabParam } = await searchParams;
   const tab =
-    tabParam === "jobs" || tabParam === "results" || tabParam === "course" || tabParam === "trailer"
+    tabParam === "jobs" ||
+    tabParam === "results" ||
+    tabParam === "course" ||
+    tabParam === "trailer" ||
+    tabParam === "travel"
       ? tabParam
       : "races";
   const supabase = await createClient();
@@ -289,6 +345,7 @@ export default async function EventRacesPage({
     { id: "races", label: needBoat > 0 ? `Races (${needBoat} need a boat)` : `Races (${items.length})` },
     { id: "jobs", label: "Jobs" },
     { id: "results", label: finished.length > 0 ? `Results (${finished.length})` : "Results" },
+    { id: "travel", label: "Travel" },
     { id: "trailer", label: "Trailer" },
     { id: "course", label: "Course" },
   ];
@@ -316,6 +373,7 @@ export default async function EventRacesPage({
   }
 
   const course = tab === "course" ? await courseFor(supabase, typedEvent) : null;
+  const travel = tab === "travel" && user ? await travelFor(supabase, eventId, user.id) : null;
 
   return (
     <div className="min-h-screen p-8">
@@ -356,6 +414,10 @@ export default async function EventRacesPage({
       )}
 
       {tab === "jobs" && <EventTasks eventId={eventId} canManage={canManage} />}
+
+      {travel && user && (
+        <TravelTab eventId={eventId} canManage={canManage} meId={user.id} {...travel} />
+      )}
 
       {trailer && (
         <TrailerList eventId={eventId} items={trailer.items} nameById={trailer.nameById} canManage={canManage} />

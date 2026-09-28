@@ -131,6 +131,9 @@ export default async function RaceDayPage() {
               Course map
             </Link>
           )}
+          <Link href={`/lineups/${event.id}?tab=travel`} className="underline text-[var(--color-primary)]">
+            Travel
+          </Link>
           <Link href={`/lineups/${event.id}?tab=trailer`} className="underline text-[var(--color-primary)]">
             Trailer list
           </Link>
