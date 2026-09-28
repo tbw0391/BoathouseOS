@@ -47,11 +47,9 @@
       later. Board Member intentionally excluded from self-select (2026-09-20
       decision: admin assigns it via the existing profile-page toggle, not
       something people pick for themselves)
-- [ ] Member profile buttons all the same size (asked 2026-09-28): the
-      stack on the right of a member's profile (Edit, Make board member /
-      tent leader / treasurer, Remove from roster, Reset password) are each
-      as wide as their own text, so they look ragged. Give them one width
-      (e.g. full width of the column) and the same height.
+- [x] Member profile buttons all the same size (2026-09-28): the admin
+      buttons on a member's profile are one width (full width on a phone,
+      under the photo; a fixed column on wider screens).
 - [x] Role-specific profile view (2026-09-28): shortcut buttons on your own
       profile, chosen per group by an admin in Admin Settings → "Profile
       buttons" (same tap picker as the home-screen buttons). Groups: Rower,
@@ -136,11 +134,9 @@
       its boats has a recorded place of 1-3 (the best place if more than
       one boat placed); no medal for 4th and below, or before results are
       entered. Regatta list only, not Practice.
-- [ ] Notify people when one of the club's boats is actually racing down the course
-      (live, while the race is happening) — depends on push notifications
-      (PWA) being built first; also need to decide the trigger: someone at
-      the course manually marks "racing now" vs. pulling from a live regatta
-      timing feed, if the regatta provides one
+- [x] Notify people when one of the club's boats is actually racing down
+      the course (2026-09-28): done by the Racing banner below — the cox's
+      GPS crossing the start triggers it.
 - [x] Import a regatta's races from CrewTimer (2026-09-27): "From
       CrewTimer" tab under Add races — paste the regatta's CrewTimer link
       and the club's CrewTimer name (remembered per device; tap-to-pick
@@ -156,10 +152,17 @@
       latest one at the same location. CrewTimer and RegattaCentral don't
       publish course coordinates; Todd (USRowing ref) may get official
       ones for Head of the Ohio.
-- [ ] Racing banner (suggestion from 2026-09-26): use the start/finish plus
-      On the Water tracking to flip a boat's banner lineup → racing →
-      result, alert followers when it crosses the start, refresh every
-      10-15 s while racing.
+- [x] Racing banner (2026-09-28, 0098): when a coxswain is tracking on On
+      the Water, each GPS ping is checked against the regatta's start and
+      finish (its own course, or one borrowed from the same place). Crossing
+      the start marks that boat's race (the lineup nearest in time, 45 min
+      before to 2 h after its race time) as racing: a green "is racing now
+      · Watch live" home banner for everyone, refreshing every 15 s, and a
+      "Boat racing now" alert to the crew's parents and the boat's
+      followers within seconds. Reaching the finish flips it to "finished"
+      (with the place once entered) for an hour. Needs the course set and
+      the cox tracking; straight-line course math, so a very bendy course
+      may mark the finish a little early or late.
 - [ ] RegattaCentral: pick a regatta from RegattaCentral's list when adding
       one to the schedule, with its details and races filled in. Needs
       RegattaCentral's permission/API access rather than scraping.
@@ -454,10 +457,13 @@
 - [x] Store page that just links out
 
 ## Apparel
-- [ ] Apparel Chair account: a role/flag (like the existing Tent Leader flag)
-      that admin assigns to a specific person
-- [ ] Apparel button on the home page, visible only to admins and whoever's
-      assigned Apparel Chair (content/purpose of the page TBD)
+- [x] Apparel Chair (2026-09-28, 0097): admins tap "Make apparel chair" on
+      a member's profile. The chair runs the store at /apparel/manage
+      (products, stock, order windows, marking orders picked up or
+      cancelled) and gets a "Manage Apparel" home tile (admins too).
+      Marking an order paid stays with the treasurer/admins. Pickup and
+      cancel go through set_order_handout() so the chair can't change
+      prices or mark anything paid.
 
 ## Messaging
 - [x] Group chat list, with a "New message" flow to start a chat/DM with any
