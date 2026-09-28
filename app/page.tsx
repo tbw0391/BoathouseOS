@@ -25,6 +25,7 @@ import {
   Shirt,
   Sprout,
   Flag,
+  CloudLightning,
   type LucideIcon,
 } from "lucide-react";
 import RacingScull from "@/components/icons/RacingScull";
@@ -76,6 +77,7 @@ import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
 import { clubDateKey, pickRaceDayEvent } from "@/lib/raceDay";
+import { PRACTICE_CALL_LABELS, lightningMinutesLeft } from "@/lib/waterConditions";
 import { formatMoney } from "@/lib/payments";
 import { getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
@@ -93,6 +95,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/lineups": Waves,
   "/boats": RacingScull,
   "/on-water": Navigation,
+  "/water": CloudLightning,
   "/workouts": Dumbbell,
   "/food-tent": Tent,
   "/rookie-parent": Sprout,
@@ -893,6 +896,8 @@ export default async function Home() {
   let myPrs: PrBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
   let raceDayToday: ScheduleEvent | null = null;
+  let lightningHold: { last_strike_at: string } | null = null;
+  let practiceCall: { status: string; note: string | null } | null = null;
   let upcomingRegattaForecast: EventForecast | null = null;
   let unreadCount = 0;
   let unreadScheduleCount = 0;
@@ -1084,6 +1089,13 @@ export default async function Home() {
     // The next regatta still to race: one stays "next" through midnight
     // (Eastern) after its last day, then the following one takes over, along
     // with its weather.
+    const [{ data: holdRows }, { data: callRow }] = await Promise.all([
+      supabase.from("lightning_holds").select("last_strike_at").is("cleared_at", null).limit(1),
+      supabase.from("practice_calls").select("status, note").eq("practice_date", clubDateKey(now)).maybeSingle(),
+    ]);
+    lightningHold = ((holdRows as { last_strike_at: string }[] | null) ?? [])[0] ?? null;
+    practiceCall = callRow as { status: string; note: string | null } | null;
+
     raceDayToday = pickRaceDayEvent((regattaResult.data as ScheduleEvent[] | null) ?? []);
     if (raceDayToday && clubDateKey(raceDayToday.starts_at) > clubDateKey(now)) raceDayToday = null;
 
@@ -1617,6 +1629,28 @@ export default async function Home() {
             Read coaches&apos; messages
           </Link>
         </div>
+      )}
+
+      {lightningHold && (
+        <Link href="/water" className="w-full flex items-center gap-2 bg-red-700 text-white rounded-lg px-4 py-3 font-semibold">
+          <CloudLightning className="w-5 h-5 shrink-0" />
+          Lightning hold: stay off the water.
+          {lightningMinutesLeft(lightningHold.last_strike_at) > 0
+            ? ` ${lightningMinutesLeft(lightningHold.last_strike_at)} min left.`
+            : " Waiting on the all clear."}
+        </Link>
+      )}
+
+      {practiceCall && practiceCall.status !== "go" && (
+        <Link
+          href="/water"
+          className={`w-full rounded-lg px-4 py-3 text-sm text-white ${
+            practiceCall.status === "cancelled" ? "bg-red-700" : practiceCall.status === "land" ? "bg-blue-700" : "bg-amber-600"
+          }`}
+        >
+          <span className="font-semibold">Today: {PRACTICE_CALL_LABELS[practiceCall.status]}</span>
+          {practiceCall.note && <span className="block">{practiceCall.note}</span>}
+        </Link>
       )}
 
       {raceDayToday && (

@@ -18,6 +18,16 @@ export const ALERT_TYPES = [
     detail: "Phone alert to the crew's parents, and anyone following the boat, when it starts tracking.",
   },
   {
+    kind: "lightning_hold",
+    label: "Lightning hold",
+    detail: "Phone alert to everyone when a coach calls boats off the water for lightning, and when it's clear.",
+  },
+  {
+    kind: "practice_call",
+    label: "Today's practice call",
+    detail: "Phone alert to everyone when a coach calls practice on, moves it to land, or cancels it.",
+  },
+  {
     kind: "launch_soon",
     label: "Launch reminder",
     detail: "Phone alert to the crew and their parents 15 minutes before a race's launch time.",
