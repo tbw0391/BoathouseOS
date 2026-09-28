@@ -24,6 +24,7 @@ import {
   CreditCard,
   Shirt,
   Sprout,
+  Flag,
   type LucideIcon,
 } from "lucide-react";
 import RacingScull from "@/components/icons/RacingScull";
@@ -74,6 +75,7 @@ import {
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
+import { clubDateKey, pickRaceDayEvent } from "@/lib/raceDay";
 import { formatMoney } from "@/lib/payments";
 import { getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
@@ -87,6 +89,7 @@ import {
 const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/roster": Users,
   "/schedule": Calendar,
+  "/race-day": Flag,
   "/lineups": Waves,
   "/boats": RacingScull,
   "/on-water": Navigation,
@@ -889,6 +892,7 @@ export default async function Home() {
   let birthdaysToday: BirthdayPerson[] = [];
   let myPrs: PrBanner[] = [];
   let upcomingRegatta: ScheduleEvent | null = null;
+  let raceDayToday: ScheduleEvent | null = null;
   let upcomingRegattaForecast: EventForecast | null = null;
   let unreadCount = 0;
   let unreadScheduleCount = 0;
@@ -1080,6 +1084,9 @@ export default async function Home() {
     // The next regatta still to race: one stays "next" through midnight
     // (Eastern) after its last day, then the following one takes over, along
     // with its weather.
+    raceDayToday = pickRaceDayEvent((regattaResult.data as ScheduleEvent[] | null) ?? []);
+    if (raceDayToday && clubDateKey(raceDayToday.starts_at) > clubDateKey(now)) raceDayToday = null;
+
     upcomingRegatta =
       ((regattaResult.data as ScheduleEvent[] | null) ?? []).find(
         (e) => forecastDayFor(e) !== null,
@@ -1610,6 +1617,16 @@ export default async function Home() {
             Read coaches&apos; messages
           </Link>
         </div>
+      )}
+
+      {raceDayToday && (
+        <Link
+          href="/race-day"
+          className="w-full flex items-center gap-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium"
+        >
+          <Flag className="w-5 h-5 shrink-0" />
+          Race day: {raceDayToday.title}. Launch times, bow numbers and crews →
+        </Link>
       )}
 
       {lineupBanners.length > 0 && (

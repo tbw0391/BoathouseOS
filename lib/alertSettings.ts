@@ -18,6 +18,11 @@ export const ALERT_TYPES = [
     detail: "Phone alert to the crew's parents, and anyone following the boat, when it starts tracking.",
   },
   {
+    kind: "launch_soon",
+    label: "Launch reminder",
+    detail: "Phone alert to the crew and their parents 15 minutes before a race's launch time.",
+  },
+  {
     kind: "food_draft",
     label: "Food list draft ready",
     detail: "Phone alert to tent leaders when the week-out draft is waiting.",

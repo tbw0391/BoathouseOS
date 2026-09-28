@@ -1,9 +1,10 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Bill, Charge } from "@/lib/database.types";
+import type { Bill, Charge, Lineup } from "@/lib/database.types";
 import { billBalance } from "@/lib/billing";
 import { formatMoney } from "@/lib/payments";
-import { activeMemberIds, householdIdsForRower, sendPush } from "@/lib/push";
+import { activeMemberIds, guardianIdsFor, householdIdsForRower, sendPush } from "@/lib/push";
+import { LAUNCH_MINUTES_KEY, clubTimeLabel, launchTime, parseLaunchMinutes } from "@/lib/raceDay";
 
 // Alerts that depend on the clock rather than on someone doing something.
 // Run every 5 minutes by /api/cron/alerts (see 0080_scheduled_alerts.sql).
@@ -118,11 +119,53 @@ async function paymentDueAlerts(admin: Admin) {
   }
 }
 
+// 15 minutes before each race's launch time (race time minus the club's
+// launch minutes), tell the crew and their parents.
+async function launchSoonAlerts(admin: Admin) {
+  const { data: setting } = await admin
+    .from("club_settings")
+    .select("value")
+    .eq("key", LAUNCH_MINUTES_KEY)
+    .maybeSingle();
+  const launchMinutes = parseLaunchMinutes((setting as { value: string | null } | null)?.value);
+
+  // Launch within the next 15 minutes (the job runs every 5).
+  const now = Date.now();
+  const from = new Date(now + launchMinutes * 60 * 1000).toISOString();
+  const to = new Date(now + (launchMinutes + 15) * 60 * 1000).toISOString();
+  const { data } = await admin
+    .from("lineups")
+    .select("id, boat_name, race_name, race_time, bow_number, place")
+    .gte("race_time", from)
+    .lte("race_time", to)
+    .is("place", null);
+  const lineups =
+    (data as Pick<Lineup, "id" | "boat_name" | "race_name" | "race_time" | "bow_number" | "place">[] | null) ?? [];
+  const claimed = await claim(admin, "launch_soon", lineups.map((l) => l.id));
+
+  for (const lineup of lineups.filter((l) => claimed.has(l.id))) {
+    const { data: seatRows } = await admin.from("lineup_seats").select("rower_id").eq("lineup_id", lineup.id);
+    const crew = ((seatRows as { rower_id: string | null }[] | null) ?? [])
+      .map((s) => s.rower_id)
+      .filter((id): id is string => !!id);
+    if (crew.length === 0) continue;
+    const launch = launchTime(lineup.race_time!, launchMinutes);
+    await sendPush([...crew, ...(await guardianIdsFor(crew))], {
+      kind: "launch_soon",
+      title: `Launch at ${clubTimeLabel(launch)}`,
+      body: `${lineup.race_name ?? lineup.boat_name}${lineup.bow_number ? `, bow #${lineup.bow_number}` : ""}: race at ${clubTimeLabel(lineup.race_time!)}.`,
+      url: "/race-day",
+      tag: `launch-${lineup.id}`,
+    });
+  }
+}
+
 export async function runScheduledAlerts() {
   const admin = createAdminClient();
   const results = await Promise.allSettled([
     foodDraftAlerts(admin),
     paymentDueAlerts(admin),
+    launchSoonAlerts(admin),
   ]);
   const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
   for (const f of failures) console.error("Scheduled alert failed", f.reason);

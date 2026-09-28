@@ -26,4 +26,13 @@ describe("resolveNavAccess", () => {
     expect(resolveNavAccess(settings({})).coach).toContain("/coach");
     expect(resolveNavAccess(settings({})).parent).not.toContain("/coach");
   });
+
+  it("turns on a button added after the lists were saved, but keeps ones the admin turned off", () => {
+    const a = resolveNavAccess(
+      settings({ [NAV_ACCESS_KEY]: JSON.stringify({ _known: ["/schedule", "/polls"], rower: ["/schedule"] }) })
+    );
+    expect(a.rower).toContain("/schedule");
+    expect(a.rower).not.toContain("/polls");
+    expect(a.rower).toContain("/photos");
+  });
 });

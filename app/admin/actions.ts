@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
   NAV_ACCESS_KEY,
+  NAV_KNOWN_KEY,
   NAV_ROLES,
+  NAV_SECTIONS,
   NAV_VISIBILITY_OPTIONS,
   navSectionsFor,
   type NavRole,
@@ -157,7 +159,7 @@ export async function updateNavAccess(access: Record<NavRole, string[]>) {
     throw new Error("Only admins can change which buttons are shown.");
   }
 
-  const clean: Record<string, string[]> = {};
+  const clean: Record<string, string[]> = { [NAV_KNOWN_KEY]: NAV_SECTIONS.map((s) => s.href) };
   for (const { role } of NAV_ROLES) {
     const allowed = new Set(navSectionsFor(role).map((s) => s.href));
     const list = Array.isArray(access?.[role]) ? access[role] : [];

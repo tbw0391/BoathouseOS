@@ -123,6 +123,8 @@ export interface Lineup {
   chat_group_id: string | null;
   // lib/demoClubs.ts slug of the club this lineup is for; null = any club.
   club_slug: string | null;
+  // From the heat sheet (0083).
+  bow_number: string | null;
 }
 
 export interface Boat {

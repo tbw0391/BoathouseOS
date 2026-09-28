@@ -1,0 +1,55 @@
+// Race Day page (/race-day): which regatta it's about, and when each crew
+// needs to be on the water.
+
+export const LAUNCH_MINUTES_KEY = "race_day_launch_minutes";
+export const DEFAULT_LAUNCH_MINUTES = 45;
+export const LAUNCH_MINUTE_OPTIONS = [30, 45, 60, 75, 90];
+
+export const CLUB_TIME_ZONE = "America/New_York";
+
+export function parseLaunchMinutes(raw: string | null | undefined): number {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 && n <= 240 ? n : DEFAULT_LAUNCH_MINUTES;
+}
+
+export function launchTime(raceTimeIso: string, launchMinutes: number): Date {
+  return new Date(new Date(raceTimeIso).getTime() - launchMinutes * 60 * 1000);
+}
+
+export function clubTimeLabel(d: Date | string): string {
+  return new Date(d).toLocaleTimeString("en-US", { timeZone: CLUB_TIME_ZONE, hour: "numeric", minute: "2-digit" });
+}
+
+export function clubDateKey(d: Date | string): string {
+  return new Date(d).toLocaleDateString("en-CA", { timeZone: CLUB_TIME_ZONE });
+}
+
+type EventLike = { id: string; starts_at: string; ends_at: string | null };
+
+// The regatta happening today (club time), or else the next one coming up.
+// `events` should already be regattas from yesterday onward, soonest first.
+export function pickRaceDayEvent<E extends EventLike>(events: E[], now: Date = new Date()): E | null {
+  const today = clubDateKey(now);
+  const onToday = events.find((e) => {
+    const first = clubDateKey(e.starts_at);
+    const last = clubDateKey(e.ends_at ?? e.starts_at);
+    return first <= today && today <= last;
+  });
+  if (onToday) return onToday;
+  return events.find((e) => clubDateKey(e.starts_at) > today) ?? null;
+}
+
+// Done once a place is in, or 2 hours after the scheduled start (regattas
+// run late).
+export function raceIsOver(race: { place: number | null; race_time: string | null }, now: Date = new Date()): boolean {
+  if (race.place != null) return true;
+  return race.race_time != null && new Date(race.race_time).getTime() + 2 * 60 * 60 * 1000 < now.getTime();
+}
+
+export function seatLabel(seat: { seat_number: number; seat_role: string }, rowerSeats: number): string {
+  if (seat.seat_role === "coxswain") return "Cox";
+  if (seat.seat_role === "coach") return "Coach";
+  if (rowerSeats > 1 && seat.seat_number === 1) return "Bow";
+  if (rowerSeats > 1 && seat.seat_number === rowerSeats) return "Stroke";
+  return `${seat.seat_number}`;
+}
