@@ -567,3 +567,18 @@ export interface OrderItem {
   quantity: number;
   price_cents: number;
 }
+
+export interface TrailerItem {
+  id: string;
+  event_id: string;
+  label: string;
+  kind: "boat" | "oars" | "rigging" | "electronics" | "other";
+  boat_id: string | null;
+  sort: number;
+  packed_out_at: string | null;
+  packed_out_by: string | null;
+  packed_home_at: string | null;
+  packed_home_by: string | null;
+  created_by: string | null;
+  created_at: string;
+}

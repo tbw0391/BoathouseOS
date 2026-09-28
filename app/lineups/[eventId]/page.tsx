@@ -16,6 +16,7 @@ import type {
   ProfileTeam,
   Race,
   ScheduleEvent,
+  TrailerItem,
 } from "@/lib/database.types";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
@@ -24,6 +25,7 @@ import { parseStarredLines } from "@/lib/scheduleStars";
 import type { RaceBoxItem, RaceBoxState } from "../raceBoxTypes";
 import { EventRacesView } from "../EventRacesView";
 import { CourseEditor } from "../CourseEditor";
+import { TrailerList } from "../TrailerList";
 import type { LatLng } from "@/lib/course";
 
 type EventRow = Pick<
@@ -87,7 +89,9 @@ export default async function EventRacesPage({
   // Set when arriving from the Regatta page's "Add boat", to open that race.
   const { race: selectedRaceId, tab: tabParam } = await searchParams;
   const tab =
-    tabParam === "jobs" || tabParam === "results" || tabParam === "course" ? tabParam : "races";
+    tabParam === "jobs" || tabParam === "results" || tabParam === "course" || tabParam === "trailer"
+      ? tabParam
+      : "races";
   const supabase = await createClient();
   const {
     data: { user },
@@ -285,8 +289,31 @@ export default async function EventRacesPage({
     { id: "races", label: needBoat > 0 ? `Races (${needBoat} need a boat)` : `Races (${items.length})` },
     { id: "jobs", label: "Jobs" },
     { id: "results", label: finished.length > 0 ? `Results (${finished.length})` : "Results" },
+    { id: "trailer", label: "Trailer" },
     { id: "course", label: "Course" },
   ];
+
+  let trailer: { items: TrailerItem[]; nameById: Record<string, string> } | null = null;
+  if (tab === "trailer") {
+    const { data: itemRows } = await supabase
+      .from("trailer_items")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("sort", { ascending: true });
+    const items = (itemRows as TrailerItem[] | null) ?? [];
+    const packerIds = [
+      ...new Set(items.flatMap((i) => [i.packed_out_by, i.packed_home_by]).filter((id): id is string => !!id)),
+    ];
+    const { data: packerRows } = packerIds.length
+      ? await supabase.from("profiles").select("id, display_name").in("id", packerIds)
+      : { data: [] };
+    trailer = {
+      items,
+      nameById: Object.fromEntries(
+        ((packerRows as { id: string; display_name: string }[] | null) ?? []).map((p) => [p.id, p.display_name])
+      ),
+    };
+  }
 
   const course = tab === "course" ? await courseFor(supabase, typedEvent) : null;
 
@@ -329,6 +356,10 @@ export default async function EventRacesPage({
       )}
 
       {tab === "jobs" && <EventTasks eventId={eventId} canManage={canManage} />}
+
+      {trailer && (
+        <TrailerList eventId={eventId} items={trailer.items} nameById={trailer.nameById} canManage={canManage} />
+      )}
 
       {course && (
         <CourseEditor
