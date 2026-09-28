@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, HeartPulse, MapPin, UserCheck } from "lucide-react";
+import { ClipboardList, FileCheck, HeartPulse, MapPin, UserCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/database.types";
 
@@ -57,6 +57,13 @@ export default async function CoachHubPage() {
         >
           <HeartPulse className="w-5 h-5" />
           Emergency Info
+        </Link>
+        <Link
+          href="/coach/paperwork"
+          className="flex items-center gap-3 rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+        >
+          <FileCheck className="w-5 h-5" />
+          Paperwork
         </Link>
       </div>
     </div>

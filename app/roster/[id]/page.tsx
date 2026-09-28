@@ -22,6 +22,9 @@ import { CheckInButton } from "@/components/CheckInButton";
 import { getMedalsForProfile } from "@/lib/medals";
 import { MedalBadge } from "@/components/MedalBadge";
 import { EmergencyInfoCard } from "./EmergencyInfoCard";
+import { PaperworkChip } from "@/components/PaperworkEditor";
+import { requiredFor, type PaperworkRecord } from "@/lib/paperwork";
+import { clubDateKey } from "@/lib/raceDay";
 import type { EmergencyInfo } from "@/lib/database.types";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -80,6 +83,10 @@ export default async function BioPage({
   // Emergency info: the member, their guardians, coaches and admins (the
   // same check the database applies).
   const { data: canSeeEmergency } = await supabase.rpc("can_act_for", { person: profile.id });
+  const { data: paperworkRows } = canSeeEmergency
+    ? await supabase.from("member_paperwork").select("kind, completed_on, expires_on, checked_by").eq("profile_id", profile.id)
+    : { data: null };
+  const paperworkNeeded = requiredFor(profile.role);
   const { data: emergencyRow } = canSeeEmergency
     ? await supabase.from("emergency_info").select("*").eq("profile_id", profile.id).maybeSingle()
     : { data: null };
@@ -350,6 +357,25 @@ export default async function BioPage({
         <dt className="text-gray-500">Fun fact</dt>
         <dd>{profile.fun_fact ?? "—"}</dd>
       </dl>
+
+      {canSeeEmergency && paperworkNeeded.length > 0 && (
+        <div className="mt-6 max-w-lg rounded-lg border-2 border-gray-200 p-4">
+          <h2 className="font-semibold mb-2">Paperwork</h2>
+          <div className="flex flex-col gap-2">
+            {paperworkNeeded.map((n) => (
+              <PaperworkChip
+                key={n.kind}
+                profileId={profile.id}
+                kind={n.kind}
+                label={n.label}
+                record={((paperworkRows as PaperworkRecord[] | null) ?? []).find((r) => r.kind === n.kind) ?? null}
+                todayKey={clubDateKey(new Date())}
+                showLabel
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {canSeeEmergency && <EmergencyInfoCard profileId={profile.id} info={emergencyRow as EmergencyInfo | null} />}
 

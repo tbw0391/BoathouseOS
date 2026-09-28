@@ -28,6 +28,11 @@ export const ALERT_TYPES = [
     detail: "Phone alert to everyone when a coach calls practice on, moves it to land, or cancels it.",
   },
   {
+    kind: "paperwork_expiring",
+    label: "Paperwork running out",
+    detail: "Phone alert to the member and their parents 30 days before and on the day paperwork runs out.",
+  },
+  {
     kind: "launch_soon",
     label: "Launch reminder",
     detail: "Phone alert to the crew and their parents 15 minutes before a race's launch time.",

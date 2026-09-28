@@ -4,6 +4,7 @@ import type { Bill, Charge, Lineup } from "@/lib/database.types";
 import { billBalance } from "@/lib/billing";
 import { formatMoney } from "@/lib/payments";
 import { activeMemberIds, guardianIdsFor, householdIdsForRower, sendPush } from "@/lib/push";
+import { EXPIRING_DAYS, PAPERWORK } from "@/lib/paperwork";
 import { LAUNCH_MINUTES_KEY, clubTimeLabel, launchTime, parseLaunchMinutes } from "@/lib/raceDay";
 
 // Alerts that depend on the clock rather than on someone doing something.
@@ -160,12 +161,41 @@ async function launchSoonAlerts(admin: Admin) {
   }
 }
 
+// Paperwork running out: 30 days before, and on the day.
+async function paperworkAlerts(admin: Admin) {
+  const today = easternDate(new Date());
+  const inThirty = easternDate(new Date(Date.now() + EXPIRING_DAYS * 24 * 60 * 60 * 1000));
+  const { data } = await admin
+    .from("member_paperwork")
+    .select("profile_id, kind, expires_on")
+    .in("expires_on", [today, inThirty]);
+  const rows = (data as { profile_id: string; kind: string; expires_on: string }[] | null) ?? [];
+  const ref = (r: (typeof rows)[number]) => `${r.profile_id}:${r.kind}:${r.expires_on}:${r.expires_on === today ? 0 : 30}`;
+  const claimed = await claim(admin, "paperwork_expiring", rows.map(ref));
+
+  for (const r of rows.filter((row) => claimed.has(ref(row)))) {
+    const label = PAPERWORK.find((p) => p.kind === r.kind)?.label ?? "Paperwork";
+    const { data: person } = await admin.from("profiles").select("display_name, disabled_at").eq("id", r.profile_id).single();
+    const p = person as { display_name: string; disabled_at: string | null } | null;
+    if (!p || p.disabled_at) continue;
+    const when = new Date(`${r.expires_on}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    await sendPush([r.profile_id, ...(await guardianIdsFor([r.profile_id]))], {
+      kind: "paperwork_expiring",
+      title: r.expires_on === today ? `${label} runs out today` : `${label} runs out ${when}`,
+      body: `${p.display_name}: renew it, then update the date on their profile.`,
+      url: `/roster/${r.profile_id}`,
+      tag: `paperwork-${r.profile_id}-${r.kind}`,
+    });
+  }
+}
+
 export async function runScheduledAlerts() {
   const admin = createAdminClient();
   const results = await Promise.allSettled([
     foodDraftAlerts(admin),
     paymentDueAlerts(admin),
     launchSoonAlerts(admin),
+    paperworkAlerts(admin),
   ]);
   const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
   for (const f of failures) console.error("Scheduled alert failed", f.reason);
