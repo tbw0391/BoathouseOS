@@ -52,3 +52,7 @@ next-env.d.ts
 /supabase/.temp
 /public/worker-*.js
 /public/worker-*.js.map
+/supabase/.rotate_cron_secret.sql
+
+# Claude Code personal settings
+/.claude/settings.local.json
