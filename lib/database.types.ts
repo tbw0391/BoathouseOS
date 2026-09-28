@@ -625,3 +625,18 @@ export interface TravelRoomMember {
   event_id: string;
   profile_id: string;
 }
+
+export interface EmergencyInfo {
+  profile_id: string;
+  contact1_name: string | null;
+  contact1_relation: string | null;
+  contact1_phone: string | null;
+  contact2_name: string | null;
+  contact2_relation: string | null;
+  contact2_phone: string | null;
+  allergies: string | null;
+  medications: string | null;
+  medical_notes: string | null;
+  updated_at: string;
+  updated_by: string | null;
+}

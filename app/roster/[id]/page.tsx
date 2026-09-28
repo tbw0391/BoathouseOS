@@ -21,6 +21,8 @@ import { getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
 import { getMedalsForProfile } from "@/lib/medals";
 import { MedalBadge } from "@/components/MedalBadge";
+import { EmergencyInfoCard } from "./EmergencyInfoCard";
+import type { EmergencyInfo } from "@/lib/database.types";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -74,6 +76,13 @@ export default async function BioPage({
   const canRemove = !isSelf && (callerRole === "admin" || callerRole === "coach");
   const showCheckIn = isSelf && (callerRole === "admin" || callerRole === "coach");
   const checkInLabel = showCheckIn ? await getTodaysCheckInLabel(profile.id) : null;
+
+  // Emergency info: the member, their guardians, coaches and admins (the
+  // same check the database applies).
+  const { data: canSeeEmergency } = await supabase.rpc("can_act_for", { person: profile.id });
+  const { data: emergencyRow } = canSeeEmergency
+    ? await supabase.from("emergency_info").select("*").eq("profile_id", profile.id).maybeSingle()
+    : { data: null };
 
   const { data: tagRows } = await supabase
     .from("photo_tags")
@@ -341,6 +350,8 @@ export default async function BioPage({
         <dt className="text-gray-500">Fun fact</dt>
         <dd>{profile.fun_fact ?? "—"}</dd>
       </dl>
+
+      {canSeeEmergency && <EmergencyInfoCard profileId={profile.id} info={emergencyRow as EmergencyInfo | null} />}
 
       {taggedPhotos.length > 0 && (
         <div className="mt-6 max-w-lg">

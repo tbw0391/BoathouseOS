@@ -64,6 +64,20 @@ export default function PrivacyPage() {
             messages, and photos (including who is tagged in them).
           </li>
           <li>
+            <strong>Emergency and medical information:</strong> emergency contacts, allergies,
+            medications, and medical notes a member or their parent chooses to add, so coaches can
+            act quickly on the water.
+          </li>
+          <li>
+            <strong>Race-day and travel details:</strong> bow numbers, who&apos;s riding in which
+            car or bus and who&apos;s driving, hotel rooming lists, and who packed what on the
+            trailer.
+          </li>
+          <li>
+            <strong>Calendar link:</strong> a private link for adding the club schedule to your
+            phone&apos;s calendar, which you can replace at any time.
+          </li>
+          <li>
             <strong>Payments:</strong> what your club has billed you, what you&apos;ve paid and
             how (cash, check, or card), and apparel orders. Card numbers go straight to Stripe;
             BoathouseOS never sees or stores them.
@@ -101,7 +115,8 @@ export default function PrivacyPage() {
           the water, club members can see where it is right now, but its full track and past
           outings are visible only to coaches, admins, and the coxswain who recorded them; bills and
           payments only to the family involved and the club&apos;s treasurer and admins; erg time
-          history and attendance only to the member and their coaches; and &quot;interested&quot;
+          history and attendance only to the member and their coaches; emergency and medical
+          information only to the member, their parents or guardians, coaches, and admins; and &quot;interested&quot;
           form submissions only to the BoathouseOS team.
         </p>
       </Section>
@@ -132,9 +147,10 @@ export default function PrivacyPage() {
             with them.
           </li>
           <li>
-            To show race-day weather, the <strong>National Weather Service</strong> and{" "}
-            <strong>OpenStreetMap</strong> receive a regatta&apos;s location, never anything about
-            a person. Maps load their tiles from OpenStreetMap, which sees your IP address as any
+            To show race-day weather and water conditions, the{" "}
+            <strong>National Weather Service</strong>, the <strong>U.S. Geological Survey</strong>{" "}
+            (river gauges), and <strong>OpenStreetMap</strong> receive a regatta&apos;s or river
+            gauge&apos;s location, never anything about a person. Maps load their tiles from OpenStreetMap, which sees your IP address as any
             website would.
           </li>
           <li>
