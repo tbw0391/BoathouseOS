@@ -772,6 +772,11 @@
 - [ ] 1. Create a Stripe account at stripe.com, then add STRIPE_SECRET_KEY
       (the sk_test_ key first) and STRIPE_WEBHOOK_SECRET to Vercel and
       .env.local. Nothing charges real money until live keys go in.
+      Paused 2026-09-28: account, Connect, webhook and STRIPE_WEBHOOK_SECRET
+      are done, but Vercel's STRIPE_SECRET_KEY holds the publishable pk_test_
+      key ("cannot be made with a publishable API key" on Connect Stripe).
+      Replace it with the sk_test_ secret key, redeploy, then Connect Stripe
+      as admin. Not in .env.local yet either.
 - [ ] 2. In Stripe, add a webhook for "events on connected accounts" pointing
       at https://boathouseos.app/api/stripe/webhook, sending
       checkout.session.completed, invoice.paid, invoice.payment_failed,
