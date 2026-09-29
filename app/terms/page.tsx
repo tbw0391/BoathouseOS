@@ -138,6 +138,20 @@ export default function TermsPage() {
         </p>
       </Section>
 
+      <Section title="Text message alerts">
+        <p>
+          Text alerts are optional. If you turn them on from your profile, BoathouseOS texts your
+          mobile number for your club&apos;s urgent alerts: lightning holds, changes to
+          today&apos;s practice, and race launch times. Message frequency varies (usually a few a
+          week in season). Message and data rates may apply. Reply <strong>STOP</strong> to any
+          text to stop them, or <strong>HELP</strong> for help; you can also turn them off on your
+          profile. Agreeing isn&apos;t a condition of membership. Rowers and coxswains under 18
+          don&apos;t get texts themselves; their parents or guardians can turn them on for their
+          own phones. Carriers aren&apos;t liable for delayed or undelivered messages, and texts
+          can be late or missed, so don&apos;t rely on them alone for safety.
+        </p>
+      </Section>
+
       <Section title="The demo">
         <p>
           The public demo uses made-up data and a shared account. Anyone can see what you type in

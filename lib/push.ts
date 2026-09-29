@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ALERT_SETTINGS_KEY, EMAIL_BACKUP_KINDS, parseAlertSettings, type AlertKind } from "@/lib/alertSettings";
 import { alertEmail, emailConfigured, sendEmails } from "@/lib/email";
 import { isDemoEmail } from "@/lib/demoAccount";
+import { sendTexts, smsConfigured } from "@/lib/sms";
+import { SMS_KINDS, smsBody } from "@/lib/smsRules";
 
 // Phone/browser push alerts. Needs NEXT_PUBLIC_VAPID_PUBLIC_KEY and
 // VAPID_PRIVATE_KEY (generate a pair with `npx web-push generate-vapid-keys`);
@@ -119,6 +121,20 @@ export async function sendPush(userIds: string[], message: PushMessage) {
         const { html, text } = alertEmail(title, body, `${site}${url}`);
         await sendEmails(emails, title, html, text);
       }
+    }
+
+    // The urgent kinds also go by text to anyone who opted in (0099), phone
+    // alerts or not: a push can be missed, and these matter.
+    if (SMS_KINDS.includes(message.kind) && smsConfigured()) {
+      const { data: consents } = await admin
+        .from("sms_consents")
+        .select("phone, profiles!inner(approved_at, disabled_at)")
+        .in("profile_id", ids)
+        .is("opted_out_at", null)
+        .not("profiles.approved_at", "is", null)
+        .is("profiles.disabled_at", null);
+      const phones = ((consents as { phone: string }[] | null) ?? []).map((c) => c.phone);
+      await sendTexts(admin, phones, smsBody(title, body));
     }
   } catch (e) {
     console.error("sendPush failed", e);

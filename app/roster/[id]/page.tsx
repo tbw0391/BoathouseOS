@@ -34,6 +34,8 @@ import {
   resolveProfileButtons,
 } from "@/lib/profileButtons";
 import { ProfileShortcuts } from "./ProfileShortcuts";
+import { TextAlertsCard } from "./TextAlertsCard";
+import { canOptInToTexts } from "@/lib/smsRules";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -87,6 +89,18 @@ export default async function BioPage({
   const canRemove = !isSelf && (callerRole === "admin" || callerRole === "coach");
   const showCheckIn = isSelf && (callerRole === "admin" || callerRole === "coach");
   const checkInLabel = showCheckIn ? await getTodaysCheckInLabel(profile.id) : null;
+
+  // Your own text-alert opt-in (0099).
+  let textPhone: string | null = null;
+  if (isSelf) {
+    const { data: consent } = await supabase
+      .from("sms_consents")
+      .select("phone, opted_out_at")
+      .eq("profile_id", profile.id)
+      .maybeSingle();
+    const c = consent as { phone: string; opted_out_at: string | null } | null;
+    textPhone = c && !c.opted_out_at ? c.phone : null;
+  }
 
   // Shortcut buttons on your own profile, picked per group in /admin.
   let shortcuts: { href: string; label: string }[] = [];
@@ -311,6 +325,8 @@ export default async function BioPage({
       {shortcuts.length > 0 && (
         <ProfileShortcuts buttons={shortcuts} isCustom={Boolean(profile.profile_button_order?.length)} />
       )}
+
+      {isSelf && <TextAlertsCard phone={textPhone} canOptIn={canOptInToTexts(profile.role, profile.birthday)} />}
 
       {profile.disabled_at && (
         <p className="mt-4 text-sm text-red-600">

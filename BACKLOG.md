@@ -621,13 +621,24 @@
       verified, RESEND_API_KEY and EMAIL_FROM in Vercel; the home-page email
       checkbox shows. Next: point Supabase Auth's custom SMTP at Resend.
 
-- [ ] Text message (SMS) alerts via Twilio (started 2026-09-28): Todd is
-      setting up the Twilio account, number and toll-free (or 10DLC)
-      verification. Then: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and
-      TWILIO_FROM_NUMBER in Vercel; an SMS sender like lib/email.ts for the
-      urgent alerts (lightning, practice calls, launch times); an opt-in
-      checkbox with consent recorded; STOP opt-outs recorded; texting
-      wording in Terms and Privacy; minors' texts go to parents (Safe Sport).
+- [ ] Text message (SMS) alerts via Twilio — code built 2026-09-28
+      (0099_sms_alerts.sql), waiting on Twilio:
+      - Built: "Text alerts" card on your own profile (mobile number +
+        consent box; the exact wording and time are saved in sms_consents,
+        members only see their own). Lightning hold, today's practice call
+        and launch times also go by text to anyone opted in (lib/sms.ts via
+        sendPush). Rowers/coxes under 18 (or with no birthday) can't opt
+        in; their parents can. /api/twilio/inbound (signature-checked)
+        records STOP/START; a send refused as opted-out marks it too.
+        Terms ("Text message alerts") and Privacy (Twilio, never shared
+        for marketing) updated.
+      - Todd: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER in
+        Vercel (done 2026-09-28, redeploy after push); set the number's
+        "A message comes in" webhook to
+        https://www.boathouseos.app/api/twilio/inbound (HTTP POST); submit
+        toll-free (or 10DLC) verification pointing at the profile opt-in,
+        /terms and /privacy; until approved, only Verified Caller IDs
+        get texts.
 
 ## Safety
 - [x] Water Conditions (2026-09-28, /water, 0087): live USGS gauge (flow,

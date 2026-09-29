@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 // collects: new profile fields, tables, cookies, or outside services that
 // receive data should be reflected here.
 const CONTACT_EMAIL = "privacy@boathouseos.app";
-const LAST_UPDATED = "September 27, 2026";
+const LAST_UPDATED = "September 28, 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -62,6 +62,10 @@ export default function PrivacyPage() {
             <strong>Club activity:</strong> lineups, practice check-ins and absences, erg time
             history, food tent and volunteer signups, poll votes, suggestions, maintenance reports,
             messages, and photos (including who is tagged in them).
+          </li>
+          <li>
+            <strong>Text alerts (only if you turn them on):</strong> your mobile number, the
+            consent wording you agreed to and when, and whether you&apos;ve replied STOP.
           </li>
           <li>
             <strong>Emergency and medical information:</strong> emergency contacts, allergies,
@@ -143,6 +147,12 @@ export default function PrivacyPage() {
           <li>
             <strong>Resend</strong> delivers alert emails (to members who haven&apos;t turned on
             phone alerts) and receives the email address and the alert&apos;s text.
+          </li>
+          <li>
+            <strong>Twilio</strong> sends text alerts to members who turned them on and receives
+            the mobile number and the alert&apos;s text. Mobile numbers and text-alert consent are
+            never sold, rented, or shared with anyone for marketing, and aren&apos;t shared with
+            other third parties except Twilio to send the texts.
           </li>
           <li>
             <strong>Stripe</strong> processes card payments for your club. When you pay by card,

@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { BoatSide, Role, Team } from "@/lib/database.types";
 import { PROFILE_BUTTONS } from "@/lib/profileButtons";
 import { tidyErgTime } from "@/lib/erg";
+import { SMS_CONSENT_TEXT, canOptInToTexts, normalizeUsPhone } from "@/lib/smsRules";
 
 const VALID_ROLES: Role[] = ["rower", "coxswain", "coach", "parent", "admin"];
 
@@ -424,5 +425,47 @@ export async function saveProfileButtonOrder(order: string[] | null) {
     .eq("id", user.id);
   if (error) throw new Error(error.message);
 
+  revalidatePath(`/roster/${user.id}`);
+}
+
+// Text alerts (0099): opt in with a mobile number and the consent box, or
+// turn them off. Only for yourself.
+export async function saveTextAlerts(phoneText: string, agreed: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+  if (!agreed) throw new Error("Tick the box to agree to text alerts.");
+
+  const { data: me } = await supabase.from("profiles").select("role, birthday").eq("id", user.id).single();
+  const profile = me as { role: string; birthday: string | null } | null;
+  if (!profile || !canOptInToTexts(profile.role, profile.birthday)) {
+    throw new Error("Texts for rowers under 18 go to their parents instead.");
+  }
+  const phone = normalizeUsPhone(phoneText);
+  if (!phone) throw new Error("Enter a US mobile number, like (614) 555-1234.");
+
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("sms_consents").upsert(
+    { profile_id: user.id, phone, consent_text: SMS_CONSENT_TEXT, consented_at: now, opted_out_at: null, updated_at: now },
+    { onConflict: "profile_id" }
+  );
+  if (error) throw new Error(error.message);
+  revalidatePath(`/roster/${user.id}`);
+}
+
+export async function turnOffTextAlerts() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("sms_consents")
+    .update({ opted_out_at: now, updated_at: now })
+    .eq("profile_id", user.id);
+  if (error) throw new Error(error.message);
   revalidatePath(`/roster/${user.id}`);
 }
