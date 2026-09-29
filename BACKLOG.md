@@ -690,6 +690,17 @@
       categories are just captured and shown to the single admin role, since
       there's only one club and no global-admin concept yet.
 
+## Error messages
+- [ ] Friendly error messages are hidden on the live site (found
+      2026-09-28): server actions throw Error("<helpful message>") and the
+      pages show e.message, but Next.js production replaces any thrown
+      message with "An error occurred in the Server Components render..."
+      So on boathouseos.app people see that generic text instead of e.g.
+      "Enter a US mobile number" or "Rings must be 1 to 8". Fix: actions
+      return { error } for expected problems (like sendMyTestText now
+      does) and only throw for real bugs. Do the most-used forms first
+      (sign up, profile, text alerts, oar sheet, lineups, payments).
+
 ## Security (before public launch)
 - [x] Admin approval for new signups (2026-09-25, migration 0060): self-signups start "pending", see
       only a "waiting for approval" screen, and can't read any club data

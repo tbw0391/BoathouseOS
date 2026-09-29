@@ -7,7 +7,7 @@ import type { BoatSide, Role, Team } from "@/lib/database.types";
 import { PROFILE_BUTTONS } from "@/lib/profileButtons";
 import { tidyErgTime } from "@/lib/erg";
 import { SMS_CONSENT_TEXT, canOptInToTexts, normalizeUsPhone, smsBody } from "@/lib/smsRules";
-import { sendTexts, smsConfigured } from "@/lib/sms";
+import { sendTextReport, smsConfigured } from "@/lib/sms";
 
 const VALID_ROLES: Role[] = ["rower", "coxswain", "coach", "parent", "admin"];
 
@@ -472,13 +472,14 @@ export async function turnOffTextAlerts() {
 }
 
 // A test text to your own opted-in number, to check texts are working.
-export async function sendMyTestText() {
+// Returns the problem instead of throwing: production hides thrown messages.
+export async function sendMyTestText(): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
-  if (!smsConfigured()) throw new Error("Texting isn't set up yet (Twilio settings missing in Vercel).");
+  if (!user) return { error: "Not signed in." };
+  if (!smsConfigured()) return { error: "Texting isn't set up on the site yet: the Twilio settings aren't in this deploy. Add them in Vercel and redeploy." };
 
   const { data } = await supabase
     .from("sms_consents")
@@ -486,10 +487,10 @@ export async function sendMyTestText() {
     .eq("profile_id", user.id)
     .maybeSingle();
   const consent = data as { phone: string; opted_out_at: string | null } | null;
-  if (!consent || consent.opted_out_at) throw new Error("Turn on text alerts first.");
+  if (!consent || consent.opted_out_at) return { error: "Turn on text alerts first." };
 
-  const sent = await sendTexts(createAdminClient(), [consent.phone], smsBody("Test text", "Text alerts are working."));
-  if (sent === 0) throw new Error("Twilio didn't accept the text. Check Monitor → Logs → Errors in Twilio.");
+  const result = await sendTextReport(consent.phone, smsBody("Test text", "Text alerts are working."));
+  return { error: result };
 }
 
 // Sets a member's profile photo straight from their profile page (yourself,

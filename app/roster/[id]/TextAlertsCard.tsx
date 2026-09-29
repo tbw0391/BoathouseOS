@@ -45,7 +45,8 @@ export function TextAlertsCard({ phone, canOptIn }: { phone: string | null; canO
               onClick={() =>
                 run(async () => {
                   setSent(false);
-                  await sendMyTestText();
+                  const { error: problem } = await sendMyTestText();
+                  if (problem) throw new Error(problem);
                   setSent(true);
                 })
               }

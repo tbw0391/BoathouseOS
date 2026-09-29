@@ -63,3 +63,23 @@ export function validTwilioSignature(url: string, params: Record<string, string>
   const given = Buffer.from(signature, "base64");
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
+
+// One text, reporting Twilio's reason if it's refused (for the profile's
+// "Send me a test text"). Returns null when Twilio accepted it.
+export async function sendTextReport(to: string, body: string): Promise<string | null> {
+  if (!smsConfigured()) return "Texting isn't set up (Twilio settings missing).";
+  const sid = process.env.TWILIO_ACCOUNT_SID!;
+  const auth = Buffer.from(`${sid}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64");
+  try {
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+      method: "POST",
+      headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ To: to, From: process.env.TWILIO_FROM_NUMBER!, Body: body }),
+    });
+    if (res.ok) return null;
+    const err = (await res.json().catch(() => null)) as { code?: number; message?: string } | null;
+    return `Twilio said: ${err?.message ?? `error ${res.status}`}${err?.code ? ` (code ${err.code})` : ""}`;
+  } catch (e) {
+    return `Couldn't reach Twilio: ${e instanceof Error ? e.message : "network error"}`;
+  }
+}
