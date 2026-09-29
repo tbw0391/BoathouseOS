@@ -147,26 +147,21 @@ export function SectionEditor({ section, canEdit }: { section: RookieParentSecti
   );
 }
 
-// Up/down arrows beside a section's button on the Rookie Parent list.
-export function MoveButtons({ id, isFirst, isLast }: { id: string; isFirst: boolean; isLast: boolean }) {
+// Up arrow beside a section's button on the Rookie Parent list.
+export function MoveUpButton({ id, isFirst }: { id: string; isFirst: boolean }) {
   const { error, isPending, run } = useSectionAction();
 
   return (
     <div className="flex flex-col items-center">
-      <div className="flex gap-1">
-        {(["up", "down"] as const).map((direction) => (
-          <button
-            key={direction}
-            type="button"
-            aria-label={direction === "up" ? "Move up" : "Move down"}
-            disabled={isPending || (direction === "up" ? isFirst : isLast)}
-            onClick={() => run(() => moveRookieParentSection(id, direction))}
-            className="w-9 h-9 rounded border text-sm disabled:opacity-30"
-          >
-            {direction === "up" ? "↑" : "↓"}
-          </button>
-        ))}
-      </div>
+      <button
+        type="button"
+        aria-label="Move up"
+        disabled={isPending || isFirst}
+        onClick={() => run(() => moveRookieParentSection(id, "up"))}
+        className="w-9 h-9 rounded border text-sm disabled:opacity-30"
+      >
+        ↑
+      </button>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );

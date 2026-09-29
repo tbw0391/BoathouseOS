@@ -5,7 +5,7 @@ import {
   ROOKIE_PARENT_SECTIONS_KEY,
   parseRookieParentSections,
 } from "@/lib/rookieParent";
-import { AddSection, MoveButtons } from "./SectionEditor";
+import { AddSection, MoveUpButton } from "./SectionEditor";
 
 export default async function RookieParentPage() {
   const supabase = await createClient();
@@ -43,7 +43,7 @@ export default async function RookieParentPage() {
             >
               {s.title}
             </Link>
-            {isAdmin && <MoveButtons id={s.id} isFirst={i === 0} isLast={i === sections.length - 1} />}
+            {isAdmin && <MoveUpButton id={s.id} isFirst={i === 0} />}
           </div>
         ))}
         {sections.length === 0 && <p className="text-sm text-gray-500">Nothing here yet.</p>}
