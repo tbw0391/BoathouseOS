@@ -642,7 +642,8 @@
       untick it on home.
 - [x] Email setup (2026-09-28): Resend account, boathouseos.app domain
       verified, RESEND_API_KEY and EMAIL_FROM in Vercel; the home-page email
-      checkbox shows. Next: point Supabase Auth's custom SMTP at Resend.
+      checkbox shows. Supabase Auth's custom SMTP points at Resend too
+      (2026-09-29).
 
 - [ ] Text message (SMS) alerts via Twilio — code built 2026-09-28
       (0099_sms_alerts.sql), waiting on Twilio:
@@ -753,7 +754,10 @@
       from W-Crew-app's.
 - [x] Supabase password settings (2026-09-25): stronger minimum and
       leaked-password check set in the dashboard.
-- [ ] Supabase dashboard settings: custom SMTP for auth emails, MFA on admin and
+- [x] Custom SMTP for auth emails (2026-09-29): Supabase Auth sends through
+      Resend (smtp.resend.com, no-reply@boathouseos.app, its own
+      "supabase-auth" Resend key); emails-per-hour limit raised.
+- [ ] Supabase dashboard settings: MFA on admin and
       Supabase/Vercel/GitHub/registrar accounts, Pro plan for backups.
 - [x] Upload size/type limits on the avatars and photos buckets
       (2026-09-25, 0061_storage_upload_limits.sql): both were unlimited;
@@ -767,8 +771,8 @@
       landing page, signup, and the interest form. Plain-language draft
       written from what the code actually collects — have it looked over
       before real clubs sign up, and update it when data collection changes.
-- [ ] Set up email forwarding for privacy@boathouseos.app (the contact on
-      /privacy), e.g. Cloudflare Email Routing or the registrar's forwarding.
+- [x] Email forwarding for privacy@boathouseos.app (2026-09-29): Namecheap
+      email forwarding (Advanced DNS → Mail Settings) to Todd's inbox.
 - [ ] Cisco Secure Access (on the work laptop) blocks boathouseos.app as a
       "security threat", likely because the domain is brand new. Report it
       via the block page's "Report an incorrect block" link; visiting
