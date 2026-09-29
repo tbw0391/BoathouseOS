@@ -168,8 +168,9 @@
       RegattaCentral's permission/API access rather than scraping.
       Checked 2026-09-29: their API v4 (api.regattacentral.com) has regatta
       search, events and races, but every call needs an API key, and "API
-      credentials is currently limited to key clients and partners". Todd:
-      ask RegattaCentral support for a read-only partner key.
+      credentials is currently limited to key clients and partners".
+      2026-09-29: Todd called RegattaCentral support and left a message
+      asking for a read-only partner key; waiting to hear back.
 
 ## Race Day, travel and trailer
 - [x] Race Day page (2026-09-28, /race-day, 0083): each race's launch time
