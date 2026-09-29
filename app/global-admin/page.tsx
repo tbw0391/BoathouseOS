@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { saveDemoBaseline, resetDemo } from "./actions";
+import { ActionForm } from "@/components/ActionForm";
 
 type InterestSignup = {
   id: string;
@@ -70,7 +71,7 @@ export default async function GlobalAdminPage() {
           Undoes every change people have made since the default was saved, and deletes accounts
           created since. Interested-club signups are kept.
         </p>
-        <form action={resetDemo} className="flex flex-col gap-2">
+        <ActionForm action={resetDemo} className="flex flex-col gap-2">
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="confirm" required />
             I want to undo everyone&apos;s changes
@@ -85,7 +86,7 @@ export default async function GlobalAdminPage() {
           {!baselineSavedAt && (
             <p className="text-xs text-gray-500">Set a default first.</p>
           )}
-        </form>
+        </ActionForm>
       </section>
 
       <section>

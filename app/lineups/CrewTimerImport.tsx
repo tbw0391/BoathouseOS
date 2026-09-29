@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { addCrewTimerRaces, findCrewTimerRaces, type CrewTimerRaceOption } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 const NAME_KEY = "crewtimer-crew-name";
 
@@ -32,7 +33,7 @@ export function CrewTimerImport({ eventId, defaultCrewName }: { eventId: string;
     setMessage(null);
     startTransition(async () => {
       try {
-        const res = await findCrewTimerRaces(eventId, link, name);
+        const res = unwrap(await findCrewTimerRaces(eventId, link, name));
         setHeading(res.title);
         setRaces(res.races);
         setCrewNames(res.crewNames);
@@ -67,7 +68,7 @@ export function CrewTimerImport({ eventId, defaultCrewName }: { eventId: string;
     setError(null);
     startTransition(async () => {
       try {
-        const res = await addCrewTimerRaces(eventId, link, crewName, [...picked]);
+        const res = unwrap(await addCrewTimerRaces(eventId, link, crewName, [...picked]));
         setMessage(
           `Added ${res.imported} race${res.imported === 1 ? "" : "s"}` +
             (res.skipped > 0 ? ` (${res.skipped} already on this regatta).` : ".")

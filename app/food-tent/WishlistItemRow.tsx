@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateWishlistItem, deleteWishlistItem } from "./actions";
 import type { FoodTentWishlistItem } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
 
@@ -50,7 +51,7 @@ export function WishlistItemRow({
     setError(null);
     startTransition(async () => {
       try {
-        await updateWishlistItem(formData);
+        unwrap(await updateWishlistItem(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

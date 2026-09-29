@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Check } from "lucide-react";
+import { unwrapIfResult } from "@/lib/userError";
 
 type Button = { href: string; label: string };
 
@@ -17,7 +18,7 @@ export function RoleButtonsForm({
   groups: { key: string; label: string }[];
   buttonsByGroup: Record<string, Button[]>;
   initialAccess: Record<string, string[]>;
-  onSave: (access: Record<string, string[]>) => Promise<void>;
+  onSave: (access: Record<string, string[]>) => Promise<unknown>;
   savedMessage: string;
 }) {
   const [role, setRole] = useState(groups[0].key);
@@ -56,7 +57,7 @@ export function RoleButtonsForm({
     setError(null);
     startTransition(async () => {
       try {
-        await onSave(Object.fromEntries(groups.map(({ key }) => [key, [...access[key]]])));
+        unwrapIfResult(await onSave(Object.fromEntries(groups.map(({ key }) => [key, [...access[key]]]))));
         setDirty(false);
         setMessage(savedMessage);
       } catch (e) {

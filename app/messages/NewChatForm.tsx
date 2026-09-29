@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createChat } from "./actions";
 import type { Profile } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export type NewChatOther = Pick<Profile, "id" | "display_name">;
 
@@ -18,7 +19,7 @@ export function NewChatForm({ others }: { others: NewChatOther[] }) {
     setError(null);
     startTransition(async () => {
       try {
-        const { groupId } = await createChat(formData);
+        const { groupId } = unwrap(await createChat(formData));
         router.push(`/messages/${groupId}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

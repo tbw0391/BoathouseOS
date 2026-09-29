@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { acceptTerms } from "@/app/terms/actions";
+import { unwrap } from "@/lib/userError";
 
 // Shown over every page until a signed-in member agrees to the current Terms
 // (members who joined before the Terms existed, or were added by an admin).
@@ -21,7 +22,7 @@ export function TermsGate() {
     setError(null);
     startTransition(async () => {
       try {
-        await acceptTerms();
+        unwrap(await acceptTerms());
         setDone(true);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

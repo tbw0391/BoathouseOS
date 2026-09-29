@@ -10,6 +10,7 @@ import {
   setChargeSignupOpen,
 } from "../../actions";
 import type { Team } from "@/lib/database.types";
+import { unwrap, unwrapIfResult } from "@/lib/userError";
 
 const small = "text-xs font-medium hover:underline";
 const input = "border rounded px-2 py-1 text-sm";
@@ -63,7 +64,7 @@ export function AssignPanel({
     setMessage(null);
     startTransition(async () => {
       try {
-        const { created, skipped } = await assignCharge(chargeId, target);
+        const { created, skipped } = unwrap(await assignCharge(chargeId, target));
         setMessage(`Billed ${created} rower${created === 1 ? "" : "s"}${skipped ? ` (${skipped} already billed)` : ""}.`);
         setTeams([]);
         setPicked([]);
@@ -164,11 +165,11 @@ export function BillActions({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function run(fn: () => Promise<void>) {
+  function run(fn: () => Promise<unknown>) {
     setError(null);
     startTransition(async () => {
       try {
-        await fn();
+        unwrapIfResult(await fn());
         setPanel("none");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

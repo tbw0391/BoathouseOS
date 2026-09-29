@@ -119,6 +119,7 @@ export function LogWorkoutForm({ profileId, today }: { profileId: string; today:
 
 export function RemoveWorkoutButton({ workoutId }: { workoutId: string }) {
   const [confirm, setConfirm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   if (!confirm) {
     return (
@@ -129,12 +130,24 @@ export function RemoveWorkoutButton({ workoutId }: { workoutId: string }) {
   }
   return (
     <span className="flex gap-1 text-xs">
-      <button type="button" disabled={pending} onClick={() => start(() => deleteWorkout(workoutId))} className="text-red-700 underline">
+      <button type="button" disabled={pending} onClick={() =>
+          start(async () => {
+            setError(null);
+            try {
+              unwrap(await deleteWorkout(workoutId));
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Something went wrong.");
+            }
+          })
+        }
+        className="text-red-700 underline"
+      >
         Remove
       </button>
       <button type="button" onClick={() => setConfirm(false)} className="underline">
         Keep
       </button>
+      {error && <span className="text-red-600">{error}</span>}
     </span>
   );
 }
@@ -163,7 +176,7 @@ export function ImportConcept2({ profileId }: { profileId: string }) {
           setMessage(null);
           start(async () => {
             try {
-              const r = await importConcept2(profileId, await file.text());
+              const r = unwrap(await importConcept2(profileId, await file.text()));
               setMessage(`Added ${r.added} piece${r.added === 1 ? "" : "s"}${r.skipped ? `, skipped ${r.skipped} already here` : ""}.`);
             } catch (err) {
               setMessage(err instanceof Error ? err.message : "Couldn't import that file.");

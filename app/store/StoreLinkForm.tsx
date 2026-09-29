@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateStoreLink } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function StoreLinkForm({ currentUrl }: { currentUrl: string | null }) {
   const router = useRouter();
@@ -13,7 +14,7 @@ export function StoreLinkForm({ currentUrl }: { currentUrl: string | null }) {
     setError(null);
     startTransition(async () => {
       try {
-        await updateStoreLink(formData);
+        unwrap(await updateStoreLink(formData));
         router.push("/store");
         router.refresh();
       } catch (e) {

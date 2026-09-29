@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { importMembers, type ImportRow } from "./importActions";
+import { unwrap } from "@/lib/userError";
 
 function normalizeKey(key: string) {
   return key.trim().toLowerCase().replace(/\s+/g, "_");
@@ -48,7 +49,7 @@ export function ImportForm() {
 
       startTransition(async () => {
         try {
-          const res = await importMembers(rows);
+          const res = unwrap(await importMembers(rows));
           setResult(res);
         } catch (err) {
           setError(err instanceof Error ? err.message : "Import failed.");

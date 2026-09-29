@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { setEmailAlerts } from "@/app/notifications/actions";
+import { unwrap } from "@/lib/userError";
 
 // Small line under the phone-alerts prompt: important alerts (lightning,
 // practice calls, launch times, payments) are emailed when phone alerts
@@ -20,7 +21,7 @@ export function EmailAlertsToggle({ initial }: { initial: boolean }) {
           setOn(next);
           start(async () => {
             try {
-              await setEmailAlerts(next);
+              unwrap(await setEmailAlerts(next));
             } catch {
               setOn(!next);
             }

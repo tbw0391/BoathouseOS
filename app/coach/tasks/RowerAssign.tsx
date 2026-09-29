@@ -8,6 +8,7 @@ import {
   unassignRowerGroupFromTask,
 } from "./actions";
 import type { Profile } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function RowerAssign({
   taskId,
@@ -33,9 +34,9 @@ export function RowerAssign({
     });
     startTransition(async () => {
       if (checked) {
-        await assignRowerToTask(taskId, userId);
+        unwrap(await assignRowerToTask(taskId, userId));
       } else {
-        await unassignRowerFromTask(taskId, userId);
+        unwrap(await unassignRowerFromTask(taskId, userId));
       }
     });
   }

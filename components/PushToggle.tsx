@@ -8,6 +8,7 @@ import {
   savePushSubscription,
   type PushSubscriptionInput,
 } from "@/app/notifications/actions";
+import { unwrap } from "@/lib/userError";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const DISMISSED_KEY = "push-prompt-dismissed";
@@ -82,7 +83,7 @@ export function PushToggle({ isDemo }: { isDemo: boolean }) {
             userVisibleOnly: true,
             applicationServerKey: base64UrlToBytes(VAPID_PUBLIC_KEY!),
           }));
-        await savePushSubscription(sub.toJSON() as PushSubscriptionInput, navigator.userAgent);
+        unwrap(await savePushSubscription(sub.toJSON() as PushSubscriptionInput, navigator.userAgent));
         setState("on");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Couldn't turn on alerts.");

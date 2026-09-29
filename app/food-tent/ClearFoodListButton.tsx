@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { clearFoodList } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function ClearFoodListButton({
   eventId,
@@ -28,7 +29,7 @@ export function ClearFoodListButton({
     setError(null);
     startTransition(async () => {
       try {
-        await clearFoodList(eventId);
+        unwrap(await clearFoodList(eventId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }

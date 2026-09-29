@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { importFoodTentItems, type FoodTentItemImportRow } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 function normalizeKey(key: string) {
   return key.trim().toLowerCase().replace(/\s+/g, "_");
@@ -44,7 +45,7 @@ export function ImportItemsForm({ eventId }: { eventId: string }) {
 
       startTransition(async () => {
         try {
-          const res = await importFoodTentItems(eventId, rows);
+          const res = unwrap(await importFoodTentItems(eventId, rows));
           setResult(res);
         } catch (err) {
           setError(err instanceof Error ? err.message : "Import failed.");

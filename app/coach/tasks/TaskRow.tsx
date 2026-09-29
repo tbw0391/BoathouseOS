@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { updateCoachTask, deleteCoachTask } from "./actions";
 import { RowerAssign } from "./RowerAssign";
 import type { CoachTask, Profile, TaskType } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function TaskRow({
   task,
@@ -30,7 +31,7 @@ export function TaskRow({
     setError(null);
     startTransition(async () => {
       try {
-        await updateCoachTask(formData);
+        unwrap(await updateCoachTask(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

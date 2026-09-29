@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { addWishlistItem } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function WishlistItemForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -13,7 +14,7 @@ export function WishlistItemForm() {
     setError(null);
     startTransition(async () => {
       try {
-        await addWishlistItem(formData);
+        unwrap(await addWishlistItem(formData));
         formRef.current?.reset();
         setOpen(false);
       } catch (e) {

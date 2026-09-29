@@ -7,6 +7,7 @@ import { ImportRacesForm } from "./ImportRacesForm";
 import { CreateLineupForm } from "./CreateLineupForm";
 import { CrewTimerImport } from "./CrewTimerImport";
 import type { Boat } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 type Tab = "feed" | "crewtimer" | "paste" | "excel" | "boat";
 
@@ -114,7 +115,7 @@ export function AddRacesPanel({
             disabled={isPending || !text.trim()}
             onClick={() =>
               run(async () => {
-                const res = await addPastedRaces(eventId, text);
+                const res = unwrap(await addPastedRaces(eventId, text));
                 setText("");
                 setMessage(
                   `Added ${res.imported} race${res.imported === 1 ? "" : "s"}` +

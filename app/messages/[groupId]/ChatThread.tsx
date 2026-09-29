@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/database.types";
 import { sendMessage, markChatRead, deleteMessage } from "../actions";
+import { unwrap } from "@/lib/userError";
 
 export function ChatThread({
   groupId,
@@ -78,7 +79,7 @@ export function ChatThread({
   function handleSubmit(formData: FormData) {
     formRef.current?.reset();
     startTransition(async () => {
-      await sendMessage(groupId, formData);
+      unwrap(await sendMessage(groupId, formData));
     });
   }
 
@@ -86,7 +87,7 @@ export function ChatThread({
     if (!window.confirm("Delete this message for everyone?")) return;
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
     startTransition(async () => {
-      await deleteMessage(groupId, messageId);
+      unwrap(await deleteMessage(groupId, messageId));
     });
   }
 

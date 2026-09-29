@@ -7,6 +7,7 @@ import type { EventType, ScheduleEvent } from "@/lib/database.types";
 import { EventIcon } from "@/components/EventIcon";
 import { placeEmoji } from "@/lib/raceResults";
 import { RegattaArtworkUpload } from "./RegattaArtworkUpload";
+import { unwrap } from "@/lib/userError";
 
 const RECURRENCE_LABEL: Record<ScheduleEvent["recurrence"], string> = {
   none: "",
@@ -57,7 +58,7 @@ export function EventCard({
     setError(null);
     startTransition(async () => {
       try {
-        await updateScheduleEvent(formData);
+        unwrap(await updateScheduleEvent(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -73,7 +74,7 @@ export function EventCard({
     formData.set("event_type", eventType);
     startTransition(async () => {
       try {
-        await deleteScheduleEvent(formData);
+        unwrap(await deleteScheduleEvent(formData));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }

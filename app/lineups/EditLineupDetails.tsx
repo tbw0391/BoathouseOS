@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { updateLineupDetails } from "./actions";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_GROUPS } from "@/lib/lineupCategories";
 import type { Lineup } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 // Coach/admin: change a boat entry's category (which squad fills its seats)
 // and notes after it's been created.
@@ -29,7 +30,7 @@ export function EditLineupDetails({
     formData.set("lineup_id", lineup.id);
     startTransition(async () => {
       try {
-        await updateLineupDetails(formData);
+        unwrap(await updateLineupDetails(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

@@ -38,41 +38,43 @@ function revalidatePayments() {
 // --- Treasurer: charges ---
 
 export async function createCharge(formData: FormData) {
-  const { supabase, user } = await requireTreasurer();
-  const title = String(formData.get("title") ?? "").trim();
-  const kind = String(formData.get("kind") ?? "dues") as Charge["kind"];
-  const amount = parseMoney(String(formData.get("amount") ?? ""));
-  if (!title) throw new UserError("Give the charge a name.");
-  if (!CHARGE_KINDS.includes(kind)) throw new UserError("Pick what kind of charge this is.");
-  if (!amount) throw new UserError("Enter an amount, like 250 or 250.00.");
+  return tryAction(async () => {
+    const { supabase, user } = await requireTreasurer();
+    const title = String(formData.get("title") ?? "").trim();
+    const kind = String(formData.get("kind") ?? "dues") as Charge["kind"];
+    const amount = parseMoney(String(formData.get("amount") ?? ""));
+    if (!title) throw new UserError("Give the charge a name.");
+    if (!CHARGE_KINDS.includes(kind)) throw new UserError("Pick what kind of charge this is.");
+    if (!amount) throw new UserError("Enter an amount, like 250 or 250.00.");
 
-  const installments = formData.get("allow_installments") === "on";
-  const count = Number(formData.get("installment_count") ?? 4);
-  const intervalDays = Number(formData.get("installment_interval_days") ?? 30);
-  if (installments && !(count >= 2 && count <= 12)) throw new UserError("Payments must be between 2 and 12.");
-  if (installments && !(intervalDays >= 7 && intervalDays <= 120)) {
-    throw new UserError("Days between payments must be between 7 and 120.");
-  }
+    const installments = formData.get("allow_installments") === "on";
+    const count = Number(formData.get("installment_count") ?? 4);
+    const intervalDays = Number(formData.get("installment_interval_days") ?? 30);
+    if (installments && !(count >= 2 && count <= 12)) throw new UserError("Payments must be between 2 and 12.");
+    if (installments && !(intervalDays >= 7 && intervalDays <= 120)) {
+      throw new UserError("Days between payments must be between 7 and 120.");
+    }
 
-  const { data, error } = await supabase
-    .from("charges")
-    .insert({
-      title,
-      kind,
-      amount_cents: amount,
-      description: String(formData.get("description") ?? "").trim() || null,
-      due_date: String(formData.get("due_date") ?? "") || null,
-      signup_open: formData.get("signup_open") === "on",
-      allow_installments: installments,
-      installment_count: installments ? count : 4,
-      installment_interval_days: installments ? intervalDays : 30,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-  revalidatePayments();
-  return { id: (data as { id: string }).id };
+    const { data, error } = await supabase
+      .from("charges")
+      .insert({
+        title,
+        kind,
+        amount_cents: amount,
+        description: String(formData.get("description") ?? "").trim() || null,
+        due_date: String(formData.get("due_date") ?? "") || null,
+        signup_open: formData.get("signup_open") === "on",
+        allow_installments: installments,
+        installment_count: installments ? count : 4,
+        installment_interval_days: installments ? intervalDays : 30,
+        created_by: user.id,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    revalidatePayments();
+    return { id: (data as { id: string }).id };
+  });
 }
 
 export async function setChargeSignupOpen(chargeId: string, open: boolean) {
@@ -95,51 +97,55 @@ export async function archiveCharge(chargeId: string, archived: boolean) {
 // Bill a squad, the whole rowing roster, or picked rowers. Rowers already
 // billed for this charge are skipped; discounts apply automatically.
 export async function assignCharge(chargeId: string, target: { teams?: Team[]; rowerIds?: string[] }) {
-  const { supabase, user } = await requireTreasurer();
-  const { data: charge } = await supabase.from("charges").select("*").eq("id", chargeId).single();
-  if (!charge) throw new UserError("That charge couldn't be found.");
+  return tryAction(async () => {
+    const { supabase, user } = await requireTreasurer();
+    const { data: charge } = await supabase.from("charges").select("*").eq("id", chargeId).single();
+    if (!charge) throw new UserError("That charge couldn't be found.");
 
-  let rowerIds = target.rowerIds ?? [];
-  if (target.teams?.length) {
-    const { data: teamRows } = await supabase.from("profile_teams").select("profile_id").in("team", target.teams);
-    rowerIds = [...rowerIds, ...((teamRows as { profile_id: string }[] | null) ?? []).map((r) => r.profile_id)];
-  }
-  // Only active rowers and coxswains get bills.
-  const { data: eligible } = await supabase
-    .from("profiles")
-    .select("id")
-    .in("id", rowerIds.length ? rowerIds : ["00000000-0000-0000-0000-000000000000"])
-    .in("role", ["rower", "coxswain"])
-    .is("disabled_at", null);
-  const ids = ((eligible as { id: string }[] | null) ?? []).map((p) => p.id);
+    let rowerIds = target.rowerIds ?? [];
+    if (target.teams?.length) {
+      const { data: teamRows } = await supabase.from("profile_teams").select("profile_id").in("team", target.teams);
+      rowerIds = [...rowerIds, ...((teamRows as { profile_id: string }[] | null) ?? []).map((r) => r.profile_id)];
+    }
+    // Only active rowers and coxswains get bills.
+    const { data: eligible } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("id", rowerIds.length ? rowerIds : ["00000000-0000-0000-0000-000000000000"])
+      .in("role", ["rower", "coxswain"])
+      .is("disabled_at", null);
+    const ids = ((eligible as { id: string }[] | null) ?? []).map((p) => p.id);
 
-  const created = await createBills(createAdminClient(), {
-    charge: charge as Charge,
-    rowerIds: ids,
-    signedUpBy: user.id,
+    const created = await createBills(createAdminClient(), {
+      charge: charge as Charge,
+      rowerIds: ids,
+      signedUpBy: user.id,
+    });
+    revalidatePayments();
+    return { created: created.length, skipped: ids.length - created.length };
   });
-  revalidatePayments();
-  return { created: created.length, skipped: ids.length - created.length };
 }
 
 // --- Treasurer: individual bills ---
 
 export async function setBillDiscount(billId: string, discountDollars: string, note: string) {
-  const { supabase } = await requireTreasurer();
-  const { data } = await supabase.from("bills").select("*").eq("id", billId).single();
-  const bill = data as Bill | null;
-  if (!bill) throw new UserError("That bill couldn't be found.");
-  const discount = discountDollars.trim() === "" || discountDollars.trim() === "0" ? 0 : parseMoney(discountDollars);
-  if (discount === null) throw new UserError("Enter the discount in dollars, like 50.");
-  if (discount > bill.amount_cents) throw new UserError("The discount can't be more than the charge.");
+  return tryAction(async () => {
+    const { supabase } = await requireTreasurer();
+    const { data } = await supabase.from("bills").select("*").eq("id", billId).single();
+    const bill = data as Bill | null;
+    if (!bill) throw new UserError("That bill couldn't be found.");
+    const discount = discountDollars.trim() === "" || discountDollars.trim() === "0" ? 0 : parseMoney(discountDollars);
+    if (discount === null) throw new UserError("Enter the discount in dollars, like 50.");
+    if (discount > bill.amount_cents) throw new UserError("The discount can't be more than the charge.");
 
-  const { error } = await supabase
-    .from("bills")
-    .update({ discount_cents: discount, discount_note: note.trim() || null })
-    .eq("id", billId);
-  if (error) throw new Error(error.message);
-  await refreshBillStatus(createAdminClient(), billId);
-  revalidatePayments();
+    const { error } = await supabase
+      .from("bills")
+      .update({ discount_cents: discount, discount_note: note.trim() || null })
+      .eq("id", billId);
+    if (error) throw new Error(error.message);
+    await refreshBillStatus(createAdminClient(), billId);
+    revalidatePayments();
+  });
 }
 
 export async function setBillStatus(billId: string, status: "owed" | "waived" | "cancelled") {
@@ -151,62 +157,66 @@ export async function setBillStatus(billId: string, status: "owed" | "waived" | 
 }
 
 export async function recordManualPayment(formData: FormData) {
-  const { supabase, user } = await requireTreasurer();
-  const billId = String(formData.get("bill_id") ?? "");
-  const method = String(formData.get("method") ?? "check");
-  const amount = parseMoney(String(formData.get("amount") ?? ""));
-  if (!billId) throw new UserError("Missing bill.");
-  if (!["cash", "check", "other"].includes(method)) throw new UserError("Pick cash, check, or other.");
-  if (!amount) throw new UserError("Enter the amount received.");
+  return tryAction(async () => {
+    const { supabase, user } = await requireTreasurer();
+    const billId = String(formData.get("bill_id") ?? "");
+    const method = String(formData.get("method") ?? "check");
+    const amount = parseMoney(String(formData.get("amount") ?? ""));
+    if (!billId) throw new UserError("Missing bill.");
+    if (!["cash", "check", "other"].includes(method)) throw new UserError("Pick cash, check, or other.");
+    if (!amount) throw new UserError("Enter the amount received.");
 
-  const { error } = await supabase.from("payments").insert({
-    bill_id: billId,
-    amount_cents: amount,
-    method,
-    status: "succeeded",
-    note: String(formData.get("note") ?? "").trim() || null,
-    recorded_by: user.id,
-    paid_at: new Date().toISOString(),
+    const { error } = await supabase.from("payments").insert({
+      bill_id: billId,
+      amount_cents: amount,
+      method,
+      status: "succeeded",
+      note: String(formData.get("note") ?? "").trim() || null,
+      recorded_by: user.id,
+      paid_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    await refreshBillStatus(createAdminClient(), billId);
+    revalidatePayments();
   });
-  if (error) throw new Error(error.message);
-  await refreshBillStatus(createAdminClient(), billId);
-  revalidatePayments();
 }
 
 // --- Treasurer: discounts ---
 
 export async function createDiscount(formData: FormData) {
-  const { supabase, user } = await requireTreasurer();
-  const name = String(formData.get("name") ?? "").trim();
-  const kind = String(formData.get("kind") ?? "percent");
-  const value = String(formData.get("value") ?? "").trim();
-  if (!name) throw new UserError("Name the discount, like \"Sibling\" or \"Early bird\".");
+  return tryAction(async () => {
+    const { supabase, user } = await requireTreasurer();
+    const name = String(formData.get("name") ?? "").trim();
+    const kind = String(formData.get("kind") ?? "percent");
+    const value = String(formData.get("value") ?? "").trim();
+    if (!name) throw new UserError("Name the discount, like \"Sibling\" or \"Early bird\".");
 
-  let percentBps: number | null = null;
-  let amountCents: number | null = null;
-  if (kind === "percent") {
-    const pct = Number(value.replace("%", ""));
-    if (!(pct > 0 && pct <= 100)) throw new UserError("Enter a percent between 1 and 100.");
-    percentBps = Math.round(pct * 100);
-  } else if (kind === "amount") {
-    amountCents = parseMoney(value);
-    if (!amountCents) throw new UserError("Enter a dollar amount, like 50.");
-  } else {
-    throw new UserError("Pick percent or dollar amount.");
-  }
+    let percentBps: number | null = null;
+    let amountCents: number | null = null;
+    if (kind === "percent") {
+      const pct = Number(value.replace("%", ""));
+      if (!(pct > 0 && pct <= 100)) throw new UserError("Enter a percent between 1 and 100.");
+      percentBps = Math.round(pct * 100);
+    } else if (kind === "amount") {
+      amountCents = parseMoney(value);
+      if (!amountCents) throw new UserError("Enter a dollar amount, like 50.");
+    } else {
+      throw new UserError("Pick percent or dollar amount.");
+    }
 
-  const { error } = await supabase.from("discounts").insert({
-    name,
-    kind,
-    percent_bps: percentBps,
-    amount_cents: amountCents,
-    charge_id: String(formData.get("charge_id") ?? "") || null,
-    profile_id: String(formData.get("profile_id") ?? "") || null,
-    expires_on: String(formData.get("expires_on") ?? "") || null,
-    created_by: user.id,
+    const { error } = await supabase.from("discounts").insert({
+      name,
+      kind,
+      percent_bps: percentBps,
+      amount_cents: amountCents,
+      charge_id: String(formData.get("charge_id") ?? "") || null,
+      profile_id: String(formData.get("profile_id") ?? "") || null,
+      expires_on: String(formData.get("expires_on") ?? "") || null,
+      created_by: user.id,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePayments();
   });
-  if (error) throw new Error(error.message);
-  revalidatePayments();
 }
 
 export async function setDiscountActive(discountId: string, active: boolean) {

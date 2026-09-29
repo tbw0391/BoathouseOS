@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateLineupRace } from "./actions";
 import type { Lineup } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 function toDatetimeLocal(iso: string | null) {
   if (!iso) return "";
@@ -39,7 +40,7 @@ export function EditRaceInfo({
     formData.set("lineup_id", lineup.id);
     startTransition(async () => {
       try {
-        await updateLineupRace(formData);
+        unwrap(await updateLineupRace(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

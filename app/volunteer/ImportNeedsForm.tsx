@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { importVolunteerNeeds, type VolunteerNeedImportRow } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 function normalizeKey(key: string) {
   return key.trim().toLowerCase().replace(/\s+/g, "_");
@@ -44,7 +45,7 @@ export function ImportNeedsForm({ eventId }: { eventId: string }) {
 
       startTransition(async () => {
         try {
-          const res = await importVolunteerNeeds(eventId, rows);
+          const res = unwrap(await importVolunteerNeeds(eventId, rows));
           setResult(res);
         } catch (err) {
           setError(err instanceof Error ? err.message : "Import failed.");

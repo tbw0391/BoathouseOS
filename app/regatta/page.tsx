@@ -6,6 +6,7 @@ import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
 import { createClient } from "@/lib/supabase/server";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { addAllRegattaRaces, addRegattaRaceToLineups } from "./actions";
+import { ActionForm } from "@/components/ActionForm";
 
 function formatDate(isoDate: string): string {
   return new Date(`${isoDate}T12:00:00`).toLocaleDateString("en-US", {
@@ -140,7 +141,7 @@ export default async function RegattaPage() {
                     {sent.boatName ? `🚣 ${sent.boatName}` : "Pick a boat"}
                   </Link>
                 ) : (
-                  <form action={addRegattaRaceToLineups} className="shrink-0">
+                  <ActionForm action={addRegattaRaceToLineups} className="shrink-0">
                     <input type="hidden" name="event_num" value={race.eventNum} />
                     <input type="hidden" name="crew" value={race.crew} />
                     <button
@@ -149,7 +150,7 @@ export default async function RegattaPage() {
                     >
                       Add race
                     </button>
-                  </form>
+                  </ActionForm>
                 );
               })()}
               {race.place != null && (

@@ -49,38 +49,40 @@ function revalidateApparel() {
 // --- Apparel chair / treasurer: products, stock, order windows, orders ---
 
 export async function createProduct(formData: FormData) {
-  const { supabase } = await requireApparelManager();
-  const name = String(formData.get("name") ?? "").trim();
-  const price = parseMoney(String(formData.get("price") ?? ""));
-  const sizes = String(formData.get("sizes") ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (!name) throw new UserError("Name the item.");
-  if (!price) throw new UserError("Enter a price, like 25.");
+  return tryAction(async () => {
+    const { supabase } = await requireApparelManager();
+    const name = String(formData.get("name") ?? "").trim();
+    const price = parseMoney(String(formData.get("price") ?? ""));
+    const sizes = String(formData.get("sizes") ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!name) throw new UserError("Name the item.");
+    if (!price) throw new UserError("Enter a price, like 25.");
 
-  const inStock = formData.get("in_stock_item") === "on";
-  const { data, error } = await supabase
-    .from("products")
-    .insert({
-      name,
-      price_cents: price,
-      sizes,
-      description: String(formData.get("description") ?? "").trim() || null,
-      image_url: String(formData.get("image_url") ?? "").trim() || null,
-      in_stock_item: inStock,
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
+    const inStock = formData.get("in_stock_item") === "on";
+    const { data, error } = await supabase
+      .from("products")
+      .insert({
+        name,
+        price_cents: price,
+        sizes,
+        description: String(formData.get("description") ?? "").trim() || null,
+        image_url: String(formData.get("image_url") ?? "").trim() || null,
+        in_stock_item: inStock,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
 
-  if (inStock) {
-    const { error: stockError } = await supabase
-      .from("product_stock")
-      .insert((sizes.length ? sizes : [""]).map((size) => ({ product_id: (data as { id: string }).id, size, quantity: 0 })));
-    if (stockError) throw new Error(stockError.message);
-  }
-  revalidateApparel();
+    if (inStock) {
+      const { error: stockError } = await supabase
+        .from("product_stock")
+        .insert((sizes.length ? sizes : [""]).map((size) => ({ product_id: (data as { id: string }).id, size, quantity: 0 })));
+      if (stockError) throw new Error(stockError.message);
+    }
+    revalidateApparel();
+  });
 }
 
 export async function setProductActive(productId: string, active: boolean) {
@@ -91,37 +93,41 @@ export async function setProductActive(productId: string, active: boolean) {
 }
 
 export async function setStock(productId: string, size: string, quantity: number) {
-  const { supabase } = await requireApparelManager();
-  if (!Number.isInteger(quantity) || quantity < 0) throw new UserError("Stock must be 0 or more.");
-  const { error } = await supabase
-    .from("product_stock")
-    .upsert({ product_id: productId, size, quantity }, { onConflict: "product_id,size" });
-  if (error) throw new Error(error.message);
-  revalidateApparel();
+  return tryAction(async () => {
+    const { supabase } = await requireApparelManager();
+    if (!Number.isInteger(quantity) || quantity < 0) throw new UserError("Stock must be 0 or more.");
+    const { error } = await supabase
+      .from("product_stock")
+      .upsert({ product_id: productId, size, quantity }, { onConflict: "product_id,size" });
+    if (error) throw new Error(error.message);
+    revalidateApparel();
+  });
 }
 
 export async function createOrderWindow(formData: FormData) {
-  const { supabase } = await requireApparelManager();
-  const title = String(formData.get("title") ?? "").trim();
-  const closes = String(formData.get("closes_on") ?? "");
-  const productIds = formData.getAll("product_ids").map(String).filter(Boolean);
-  if (!title) throw new UserError("Name the order, like Fall team gear.");
-  if (!closes) throw new UserError("Pick the last day to order.");
-  if (productIds.length === 0) throw new UserError("Pick at least one item.");
+  return tryAction(async () => {
+    const { supabase } = await requireApparelManager();
+    const title = String(formData.get("title") ?? "").trim();
+    const closes = String(formData.get("closes_on") ?? "");
+    const productIds = formData.getAll("product_ids").map(String).filter(Boolean);
+    if (!title) throw new UserError("Name the order, like Fall team gear.");
+    if (!closes) throw new UserError("Pick the last day to order.");
+    if (productIds.length === 0) throw new UserError("Pick at least one item.");
 
-  // Open through the end of the chosen day, Eastern.
-  const closesAt = new Date(`${closes}T23:59:59-04:00`).toISOString();
-  const { data, error } = await supabase
-    .from("order_windows")
-    .insert({ title, description: String(formData.get("description") ?? "").trim() || null, closes_at: closesAt })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-  const { error: linkError } = await supabase
-    .from("order_window_products")
-    .insert(productIds.map((product_id) => ({ window_id: (data as { id: string }).id, product_id })));
-  if (linkError) throw new Error(linkError.message);
-  revalidateApparel();
+    // Open through the end of the chosen day, Eastern.
+    const closesAt = new Date(`${closes}T23:59:59-04:00`).toISOString();
+    const { data, error } = await supabase
+      .from("order_windows")
+      .insert({ title, description: String(formData.get("description") ?? "").trim() || null, closes_at: closesAt })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    const { error: linkError } = await supabase
+      .from("order_window_products")
+      .insert(productIds.map((product_id) => ({ window_id: (data as { id: string }).id, product_id })));
+    if (linkError) throw new Error(linkError.message);
+    revalidateApparel();
+  });
 }
 
 export async function closeOrderWindow(windowId: string) {

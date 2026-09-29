@@ -9,6 +9,7 @@ import {
   setProductActive,
   setStock,
 } from "../actions";
+import { unwrap } from "@/lib/userError";
 
 const input = "border rounded px-3 py-2 text-sm";
 const primaryButton =
@@ -37,7 +38,7 @@ export function NewProductForm() {
         setError(null);
         startTransition(async () => {
           try {
-            await createProduct(fd);
+            unwrap(await createProduct(fd));
             formRef.current?.reset();
           } catch (e) {
             setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -121,7 +122,7 @@ export function StockEditor({ productId, rows }: { productId: string; rows: { si
               if (q === r.quantity) return;
               startTransition(async () => {
                 try {
-                  await setStock(productId, r.size, q);
+                  unwrap(await setStock(productId, r.size, q));
                 } catch (err) {
                   setError(err instanceof Error ? err.message : "Couldn't save.");
                 }
@@ -151,7 +152,7 @@ export function NewOrderWindowForm({ products }: { products: { id: string; name:
         setError(null);
         startTransition(async () => {
           try {
-            await createOrderWindow(fd);
+            unwrap(await createOrderWindow(fd));
             formRef.current?.reset();
             setPicked([]);
           } catch (e) {

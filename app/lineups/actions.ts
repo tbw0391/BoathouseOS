@@ -47,41 +47,43 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
 }
 
 export async function createBoat(formData: FormData) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
 
-  const name = String(formData.get("name") ?? "").trim();
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-  if (!name) throw new UserError("Boat name is required.");
+    const name = String(formData.get("name") ?? "").trim();
+    const notes = String(formData.get("notes") ?? "").trim() || null;
+    if (!name) throw new UserError("Boat name is required.");
 
-  const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
+    const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
 
-  const hullColorRaw = String(formData.get("hull_color") ?? "").trim();
-  const hullColor = HULL_COLOR_OPTIONS.includes(hullColorRaw) ? hullColorRaw : null;
+    const hullColorRaw = String(formData.get("hull_color") ?? "").trim();
+    const hullColor = HULL_COLOR_OPTIONS.includes(hullColorRaw) ? hullColorRaw : null;
 
-  const rigRaw = String(formData.get("rig") ?? "").trim();
-  const rig = RIG_OPTIONS.includes(rigRaw) ? rigRaw : null;
+    const rigRaw = String(formData.get("rig") ?? "").trim();
+    const rig = RIG_OPTIONS.includes(rigRaw) ? rigRaw : null;
 
-  const boatId = crypto.randomUUID();
-  const { error } = await supabase.from("boats").insert({
-    id: boatId,
-    name,
-    boat_class: boatClass,
-    category,
-    notes,
-    hull_color: hullColor,
-    rig,
-    created_by: user.id,
+    const boatId = crypto.randomUUID();
+    const { error } = await supabase.from("boats").insert({
+      id: boatId,
+      name,
+      boat_class: boatClass,
+      category,
+      notes,
+      hull_color: hullColor,
+      rig,
+      created_by: user.id,
+    });
+
+    if (error) throw new Error(error.message);
+
+    if (category) {
+      await createLinkedTemplate(supabase, { boatId, boatClass, category, userId: user.id });
+    }
+
+    revalidatePath("/lineups");
+    revalidatePath("/boats");
   });
-
-  if (error) throw new Error(error.message);
-
-  if (category) {
-    await createLinkedTemplate(supabase, { boatId, boatClass, category, userId: user.id });
-  }
-
-  revalidatePath("/lineups");
-  revalidatePath("/boats");
 }
 
 export interface BoatImportRow {
@@ -145,120 +147,126 @@ export async function importBoats(rows: BoatImportRow[]) {
 }
 
 export async function updateBoat(formData: FormData) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
 
-  const boatId = String(formData.get("boat_id") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-  if (!boatId || !name) throw new UserError("Boat name is required.");
+    const boatId = String(formData.get("boat_id") ?? "").trim();
+    const name = String(formData.get("name") ?? "").trim();
+    const notes = String(formData.get("notes") ?? "").trim() || null;
+    if (!boatId || !name) throw new UserError("Boat name is required.");
 
-  const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
+    const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
 
-  const hullColorRaw = String(formData.get("hull_color") ?? "").trim();
-  const hullColor = HULL_COLOR_OPTIONS.includes(hullColorRaw) ? hullColorRaw : null;
+    const hullColorRaw = String(formData.get("hull_color") ?? "").trim();
+    const hullColor = HULL_COLOR_OPTIONS.includes(hullColorRaw) ? hullColorRaw : null;
 
-  const rigRaw = String(formData.get("rig") ?? "").trim();
-  const rig = RIG_OPTIONS.includes(rigRaw) ? rigRaw : null;
+    const rigRaw = String(formData.get("rig") ?? "").trim();
+    const rig = RIG_OPTIONS.includes(rigRaw) ? rigRaw : null;
 
-  const { error } = await supabase
-    .from("boats")
-    .update({ name, boat_class: boatClass, category, notes, hull_color: hullColor, rig })
-    .eq("id", boatId);
+    const { error } = await supabase
+      .from("boats")
+      .update({ name, boat_class: boatClass, category, notes, hull_color: hullColor, rig })
+      .eq("id", boatId);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-  if (category) {
-    const { data: existingTemplate } = await supabase
-      .from("lineup_templates")
-      .select("id")
-      .eq("boat_id", boatId)
-      .maybeSingle();
-
-    if (existingTemplate) {
-      await supabase
+    if (category) {
+      const { data: existingTemplate } = await supabase
         .from("lineup_templates")
-        .update({ boat_class: boatClass, category })
-        .eq("id", existingTemplate.id);
-    } else {
-      await createLinkedTemplate(supabase, { boatId, boatClass, category, userId: user.id });
-    }
-  }
+        .select("id")
+        .eq("boat_id", boatId)
+        .maybeSingle();
 
-  revalidatePath("/lineups");
-  revalidatePath("/boats");
+      if (existingTemplate) {
+        await supabase
+          .from("lineup_templates")
+          .update({ boat_class: boatClass, category })
+          .eq("id", existingTemplate.id);
+      } else {
+        await createLinkedTemplate(supabase, { boatId, boatClass, category, userId: user.id });
+      }
+    }
+
+    revalidatePath("/lineups");
+    revalidatePath("/boats");
+  });
 }
 
 export async function deleteBoat(formData: FormData) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const boatId = String(formData.get("boat_id") ?? "").trim();
-  if (!boatId) throw new UserError("Missing boat.");
+    const boatId = String(formData.get("boat_id") ?? "").trim();
+    if (!boatId) throw new UserError("Missing boat.");
 
-  const { error } = await supabase.from("boats").delete().eq("id", boatId);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase.from("boats").delete().eq("id", boatId);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/lineups");
-  revalidatePath("/boats");
+    revalidatePath("/lineups");
+    revalidatePath("/boats");
+  });
 }
 
 export async function createLineup(formData: FormData) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
 
-  const eventId = String(formData.get("event_id") ?? "").trim();
-  const boatId = String(formData.get("boat_id") ?? "").trim();
-  const category = String(formData.get("category") ?? "").trim();
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-  const raceName = String(formData.get("race_name") ?? "").trim() || null;
-  const raceTimeRaw = String(formData.get("race_time") ?? "").trim();
-  const raceTime = raceTimeRaw ? new Date(raceTimeRaw).toISOString() : null;
+    const eventId = String(formData.get("event_id") ?? "").trim();
+    const boatId = String(formData.get("boat_id") ?? "").trim();
+    const category = String(formData.get("category") ?? "").trim();
+    const notes = String(formData.get("notes") ?? "").trim() || null;
+    const raceName = String(formData.get("race_name") ?? "").trim() || null;
+    const raceTimeRaw = String(formData.get("race_time") ?? "").trim();
+    const raceTime = raceTimeRaw ? new Date(raceTimeRaw).toISOString() : null;
 
-  if (!eventId || !boatId) {
-    throw new UserError("Please choose a boat.");
-  }
-  if (category && !LINEUP_CATEGORY_OPTIONS.includes(category)) {
-    throw new UserError("Please choose a valid category.");
-  }
+    if (!eventId || !boatId) {
+      throw new UserError("Please choose a boat.");
+    }
+    if (category && !LINEUP_CATEGORY_OPTIONS.includes(category)) {
+      throw new UserError("Please choose a valid category.");
+    }
 
-  const { data: boat, error: boatError } = await supabase
-    .from("boats")
-    .select("name, boat_class, category")
-    .eq("id", boatId)
-    .single();
-  if (boatError || !boat) throw new UserError("That boat couldn't be found.");
+    const { data: boat, error: boatError } = await supabase
+      .from("boats")
+      .select("name, boat_class, category")
+      .eq("id", boatId)
+      .single();
+    if (boatError || !boat) throw new UserError("That boat couldn't be found.");
 
-  const { seats } = await boatLineupDefaults(supabase, boatId, boat.boat_class);
+    const { seats } = await boatLineupDefaults(supabase, boatId, boat.boat_class);
 
-  const lineupId = crypto.randomUUID();
-  const { error } = await supabase.from("lineups").insert({
-    id: lineupId,
-    event_id: eventId,
-    boat_id: boatId,
-    boat_name: boat.name,
-    boat_class: boat.boat_class,
-    category: categoryForRace(raceName, category || boat.category) as LineupCategory | null,
-    notes,
-    race_name: raceName,
-    race_time: raceTime,
-    club_slug: await getSelectedClubSlug(),
-    created_by: user.id,
+    const lineupId = crypto.randomUUID();
+    const { error } = await supabase.from("lineups").insert({
+      id: lineupId,
+      event_id: eventId,
+      boat_id: boatId,
+      boat_name: boat.name,
+      boat_class: boat.boat_class,
+      category: categoryForRace(raceName, category || boat.category) as LineupCategory | null,
+      notes,
+      race_name: raceName,
+      race_time: raceTime,
+      club_slug: await getSelectedClubSlug(),
+      created_by: user.id,
+    });
+
+    if (error) throw new Error(error.message);
+
+    const { error: seatsError } = await supabase
+      .from("lineup_seats")
+      .insert(seats.map((s) => ({ ...s, lineup_id: lineupId })));
+    if (seatsError) throw new Error(seatsError.message);
+
+    await createLaunchRecoveryTasks(supabase, { lineupId, eventId, userId: user.id });
+    await notifyOarSheetCaptain(supabase, lineupId);
+
+    revalidatePath("/lineups");
+    revalidatePath("/");
+    revalidatePath("/coach/tasks");
   });
-
-  if (error) throw new Error(error.message);
-
-  const { error: seatsError } = await supabase
-    .from("lineup_seats")
-    .insert(seats.map((s) => ({ ...s, lineup_id: lineupId })));
-  if (seatsError) throw new Error(seatsError.message);
-
-  await createLaunchRecoveryTasks(supabase, { lineupId, eventId, userId: user.id });
-  await notifyOarSheetCaptain(supabase, lineupId);
-
-  revalidatePath("/lineups");
-  revalidatePath("/");
-  revalidatePath("/coach/tasks");
 }
 
 export interface RaceImportRow {
@@ -268,59 +276,61 @@ export interface RaceImportRow {
 }
 
 export async function importRaces(eventId: string, rows: RaceImportRow[]) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
 
-  if (!eventId) throw new UserError("Missing event.");
+    if (!eventId) throw new UserError("Missing event.");
 
-  const toInsert: { race_name: string; category: LineupCategory | null; race_time: string | null }[] = [];
-  const rowErrors: string[] = [];
+    const toInsert: { race_name: string; category: LineupCategory | null; race_time: string | null }[] = [];
+    const rowErrors: string[] = [];
 
-  rows.forEach((row, i) => {
-    const rowLabel = `Row ${i + 2}`; // +2: header row + 1-index
-    const raceName = String(row.race_name ?? "").trim();
-    if (!raceName) {
-      rowErrors.push(`${rowLabel}: missing race name.`);
-      return;
-    }
-
-    const categoryRaw = String(row.category ?? "").trim().toLowerCase().replace(/\s+/g, "_");
-    let category: LineupCategory | null = null;
-    if (categoryRaw) {
-      const match = LINEUP_CATEGORY_OPTIONS.find(
-        (c) => c === categoryRaw || LINEUP_CATEGORIES[c].toLowerCase() === categoryRaw.replace(/_/g, " ")
-      );
-      if (!match) {
-        rowErrors.push(`${rowLabel}: unrecognized category "${row.category}", left uncategorized.`);
-      } else {
-        category = match as LineupCategory;
+    rows.forEach((row, i) => {
+      const rowLabel = `Row ${i + 2}`; // +2: header row + 1-index
+      const raceName = String(row.race_name ?? "").trim();
+      if (!raceName) {
+        rowErrors.push(`${rowLabel}: missing race name.`);
+        return;
       }
+
+      const categoryRaw = String(row.category ?? "").trim().toLowerCase().replace(/\s+/g, "_");
+      let category: LineupCategory | null = null;
+      if (categoryRaw) {
+        const match = LINEUP_CATEGORY_OPTIONS.find(
+          (c) => c === categoryRaw || LINEUP_CATEGORIES[c].toLowerCase() === categoryRaw.replace(/_/g, " ")
+        );
+        if (!match) {
+          rowErrors.push(`${rowLabel}: unrecognized category "${row.category}", left uncategorized.`);
+        } else {
+          category = match as LineupCategory;
+        }
+      }
+
+      const raceTimeRaw = String(row.race_time ?? "").trim();
+      const raceTime = raceTimeRaw && !isNaN(Date.parse(raceTimeRaw)) ? new Date(raceTimeRaw).toISOString() : null;
+      if (raceTimeRaw && !raceTime) {
+        rowErrors.push(`${rowLabel}: couldn't read race time "${row.race_time}", left blank.`);
+      }
+
+      toInsert.push({ race_name: raceName, category, race_time: raceTime });
+    });
+
+    if (toInsert.length === 0) {
+      return { imported: 0, errors: rowErrors.length ? rowErrors : ["No valid rows found."] };
     }
 
-    const raceTimeRaw = String(row.race_time ?? "").trim();
-    const raceTime = raceTimeRaw && !isNaN(Date.parse(raceTimeRaw)) ? new Date(raceTimeRaw).toISOString() : null;
-    if (raceTimeRaw && !raceTime) {
-      rowErrors.push(`${rowLabel}: couldn't read race time "${row.race_time}", left blank.`);
-    }
+    const { raceIds } = await insertRaces(supabase, {
+      eventId,
+      userId: user.id,
+      races: toInsert,
+      clubSlug: await getSelectedClubSlug(),
+    });
 
-    toInsert.push({ race_name: raceName, category, race_time: raceTime });
+    revalidatePath("/lineups");
+    revalidatePath("/");
+    revalidatePath("/coach/tasks");
+    return { imported: raceIds.length, errors: rowErrors };
   });
-
-  if (toInsert.length === 0) {
-    return { imported: 0, errors: rowErrors.length ? rowErrors : ["No valid rows found."] };
-  }
-
-  const { raceIds } = await insertRaces(supabase, {
-    eventId,
-    userId: user.id,
-    races: toInsert,
-    clubSlug: await getSelectedClubSlug(),
-  });
-
-  revalidatePath("/lineups");
-  revalidatePath("/");
-  revalidatePath("/coach/tasks");
-  return { imported: raceIds.length, errors: rowErrors };
 }
 
 // Wall-clock time on a date in Eastern time (EDT or EST, whichever applies
@@ -337,39 +347,41 @@ function easternTimeOn(date: string, hour: number, minute: number): string {
 // its time ("9:15 AM Men's Masters 8+"). A trailing ★ (from a schedule
 // description) is dropped. Races already on the regatta are skipped.
 export async function addPastedRaces(eventId: string, text: string) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
-  if (!eventId) throw new UserError("Missing event.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
+    if (!eventId) throw new UserError("Missing event.");
 
-  const { data: event } = await supabase.from("schedule_events").select("starts_at").eq("id", eventId).single();
-  if (!event) throw new UserError("That event couldn't be found.");
-  const eventDate = new Date(event.starts_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const { data: event } = await supabase.from("schedule_events").select("starts_at").eq("id", eventId).single();
+    if (!event) throw new UserError("That event couldn't be found.");
+    const eventDate = new Date(event.starts_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
-  const races = text
-    .split("\n")
-    .map((line) => line.replace(/★\s*$/, "").trim())
-    .filter(Boolean)
-    .map((line) => {
-      const m = line.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?\s*[-–—:]?\s+(.+)$/i);
-      if (!m) return { race_name: line };
-      let hour = Number(m[1]) % 12;
-      if (m[3]?.toLowerCase() === "pm" || (!m[3] && Number(m[1]) === 12)) hour += 12;
-      if (!m[3] && Number(m[1]) > 12) hour = Number(m[1]);
-      return { race_name: m[4].trim(), race_time: easternTimeOn(eventDate, hour, Number(m[2])) };
+    const races = text
+      .split("\n")
+      .map((line) => line.replace(/★\s*$/, "").trim())
+      .filter(Boolean)
+      .map((line) => {
+        const m = line.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?\s*[-–—:]?\s+(.+)$/i);
+        if (!m) return { race_name: line };
+        let hour = Number(m[1]) % 12;
+        if (m[3]?.toLowerCase() === "pm" || (!m[3] && Number(m[1]) === 12)) hour += 12;
+        if (!m[3] && Number(m[1]) > 12) hour = Number(m[1]);
+        return { race_name: m[4].trim(), race_time: easternTimeOn(eventDate, hour, Number(m[2])) };
+      });
+    if (races.length === 0) throw new UserError("Type or paste at least one race.");
+
+    const { raceIds } = await insertRaces(supabase, {
+      eventId,
+      userId: user.id,
+      races,
+      clubSlug: await getSelectedClubSlug(),
     });
-  if (races.length === 0) throw new UserError("Type or paste at least one race.");
 
-  const { raceIds } = await insertRaces(supabase, {
-    eventId,
-    userId: user.id,
-    races,
-    clubSlug: await getSelectedClubSlug(),
+    revalidatePath("/lineups", "layout");
+    revalidatePath("/");
+    revalidatePath("/coach/tasks");
+    return { imported: raceIds.length, skipped: races.length - raceIds.length };
   });
-
-  revalidatePath("/lineups", "layout");
-  revalidatePath("/");
-  revalidatePath("/coach/tasks");
-  return { imported: raceIds.length, skipped: races.length - raceIds.length };
 }
 
 export interface CrewTimerRaceOption {
@@ -402,69 +414,75 @@ function crewTimerStart(date: string, start: string | null): string | null {
 // Step 1 of "From CrewTimer": your club's entries in that regatta, or, if
 // the name doesn't match, every club entered so the coach can pick theirs.
 export async function findCrewTimerRaces(eventId: string, link: string, crewName: string) {
-  const supabase = await createClient();
-  await requireManager(supabase);
-  if (!eventId) throw new UserError("Missing event.");
-  if (!crewName.trim()) throw new UserError("Type your club's name as it appears on CrewTimer.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
+    if (!eventId) throw new UserError("Missing event.");
+    if (!crewName.trim()) throw new UserError("Type your club's name as it appears on CrewTimer.");
 
-  const { feed, date } = await loadCrewTimer(link);
-  const races = clubRaces(feed, [crewName]);
-  if (races.length === 0) {
-    return { title: feed.regattaInfo?.Title ?? null, date, races: [], crewNames: crewNamesIn(feed) };
-  }
+    const { feed, date } = await loadCrewTimer(link);
+    const races = clubRaces(feed, [crewName]);
+    if (races.length === 0) {
+      return { title: feed.regattaInfo?.Title ?? null, date, races: [], crewNames: crewNamesIn(feed) };
+    }
 
-  const { data: existing } = await supabase.from("races").select("race_name").eq("event_id", eventId);
-  const existingNames = new Set(((existing as { race_name: string }[] | null) ?? []).map((r) => r.race_name));
-  const options: CrewTimerRaceOption[] = races.map((r) => {
-    const raceName = hotcRaceName(r);
-    return { key: raceName, raceName, startLabel: r.start, crew: r.crew, alreadyAdded: existingNames.has(raceName) };
+    const { data: existing } = await supabase.from("races").select("race_name").eq("event_id", eventId);
+    const existingNames = new Set(((existing as { race_name: string }[] | null) ?? []).map((r) => r.race_name));
+    const options: CrewTimerRaceOption[] = races.map((r) => {
+      const raceName = hotcRaceName(r);
+      return { key: raceName, raceName, startLabel: r.start, crew: r.crew, alreadyAdded: existingNames.has(raceName) };
+    });
+    return { title: feed.regattaInfo?.Title ?? null, date, races: options, crewNames: [] as string[] };
   });
-  return { title: feed.regattaInfo?.Title ?? null, date, races: options, crewNames: [] as string[] };
 }
 
 // Step 2: add the picked ones. Looked up again from CrewTimer rather than
 // trusting what the browser sent back.
 export async function addCrewTimerRaces(eventId: string, link: string, crewName: string, keys: string[]) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
-  if (!eventId) throw new UserError("Missing event.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
+    if (!eventId) throw new UserError("Missing event.");
 
-  const { feed, date } = await loadCrewTimer(link);
-  const picked = new Set(keys);
-  const races = clubRaces(feed, [crewName])
-    .filter((r) => picked.has(hotcRaceName(r)))
-    .map((r) => ({
-      race_name: hotcRaceName(r),
-      race_time: crewTimerStart(date, r.start),
-      category: hotcRaceCategory(r),
-    }));
-  if (races.length === 0) throw new UserError("Pick at least one race.");
+    const { feed, date } = await loadCrewTimer(link);
+    const picked = new Set(keys);
+    const races = clubRaces(feed, [crewName])
+      .filter((r) => picked.has(hotcRaceName(r)))
+      .map((r) => ({
+        race_name: hotcRaceName(r),
+        race_time: crewTimerStart(date, r.start),
+        category: hotcRaceCategory(r),
+      }));
+    if (races.length === 0) throw new UserError("Pick at least one race.");
 
-  const { raceIds } = await insertRaces(supabase, {
-    eventId,
-    userId: user.id,
-    races,
-    clubSlug: await getSelectedClubSlug(),
+    const { raceIds } = await insertRaces(supabase, {
+      eventId,
+      userId: user.id,
+      races,
+      clubSlug: await getSelectedClubSlug(),
+    });
+
+    revalidatePath("/lineups", "layout");
+    revalidatePath("/");
+    revalidatePath("/coach/tasks");
+    return { imported: raceIds.length, skipped: races.length - raceIds.length };
   });
-
-  revalidatePath("/lineups", "layout");
-  revalidatePath("/");
-  revalidatePath("/coach/tasks");
-  return { imported: raceIds.length, skipped: races.length - raceIds.length };
 }
 
 export async function deleteRace(formData: FormData) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const raceId = String(formData.get("race_id") ?? "").trim();
-  if (!raceId) throw new UserError("Missing race.");
+    const raceId = String(formData.get("race_id") ?? "").trim();
+    if (!raceId) throw new UserError("Missing race.");
 
-  const { error } = await supabase.from("races").delete().eq("id", raceId);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase.from("races").delete().eq("id", raceId);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/lineups");
-  revalidatePath("/");
+    revalidatePath("/lineups");
+    revalidatePath("/");
+  });
 }
 
 // Builds a lineup for a specific pending race from a chosen fleet boat,
@@ -473,18 +491,20 @@ export async function deleteRace(formData: FormData) {
 // race's own category and an empty roster otherwise), and marks the race
 // as no longer pending.
 export async function createLineupForRace(formData: FormData) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
 
-  const raceId = String(formData.get("race_id") ?? "").trim();
-  const boatId = String(formData.get("boat_id") ?? "").trim();
-  if (!raceId || !boatId) throw new UserError("Please choose a boat.");
+    const raceId = String(formData.get("race_id") ?? "").trim();
+    const boatId = String(formData.get("boat_id") ?? "").trim();
+    if (!raceId || !boatId) throw new UserError("Please choose a boat.");
 
-  await buildLineupForRace(supabase, { raceId, boatId, userId: user.id });
+    await buildLineupForRace(supabase, { raceId, boatId, userId: user.id });
 
-  revalidatePath("/lineups");
-  revalidatePath("/");
-  revalidatePath("/coach/tasks");
+    revalidatePath("/lineups");
+    revalidatePath("/");
+    revalidatePath("/coach/tasks");
+  });
 }
 
 // A template can either be based on a fleet boat — which pins its boat
@@ -492,91 +512,95 @@ export async function createLineupForRace(formData: FormData) {
 // already answered those questions — or, for boat-less crews (masters,
 // development, or a class not yet in the fleet), built from scratch.
 export async function createLineupTemplate(formData: FormData) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
 
-  const boatId = String(formData.get("boat_id") ?? "").trim() || null;
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-  let name = String(formData.get("name") ?? "").trim();
-  let boatClass: string;
-  let category: LineupCategory | null;
+    const boatId = String(formData.get("boat_id") ?? "").trim() || null;
+    const notes = String(formData.get("notes") ?? "").trim() || null;
+    let name = String(formData.get("name") ?? "").trim();
+    let boatClass: string;
+    let category: LineupCategory | null;
 
-  if (boatId) {
-    const { data: boat, error: boatError } = await supabase
-      .from("boats")
-      .select("boat_class, category")
-      .eq("id", boatId)
-      .single();
-    if (boatError || !boat) throw new UserError("That boat couldn't be found.");
-    boatClass = boat.boat_class;
-    category = boat.category;
-    if (!name && category) name = LINEUP_CATEGORIES[category] ?? "";
-  } else {
-    boatClass = String(formData.get("boat_class") ?? "").trim();
-    if (!BOAT_CLASSES[boatClass]) throw new UserError("A valid boat class is required.");
-    const categoryRaw = String(formData.get("category") ?? "").trim();
-    category = LINEUP_CATEGORY_OPTIONS.includes(categoryRaw) ? (categoryRaw as LineupCategory) : null;
-  }
+    if (boatId) {
+      const { data: boat, error: boatError } = await supabase
+        .from("boats")
+        .select("boat_class, category")
+        .eq("id", boatId)
+        .single();
+      if (boatError || !boat) throw new UserError("That boat couldn't be found.");
+      boatClass = boat.boat_class;
+      category = boat.category;
+      if (!name && category) name = LINEUP_CATEGORIES[category] ?? "";
+    } else {
+      boatClass = String(formData.get("boat_class") ?? "").trim();
+      if (!BOAT_CLASSES[boatClass]) throw new UserError("A valid boat class is required.");
+      const categoryRaw = String(formData.get("category") ?? "").trim();
+      category = LINEUP_CATEGORY_OPTIONS.includes(categoryRaw) ? (categoryRaw as LineupCategory) : null;
+    }
 
-  if (!name) throw new UserError("A template name is required.");
+    if (!name) throw new UserError("A template name is required.");
 
-  const seats = seatsForBoatClass(boatClass);
+    const seats = seatsForBoatClass(boatClass);
 
-  const templateId = crypto.randomUUID();
-  const { error } = await supabase.from("lineup_templates").insert({
-    id: templateId,
-    name,
-    boat_class: boatClass,
-    boat_id: boatId,
-    category,
-    notes,
-    created_by: user.id,
+    const templateId = crypto.randomUUID();
+    const { error } = await supabase.from("lineup_templates").insert({
+      id: templateId,
+      name,
+      boat_class: boatClass,
+      boat_id: boatId,
+      category,
+      notes,
+      created_by: user.id,
+    });
+    if (error) {
+      if (boatId && isUniqueViolation(error)) throw new UserError("That boat already has a saved crew.");
+      throw new Error(error.message);
+    }
+
+    const { error: seatsError } = await supabase
+      .from("lineup_template_seats")
+      .insert(seats.map((s) => ({ ...s, template_id: templateId })));
+    if (seatsError) throw new Error(seatsError.message);
+
+    revalidatePath("/lineups");
+    revalidatePath("/boats");
   });
-  if (error) {
-    if (boatId && isUniqueViolation(error)) throw new UserError("That boat already has a saved crew.");
-    throw new Error(error.message);
-  }
-
-  const { error: seatsError } = await supabase
-    .from("lineup_template_seats")
-    .insert(seats.map((s) => ({ ...s, template_id: templateId })));
-  if (seatsError) throw new Error(seatsError.message);
-
-  revalidatePath("/lineups");
-  revalidatePath("/boats");
 }
 
 export async function updateTemplateBoat(formData: FormData) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const templateId = String(formData.get("template_id") ?? "").trim();
-  const boatId = String(formData.get("boat_id") ?? "").trim() || null;
-  if (!templateId) throw new UserError("Missing template.");
+    const templateId = String(formData.get("template_id") ?? "").trim();
+    const boatId = String(formData.get("boat_id") ?? "").trim() || null;
+    if (!templateId) throw new UserError("Missing template.");
 
-  if (boatId) {
-    const [{ data: template, error: templateError }, { data: boat, error: boatError }] = await Promise.all([
-      supabase.from("lineup_templates").select("boat_class").eq("id", templateId).single(),
-      supabase.from("boats").select("boat_class").eq("id", boatId).single(),
-    ]);
-    if (templateError || !template) throw new UserError("That template couldn't be found.");
-    if (boatError || !boat) throw new UserError("That boat couldn't be found.");
-    if (boat.boat_class !== template.boat_class) {
-      throw new UserError("That boat's class doesn't match this template's boat class.");
+    if (boatId) {
+      const [{ data: template, error: templateError }, { data: boat, error: boatError }] = await Promise.all([
+        supabase.from("lineup_templates").select("boat_class").eq("id", templateId).single(),
+        supabase.from("boats").select("boat_class").eq("id", boatId).single(),
+      ]);
+      if (templateError || !template) throw new UserError("That template couldn't be found.");
+      if (boatError || !boat) throw new UserError("That boat couldn't be found.");
+      if (boat.boat_class !== template.boat_class) {
+        throw new UserError("That boat's class doesn't match this template's boat class.");
+      }
     }
-  }
 
-  const { error } = await supabase
-    .from("lineup_templates")
-    .update({ boat_id: boatId })
-    .eq("id", templateId);
-  if (error) {
-    if (boatId && isUniqueViolation(error)) throw new UserError("That boat already has a saved crew.");
-    throw new Error(error.message);
-  }
+    const { error } = await supabase
+      .from("lineup_templates")
+      .update({ boat_id: boatId })
+      .eq("id", templateId);
+    if (error) {
+      if (boatId && isUniqueViolation(error)) throw new UserError("That boat already has a saved crew.");
+      throw new Error(error.message);
+    }
 
-  revalidatePath("/lineups");
-  revalidatePath("/boats");
+    revalidatePath("/lineups");
+    revalidatePath("/boats");
+  });
 }
 
 export async function deleteLineupTemplate(templateId: string) {
@@ -608,85 +632,93 @@ export async function assignTemplateSeat(seatId: string, rowerId: string | null)
 }
 
 export async function updateLineupRace(formData: FormData) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const lineupId = String(formData.get("lineup_id") ?? "").trim();
-  if (!lineupId) throw new UserError("Missing boat.");
+    const lineupId = String(formData.get("lineup_id") ?? "").trim();
+    if (!lineupId) throw new UserError("Missing boat.");
 
-  const raceName = String(formData.get("race_name") ?? "").trim() || null;
-  const raceTimeRaw = String(formData.get("race_time") ?? "").trim();
-  const raceTime = raceTimeRaw ? new Date(raceTimeRaw).toISOString() : null;
+    const raceName = String(formData.get("race_name") ?? "").trim() || null;
+    const raceTimeRaw = String(formData.get("race_time") ?? "").trim();
+    const raceTime = raceTimeRaw ? new Date(raceTimeRaw).toISOString() : null;
 
-  const { data: lineup } = await supabase.from("lineups").select("category").eq("id", lineupId).single();
-  const category = categoryForRace(raceName, (lineup as { category: string | null } | null)?.category ?? null);
+    const { data: lineup } = await supabase.from("lineups").select("category").eq("id", lineupId).single();
+    const category = categoryForRace(raceName, (lineup as { category: string | null } | null)?.category ?? null);
 
-  const { error } = await supabase
-    .from("lineups")
-    .update({ race_name: raceName, race_time: raceTime, category: category as LineupCategory | null })
-    .eq("id", lineupId);
+    const { error } = await supabase
+      .from("lineups")
+      .update({ race_name: raceName, race_time: raceTime, category: category as LineupCategory | null })
+      .eq("id", lineupId);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/lineups");
-  revalidatePath("/");
+    revalidatePath("/lineups");
+    revalidatePath("/");
+  });
 }
 
 export async function updateLineupDetails(formData: FormData) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const lineupId = String(formData.get("lineup_id") ?? "").trim();
-  if (!lineupId) throw new UserError("Missing boat.");
-  const category = String(formData.get("category") ?? "").trim();
-  if (category && !LINEUP_CATEGORY_OPTIONS.includes(category)) {
-    throw new UserError("Please choose a valid category.");
-  }
-  const notes = String(formData.get("notes") ?? "").trim() || null;
+    const lineupId = String(formData.get("lineup_id") ?? "").trim();
+    if (!lineupId) throw new UserError("Missing boat.");
+    const category = String(formData.get("category") ?? "").trim();
+    if (category && !LINEUP_CATEGORY_OPTIONS.includes(category)) {
+      throw new UserError("Please choose a valid category.");
+    }
+    const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  const { error } = await supabase
-    .from("lineups")
-    .update({ category: (category || null) as LineupCategory | null, notes })
-    .eq("id", lineupId);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase
+      .from("lineups")
+      .update({ category: (category || null) as LineupCategory | null, notes })
+      .eq("id", lineupId);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/lineups", "layout");
+    revalidatePath("/lineups", "layout");
+  });
 }
 
 export async function updateLineupPlace(formData: FormData) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const lineupId = String(formData.get("lineup_id") ?? "").trim();
-  if (!lineupId) throw new UserError("Missing boat.");
+    const lineupId = String(formData.get("lineup_id") ?? "").trim();
+    if (!lineupId) throw new UserError("Missing boat.");
 
-  const placeRaw = String(formData.get("place") ?? "").trim();
-  let place: number | null = null;
-  if (placeRaw) {
-    place = Math.trunc(Number(placeRaw));
-    if (!Number.isFinite(place) || place < 1) throw new UserError("Place must be a positive number.");
-  }
+    const placeRaw = String(formData.get("place") ?? "").trim();
+    let place: number | null = null;
+    if (placeRaw) {
+      place = Math.trunc(Number(placeRaw));
+      if (!Number.isFinite(place) || place < 1) throw new UserError("Place must be a positive number.");
+    }
 
-  const { error } = await supabase.from("lineups").update({ place }).eq("id", lineupId);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase.from("lineups").update({ place }).eq("id", lineupId);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/lineups");
-  revalidatePath("/schedule/regatta");
-  revalidatePath("/");
+    revalidatePath("/lineups");
+    revalidatePath("/schedule/regatta");
+    revalidatePath("/");
+  });
 }
 
 export async function deleteLineup(formData: FormData) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const lineupId = String(formData.get("lineup_id") ?? "").trim();
-  if (!lineupId) throw new UserError("Missing boat.");
+    const lineupId = String(formData.get("lineup_id") ?? "").trim();
+    if (!lineupId) throw new UserError("Missing boat.");
 
-  const { error } = await supabase.from("lineups").delete().eq("id", lineupId);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase.from("lineups").delete().eq("id", lineupId);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/lineups");
-  revalidatePath("/coach/tasks");
+    revalidatePath("/lineups");
+    revalidatePath("/coach/tasks");
+  });
 }
 
 export async function assignSeat(seatId: string, rowerId: string | null) {
@@ -744,14 +776,16 @@ export async function saveCourse(eventId: string, start: CoursePoint, finish: Co
 // Deletes a regatta and everything hung off it (races, boats, results,
 // food tent, volunteer slots, trailer and travel lists all cascade).
 export async function deleteRegatta(eventId: string) {
-  const supabase = await createClient();
-  await requireManager(supabase);
-  if (!eventId) throw new UserError("Missing regatta.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
+    if (!eventId) throw new UserError("Missing regatta.");
 
-  const { error } = await supabase.from("schedule_events").delete().eq("id", eventId).eq("event_type", "regatta");
-  if (error) throw new Error(error.message);
+    const { error } = await supabase.from("schedule_events").delete().eq("id", eventId).eq("event_type", "regatta");
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/lineups");
-  revalidatePath("/schedule", "layout");
-  revalidatePath("/");
+    revalidatePath("/lineups");
+    revalidatePath("/schedule", "layout");
+    revalidatePath("/");
+  });
 }

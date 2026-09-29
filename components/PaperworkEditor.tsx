@@ -9,6 +9,7 @@ import {
   type PaperworkKind,
   type PaperworkRecord,
 } from "@/lib/paperwork";
+import { unwrap } from "@/lib/userError";
 
 function shortDate(key: string) {
   return new Date(`${key}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -63,7 +64,7 @@ export function PaperworkChip({
             setError(null);
             start(async () => {
               try {
-                await savePaperwork(profileId, kind, completed, expires);
+                unwrap(await savePaperwork(profileId, kind, completed, expires));
                 setOpen(false);
               } catch (err) {
                 setError(err instanceof Error ? err.message : "Couldn't save.");

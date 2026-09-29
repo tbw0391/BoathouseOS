@@ -4,6 +4,7 @@ import type { EventType, Lineup, Role, ScheduleEvent } from "@/lib/database.type
 import { createScheduleEvent } from "./actions";
 import { EventCard } from "./EventCard";
 import { isPastEvent } from "@/lib/schedule";
+import { ActionForm } from "@/components/ActionForm";
 
 export async function ScheduleTypeView({ eventType, label }: { eventType: EventType; label: string }) {
   const supabase = await createClient();
@@ -59,7 +60,7 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
       <h1 className="text-2xl font-bold mt-4 mb-6">{label}</h1>
 
       {canManage && (
-        <form
+        <ActionForm
           action={createScheduleEvent}
           className="flex flex-col gap-3 rounded-lg border p-4 mb-6 max-w-lg"
         >
@@ -118,7 +119,7 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
           >
             Add event
           </button>
-        </form>
+        </ActionForm>
       )}
 
       <div className="flex flex-col gap-3">

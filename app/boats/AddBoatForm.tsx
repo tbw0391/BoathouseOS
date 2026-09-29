@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { createBoat } from "@/app/lineups/actions";
 import { BoatTypePicker } from "./BoatTypePicker";
+import { unwrap } from "@/lib/userError";
 
 export function AddBoatForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -18,7 +19,7 @@ export function AddBoatForm() {
     }
     startTransition(async () => {
       try {
-        await createBoat(formData);
+        unwrap(await createBoat(formData));
         formRef.current?.reset();
         setOpen(false);
       } catch (e) {

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { EmergencyInfo } from "@/lib/database.types";
 import { emergencyInfoMissing, telHref } from "@/lib/emergencyInfo";
 import { saveEmergencyInfo } from "./emergencyActions";
+import { unwrap } from "@/lib/userError";
 
 export function EmergencyInfoCard({ profileId, info }: { profileId: string; info: EmergencyInfo | null }) {
   const [editing, setEditing] = useState(false);
@@ -43,7 +44,7 @@ export function EmergencyInfoCard({ profileId, info }: { profileId: string; info
             start(async () => {
               setError(null);
               try {
-                await saveEmergencyInfo(profileId, fd);
+                unwrap(await saveEmergencyInfo(profileId, fd));
                 setEditing(false);
               } catch (e) {
                 setError(e instanceof Error ? e.message : "Couldn't save.");

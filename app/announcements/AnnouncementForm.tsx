@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { sendAnnouncement } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function AnnouncementForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -14,7 +15,7 @@ export function AnnouncementForm() {
     setSent(false);
     startTransition(async () => {
       try {
-        await sendAnnouncement(formData);
+        unwrap(await sendAnnouncement(formData));
         formRef.current?.reset();
         setSent(true);
       } catch (e) {

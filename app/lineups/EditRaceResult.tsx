@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { updateLineupPlace } from "./actions";
 import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
 import type { Lineup } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function EditRaceResult({
   lineup,
@@ -21,7 +22,7 @@ export function EditRaceResult({
     formData.set("lineup_id", lineup.id);
     startTransition(async () => {
       try {
-        await updateLineupPlace(formData);
+        unwrap(await updateLineupPlace(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -36,7 +37,7 @@ export function EditRaceResult({
     formData.set("place", "");
     startTransition(async () => {
       try {
-        await updateLineupPlace(formData);
+        unwrap(await updateLineupPlace(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

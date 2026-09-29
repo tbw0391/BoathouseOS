@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { MaintenanceType } from "@/lib/database.types";
-import { UserError } from "@/lib/userError";
+import { UserError, tryAction } from "@/lib/userError";
 
 const PATH_BY_TYPE: Record<MaintenanceType, string> = {
   boat: "/boat-maintenance",
@@ -11,28 +11,30 @@ const PATH_BY_TYPE: Record<MaintenanceType, string> = {
 };
 
 export async function submitMaintenanceRequest(type: MaintenanceType, formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UserError("Not signed in.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
 
-  const description = String(formData.get("description") ?? "").trim();
-  const boatId = String(formData.get("boat_id") ?? "").trim() || null;
+    const description = String(formData.get("description") ?? "").trim();
+    const boatId = String(formData.get("boat_id") ?? "").trim() || null;
 
-  if (!description) throw new UserError("Describe the issue first.");
-  if (type === "boat" && !boatId) throw new UserError("Please choose a boat.");
+    if (!description) throw new UserError("Describe the issue first.");
+    if (type === "boat" && !boatId) throw new UserError("Please choose a boat.");
 
-  const { error } = await supabase.from("maintenance_requests").insert({
-    type,
-    boat_id: type === "boat" ? boatId : null,
-    description,
-    submitted_by: user.id,
+    const { error } = await supabase.from("maintenance_requests").insert({
+      type,
+      boat_id: type === "boat" ? boatId : null,
+      description,
+      submitted_by: user.id,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(PATH_BY_TYPE[type]);
   });
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath(PATH_BY_TYPE[type]);
 }
 
 async function requireStaff(supabase: Awaited<ReturnType<typeof createClient>>) {

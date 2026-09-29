@@ -8,6 +8,7 @@ import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES } from "@/lib/lineupCategories";
 import { HULL_COLORS, RIGS } from "@/lib/boatOptions";
 import type { Boat, LineupTemplateSeat } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function BoatCard({
   boat,
@@ -35,7 +36,7 @@ export function BoatCard({
     formData.set("boat_id", boat.id);
     startTransition(async () => {
       try {
-        await updateBoat(formData);
+        unwrap(await updateBoat(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -47,7 +48,14 @@ export function BoatCard({
     if (!window.confirm(`Remove "${boat.name}" from the fleet?`)) return;
     const formData = new FormData();
     formData.set("boat_id", boat.id);
-    startTransition(() => deleteBoat(formData));
+    setError(null);
+    startTransition(async () => {
+      try {
+        unwrap(await deleteBoat(formData));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Something went wrong.");
+      }
+    });
   }
 
   if (editing) {

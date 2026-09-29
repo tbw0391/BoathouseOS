@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { UserError } from "@/lib/userError";
+import { UserError, tryAction } from "@/lib/userError";
 
 // The database functions check global-admin status themselves (see
 // migration 0058), so these just call through.
@@ -15,13 +15,15 @@ export async function saveDemoBaseline() {
 }
 
 export async function resetDemo(formData: FormData) {
-  if (formData.get("confirm") !== "on") {
-    throw new UserError("Tick the confirmation box to reset the demo.");
-  }
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("demo_reset");
-  if (error) throw new Error(error.message);
-  revalidatePath("/", "layout");
+  return tryAction(async () => {
+    if (formData.get("confirm") !== "on") {
+      throw new UserError("Tick the confirmation box to reset the demo.");
+    }
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("demo_reset");
+    if (error) throw new Error(error.message);
+    revalidatePath("/", "layout");
+  });
 }
 
 // Error reports (0100) have no update policy, so these check global-admin
@@ -33,15 +35,17 @@ async function requireGlobalAdmin() {
 }
 
 export async function markErrorFixed(formData: FormData) {
-  await requireGlobalAdmin();
-  const id = String(formData.get("id") ?? "");
-  if (!id) throw new UserError("Missing error.");
-  const { error } = await createAdminClient()
-    .from("error_reports")
-    .update({ resolved_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  revalidatePath("/global-admin/errors");
+  return tryAction(async () => {
+    await requireGlobalAdmin();
+    const id = String(formData.get("id") ?? "");
+    if (!id) throw new UserError("Missing error.");
+    const { error } = await createAdminClient()
+      .from("error_reports")
+      .update({ resolved_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+    revalidatePath("/global-admin/errors");
+  });
 }
 
 export async function clearFixedErrors() {

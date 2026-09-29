@@ -14,6 +14,7 @@ import {
   setRoom,
   takeSeat,
 } from "./travelActions";
+import { unwrapIfResult } from "@/lib/userError";
 
 type Person = { id: string; name: string };
 export type VehicleView = TravelVehicle & { driverName: string | null; riders: Person[] };
@@ -78,7 +79,7 @@ export function TravelTab({
     setMessage(null);
     start(async () => {
       try {
-        await fn();
+        unwrapIfResult(await fn());
         after?.();
       } catch (e) {
         setMessage(e instanceof Error ? e.message : "Something went wrong.");

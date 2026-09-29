@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { castVote, clearVote } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function VoteControl({
   pollId,
@@ -25,7 +26,7 @@ export function VoteControl({
     formData.set("poll_id", pollId);
     startTransition(async () => {
       try {
-        await castVote(formData);
+        unwrap(await castVote(formData));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -38,7 +39,7 @@ export function VoteControl({
     formData.set("poll_id", pollId);
     startTransition(async () => {
       try {
-        await clearVote(formData);
+        unwrap(await clearVote(formData));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }

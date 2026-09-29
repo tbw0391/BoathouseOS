@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { createCoachTask } from "./actions";
 import type { TaskType } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function TaskForm({ eventId, taskTypes }: { eventId: string; taskTypes: TaskType[] }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -14,7 +15,7 @@ export function TaskForm({ eventId, taskTypes }: { eventId: string; taskTypes: T
     setError(null);
     startTransition(async () => {
       try {
-        await createCoachTask(formData);
+        unwrap(await createCoachTask(formData));
         formRef.current?.reset();
         setOpen(false);
       } catch (e) {

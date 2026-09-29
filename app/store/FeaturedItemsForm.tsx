@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { StoreItem } from "@/lib/storeItems";
 import { updateFeaturedItems } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 const EMPTY_ITEM: StoreItem = { title: "", price: "", url: "", image_url: "" };
 
@@ -31,7 +32,7 @@ export function FeaturedItemsForm({ currentItems }: { currentItems: StoreItem[] 
       try {
         const formData = new FormData();
         formData.set("items", JSON.stringify(items));
-        await updateFeaturedItems(formData);
+        unwrap(await updateFeaturedItems(formData));
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

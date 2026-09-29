@@ -5,6 +5,7 @@ import { createLineupForRace, deleteRace } from "./actions";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import type { Boat, LineupCategory } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function AssignBoatPanel({
   raceId,
@@ -35,7 +36,7 @@ export function AssignBoatPanel({
     formData.set("race_id", raceId);
     startTransition(async () => {
       try {
-        await createLineupForRace(formData);
+        unwrap(await createLineupForRace(formData));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -46,7 +47,14 @@ export function AssignBoatPanel({
     if (!window.confirm("Delete this race?")) return;
     const formData = new FormData();
     formData.set("race_id", raceId);
-    startTransition(() => deleteRace(formData));
+    setError(null);
+    startTransition(async () => {
+      try {
+        unwrap(await deleteRace(formData));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Something went wrong.");
+      }
+    });
   }
 
   return (

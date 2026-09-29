@@ -8,6 +8,7 @@ import {
   markAbsentFromPractice,
 } from "@/app/check-in/actions";
 import type { AttendanceStatus } from "@/lib/database.types";
+import { unwrapIfResult } from "@/lib/userError";
 
 // Rowers/coxswains: a big green Check in button, and "I won't be at practice"
 // which opens tap buttons for the reason. Once they've answered for today it
@@ -27,11 +28,11 @@ export function PracticeCheckIn({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function run(action: () => Promise<void>) {
+  function run(action: () => Promise<unknown>) {
     setError(null);
     startTransition(async () => {
       try {
-        await action();
+        unwrapIfResult(await action());
         setPickingReason(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

@@ -6,6 +6,7 @@ import type { Boat, OnWaterSession } from "@/lib/database.types";
 import { ON_WATER_COLORS } from "@/lib/onWaterColors";
 import { startSession, endSession } from "./actions";
 import { APPROXIMATE_FIX_M, distanceLabel, GOOD_FIX_M } from "@/app/coach/tracking/boatDisplay";
+import { unwrap } from "@/lib/userError";
 
 const PING_INTERVAL_MS = 7000;
 
@@ -290,7 +291,7 @@ export function OnWaterTracker({
     setError(null);
     setStarting(true);
     try {
-      const id = await startSession(boatId, color);
+      const id = unwrap(await startSession(boatId, color));
       save(BOAT_KEY, boatId);
       save(COLOR_KEY, color);
       setSessionId(id);
@@ -309,7 +310,7 @@ export function OnWaterTracker({
     wakeLockRef.current?.release();
     setWakeLockActive(false);
     try {
-      await endSession(sessionId);
+      unwrap(await endSession(sessionId));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't end tracking.");
     }

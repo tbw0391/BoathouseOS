@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { LAUNCH_MINUTE_OPTIONS } from "@/lib/raceDay";
 import { saveBowNumber, saveLaunchMinutes } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function BowNumberEditor({ lineupId, current }: { lineupId: string; current: string | null }) {
   const [editing, setEditing] = useState(false);
@@ -65,7 +66,7 @@ export function LaunchMinutesPicker({ current }: { current: number }) {
           onClick={() => {
             setPending(m);
             startSave(async () => {
-              await saveLaunchMinutes(m);
+              unwrap(await saveLaunchMinutes(m));
               setPending(null);
             });
           }}

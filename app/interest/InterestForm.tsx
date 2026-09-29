@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { submitInterest } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function InterestForm() {
   const [error, setError] = useState<string | null>(null);
@@ -13,7 +14,7 @@ export function InterestForm() {
     setError(null);
     startTransition(async () => {
       try {
-        await submitInterest(formData);
+        unwrap(await submitInterest(formData));
         setSubmitted(true);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

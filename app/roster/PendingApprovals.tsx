@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { approveMember, declineMember } from "./actions";
+import { unwrapIfResult } from "@/lib/userError";
 
 export type PendingMember = {
   id: string;
@@ -15,12 +16,12 @@ export function PendingApprovals({ members }: { members: PendingMember[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  function run(id: string, action: (id: string) => Promise<void>) {
+  function run(id: string, action: (id: string) => Promise<unknown>) {
     setError(null);
     setBusyId(id);
     startTransition(async () => {
       try {
-        await action(id);
+        unwrapIfResult(await action(id));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       } finally {

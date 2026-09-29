@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { clearFixedErrors, markErrorFixed } from "../actions";
+import { ActionForm } from "@/components/ActionForm";
 
 type ErrorReport = {
   id: string;
@@ -93,12 +94,12 @@ function ErrorCard({ report: r }: { report: ErrorReport }) {
         </details>
       )}
       {!r.resolved_at && (
-        <form action={markErrorFixed}>
+        <ActionForm action={markErrorFixed}>
           <input type="hidden" name="id" value={r.id} />
           <button type="submit" className="text-sm border-2 border-[var(--color-primary)] rounded px-3 py-1">
             Mark fixed
           </button>
-        </form>
+        </ActionForm>
       )}
     </div>
   );

@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { createTaskType, deleteTaskType } from "./actions";
 import type { TaskType } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function TaskTypeManager({ taskTypes }: { taskTypes: TaskType[] }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -14,7 +15,7 @@ export function TaskTypeManager({ taskTypes }: { taskTypes: TaskType[] }) {
     setError(null);
     startTransition(async () => {
       try {
-        await createTaskType(formData);
+        unwrap(await createTaskType(formData));
         formRef.current?.reset();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -27,7 +28,7 @@ export function TaskTypeManager({ taskTypes }: { taskTypes: TaskType[] }) {
     setError(null);
     startTransition(async () => {
       try {
-        await deleteTaskType(typeId);
+        unwrap(await deleteTaskType(typeId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }

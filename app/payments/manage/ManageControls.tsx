@@ -8,6 +8,7 @@ import {
   deleteDiscount,
   setDiscountActive,
 } from "../actions";
+import { unwrap } from "@/lib/userError";
 
 function Choice({
   selected,
@@ -98,7 +99,7 @@ export function NewChargeForm() {
         setError(null);
         startTransition(async () => {
           try {
-            const { id } = await createCharge(formData);
+            const { id } = unwrap(await createCharge(formData));
             window.location.assign(`/payments/manage/${id}`);
           } catch (e) {
             setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -192,7 +193,7 @@ export function NewDiscountForm({
         setError(null);
         startTransition(async () => {
           try {
-            await createDiscount(formData);
+            unwrap(await createDiscount(formData));
             formRef.current?.reset();
           } catch (e) {
             setError(e instanceof Error ? e.message : "Something went wrong.");

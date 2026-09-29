@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { UserError } from "@/lib/userError";
+import { UserError, tryAction } from "@/lib/userError";
 
 async function requirePollCreator(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -54,125 +54,129 @@ async function requirePollManager(
 }
 
 export async function createPoll(formData: FormData) {
-  const supabase = await createClient();
-  const { user } = await requirePollCreator(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requirePollCreator(supabase);
 
-  const question = String(formData.get("question") ?? "").trim();
-  const allowMultiple = formData.get("allow_multiple") === "on";
-  const boardOnly = formData.get("board_only") === "on";
-  const inviteeIds = [...new Set(formData.getAll("invitee_id").map(String))];
-  const options = String(formData.get("options") ?? "")
-    .split("\n")
-    .map((o) => o.trim())
-    .filter(Boolean);
+    const question = String(formData.get("question") ?? "").trim();
+    const allowMultiple = formData.get("allow_multiple") === "on";
+    const boardOnly = formData.get("board_only") === "on";
+    const inviteeIds = [...new Set(formData.getAll("invitee_id").map(String))];
+    const options = String(formData.get("options") ?? "")
+      .split("\n")
+      .map((o) => o.trim())
+      .filter(Boolean);
 
-  if (!question) throw new UserError("Question is required.");
-  if (options.length < 2) throw new UserError("Add at least 2 options (one per line).");
+    if (!question) throw new UserError("Question is required.");
+    if (options.length < 2) throw new UserError("Add at least 2 options (one per line).");
 
-  // Generate the id ourselves and insert without .select(): asking
-  // PostgREST to return the inserted row (INSERT ... RETURNING) makes
-  // Postgres also re-check the row against the table's SELECT policy
-  // (can_view_poll) within the same statement, which can't yet see a row
-  // inserted earlier in that same statement — a bare insert avoids that
-  // entirely, and we don't need the row handed back since we already know
-  // its id.
-  const pollId = crypto.randomUUID();
-  const { error } = await supabase
-    .from("polls")
-    .insert({ id: pollId, question, allow_multiple: allowMultiple, board_only: boardOnly, created_by: user.id });
+    // Generate the id ourselves and insert without .select(): asking
+    // PostgREST to return the inserted row (INSERT ... RETURNING) makes
+    // Postgres also re-check the row against the table's SELECT policy
+    // (can_view_poll) within the same statement, which can't yet see a row
+    // inserted earlier in that same statement — a bare insert avoids that
+    // entirely, and we don't need the row handed back since we already know
+    // its id.
+    const pollId = crypto.randomUUID();
+    const { error } = await supabase
+      .from("polls")
+      .insert({ id: pollId, question, allow_multiple: allowMultiple, board_only: boardOnly, created_by: user.id });
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-  const { error: optionsError } = await supabase.from("poll_options").insert(
-    options.map((label, i) => ({
-      poll_id: pollId,
-      label,
-      position: i,
-    }))
-  );
+    const { error: optionsError } = await supabase.from("poll_options").insert(
+      options.map((label, i) => ({
+        poll_id: pollId,
+        label,
+        position: i,
+      }))
+    );
 
-  if (optionsError) throw new Error(optionsError.message);
+    if (optionsError) throw new Error(optionsError.message);
 
-  if (boardOnly && inviteeIds.length > 0) {
-    const { error: inviteesError } = await supabase
-      .from("poll_invitees")
-      .insert(inviteeIds.map((userId) => ({ poll_id: pollId, user_id: userId })));
-    if (inviteesError) throw new Error(inviteesError.message);
-  }
+    if (boardOnly && inviteeIds.length > 0) {
+      const { error: inviteesError } = await supabase
+        .from("poll_invitees")
+        .insert(inviteeIds.map((userId) => ({ poll_id: pollId, user_id: userId })));
+      if (inviteesError) throw new Error(inviteesError.message);
+    }
 
-  revalidatePath("/polls");
+    revalidatePath("/polls");
+  });
 }
 
 export async function updatePoll(formData: FormData) {
-  const pollId = String(formData.get("poll_id") ?? "").trim();
-  if (!pollId) throw new UserError("Missing poll.");
+  return tryAction(async () => {
+    const pollId = String(formData.get("poll_id") ?? "").trim();
+    if (!pollId) throw new UserError("Missing poll.");
 
-  const supabase = await createClient();
-  await requirePollManager(supabase, pollId);
+    const supabase = await createClient();
+    await requirePollManager(supabase, pollId);
 
-  const question = String(formData.get("question") ?? "").trim();
-  const allowMultiple = formData.get("allow_multiple") === "on";
-  const boardOnly = formData.get("board_only") === "on";
-  const inviteeIds = [...new Set(formData.getAll("invitee_id").map(String))];
-  const options = String(formData.get("options") ?? "")
-    .split("\n")
-    .map((o) => o.trim())
-    .filter(Boolean);
+    const question = String(formData.get("question") ?? "").trim();
+    const allowMultiple = formData.get("allow_multiple") === "on";
+    const boardOnly = formData.get("board_only") === "on";
+    const inviteeIds = [...new Set(formData.getAll("invitee_id").map(String))];
+    const options = String(formData.get("options") ?? "")
+      .split("\n")
+      .map((o) => o.trim())
+      .filter(Boolean);
 
-  if (!question) throw new UserError("Question is required.");
-  if (options.length < 2) throw new UserError("Add at least 2 options (one per line).");
+    if (!question) throw new UserError("Question is required.");
+    if (options.length < 2) throw new UserError("Add at least 2 options (one per line).");
 
-  const { error: pollError } = await supabase
-    .from("polls")
-    .update({ question, allow_multiple: allowMultiple, board_only: boardOnly })
-    .eq("id", pollId);
-  if (pollError) throw new Error(pollError.message);
+    const { error: pollError } = await supabase
+      .from("polls")
+      .update({ question, allow_multiple: allowMultiple, board_only: boardOnly })
+      .eq("id", pollId);
+    if (pollError) throw new Error(pollError.message);
 
-  // Reconcile options by label instead of wiping and recreating them all:
-  // an option whose label didn't change keeps its id (and its votes), an
-  // option no longer present gets deleted (cascading its votes), and new
-  // labels become new options.
-  const { data: existingOptionsData } = await supabase
-    .from("poll_options")
-    .select("id, label")
-    .eq("poll_id", pollId);
-  const existingOptions = (existingOptionsData as { id: string; label: string }[] | null) ?? [];
-  const existingByLabel = new Map(existingOptions.map((o) => [o.label, o.id]));
-  const keptIds = new Set<string>();
+    // Reconcile options by label instead of wiping and recreating them all:
+    // an option whose label didn't change keeps its id (and its votes), an
+    // option no longer present gets deleted (cascading its votes), and new
+    // labels become new options.
+    const { data: existingOptionsData } = await supabase
+      .from("poll_options")
+      .select("id, label")
+      .eq("poll_id", pollId);
+    const existingOptions = (existingOptionsData as { id: string; label: string }[] | null) ?? [];
+    const existingByLabel = new Map(existingOptions.map((o) => [o.label, o.id]));
+    const keptIds = new Set<string>();
 
-  for (let i = 0; i < options.length; i++) {
-    const label = options[i];
-    const existingId = existingByLabel.get(label);
-    if (existingId && !keptIds.has(existingId)) {
-      keptIds.add(existingId);
-      const { error } = await supabase.from("poll_options").update({ position: i }).eq("id", existingId);
-      if (error) throw new Error(error.message);
-    } else {
-      const { error } = await supabase.from("poll_options").insert({ poll_id: pollId, label, position: i });
+    for (let i = 0; i < options.length; i++) {
+      const label = options[i];
+      const existingId = existingByLabel.get(label);
+      if (existingId && !keptIds.has(existingId)) {
+        keptIds.add(existingId);
+        const { error } = await supabase.from("poll_options").update({ position: i }).eq("id", existingId);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await supabase.from("poll_options").insert({ poll_id: pollId, label, position: i });
+        if (error) throw new Error(error.message);
+      }
+    }
+
+    const removedIds = existingOptions.filter((o) => !keptIds.has(o.id)).map((o) => o.id);
+    if (removedIds.length > 0) {
+      const { error } = await supabase.from("poll_options").delete().in("id", removedIds);
       if (error) throw new Error(error.message);
     }
-  }
 
-  const removedIds = existingOptions.filter((o) => !keptIds.has(o.id)).map((o) => o.id);
-  if (removedIds.length > 0) {
-    const { error } = await supabase.from("poll_options").delete().in("id", removedIds);
-    if (error) throw new Error(error.message);
-  }
-
-  const { error: deleteInviteesError } = await supabase
-    .from("poll_invitees")
-    .delete()
-    .eq("poll_id", pollId);
-  if (deleteInviteesError) throw new Error(deleteInviteesError.message);
-
-  if (boardOnly && inviteeIds.length > 0) {
-    const { error: inviteesError } = await supabase
+    const { error: deleteInviteesError } = await supabase
       .from("poll_invitees")
-      .insert(inviteeIds.map((userId) => ({ poll_id: pollId, user_id: userId })));
-    if (inviteesError) throw new Error(inviteesError.message);
-  }
+      .delete()
+      .eq("poll_id", pollId);
+    if (deleteInviteesError) throw new Error(deleteInviteesError.message);
 
-  revalidatePath("/polls");
+    if (boardOnly && inviteeIds.length > 0) {
+      const { error: inviteesError } = await supabase
+        .from("poll_invitees")
+        .insert(inviteeIds.map((userId) => ({ poll_id: pollId, user_id: userId })));
+      if (inviteesError) throw new Error(inviteesError.message);
+    }
+
+    revalidatePath("/polls");
+  });
 }
 
 export async function closePoll(pollId: string) {
@@ -211,71 +215,75 @@ export async function deletePoll(pollId: string) {
 }
 
 export async function castVote(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UserError("Not signed in.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
 
-  const pollId = String(formData.get("poll_id") ?? "").trim();
-  const optionIds = formData.getAll("option_id").map(String);
-  if (!pollId) throw new UserError("Missing poll.");
-  if (optionIds.length === 0) throw new UserError("Pick at least one option.");
+    const pollId = String(formData.get("poll_id") ?? "").trim();
+    const optionIds = formData.getAll("option_id").map(String);
+    if (!pollId) throw new UserError("Missing poll.");
+    if (optionIds.length === 0) throw new UserError("Pick at least one option.");
 
-  const { data: pollData } = await supabase
-    .from("polls")
-    .select("closed_at")
-    .eq("id", pollId)
-    .single();
-  if ((pollData as { closed_at: string | null } | null)?.closed_at) {
-    throw new UserError("This poll is closed.");
-  }
+    const { data: pollData } = await supabase
+      .from("polls")
+      .select("closed_at")
+      .eq("id", pollId)
+      .single();
+    if ((pollData as { closed_at: string | null } | null)?.closed_at) {
+      throw new UserError("This poll is closed.");
+    }
 
-  // Only accept option ids that actually belong to this poll, so a tampered
-  // form can't record a vote against the wrong poll's option.
-  const { data: validOptionsData } = await supabase
-    .from("poll_options")
-    .select("id")
-    .eq("poll_id", pollId)
-    .in("id", optionIds);
-  const validOptionIds = ((validOptionsData as { id: string }[] | null) ?? []).map((o) => o.id);
-  if (validOptionIds.length === 0) throw new UserError("Invalid option.");
+    // Only accept option ids that actually belong to this poll, so a tampered
+    // form can't record a vote against the wrong poll's option.
+    const { data: validOptionsData } = await supabase
+      .from("poll_options")
+      .select("id")
+      .eq("poll_id", pollId)
+      .in("id", optionIds);
+    const validOptionIds = ((validOptionsData as { id: string }[] | null) ?? []).map((o) => o.id);
+    if (validOptionIds.length === 0) throw new UserError("Invalid option.");
 
-  const { error: deleteError } = await supabase
-    .from("poll_votes")
-    .delete()
-    .eq("poll_id", pollId)
-    .eq("user_id", user.id);
-  if (deleteError) throw new Error(deleteError.message);
+    const { error: deleteError } = await supabase
+      .from("poll_votes")
+      .delete()
+      .eq("poll_id", pollId)
+      .eq("user_id", user.id);
+    if (deleteError) throw new Error(deleteError.message);
 
-  const { error: insertError } = await supabase.from("poll_votes").insert(
-    validOptionIds.map((optionId) => ({
-      poll_id: pollId,
-      option_id: optionId,
-      user_id: user.id,
-    }))
-  );
-  if (insertError) throw new Error(insertError.message);
+    const { error: insertError } = await supabase.from("poll_votes").insert(
+      validOptionIds.map((optionId) => ({
+        poll_id: pollId,
+        option_id: optionId,
+        user_id: user.id,
+      }))
+    );
+    if (insertError) throw new Error(insertError.message);
 
-  revalidatePath("/polls");
+    revalidatePath("/polls");
+  });
 }
 
 export async function clearVote(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UserError("Not signed in.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
 
-  const pollId = String(formData.get("poll_id") ?? "").trim();
-  if (!pollId) throw new UserError("Missing poll.");
+    const pollId = String(formData.get("poll_id") ?? "").trim();
+    if (!pollId) throw new UserError("Missing poll.");
 
-  const { error } = await supabase
-    .from("poll_votes")
-    .delete()
-    .eq("poll_id", pollId)
-    .eq("user_id", user.id);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase
+      .from("poll_votes")
+      .delete()
+      .eq("poll_id", pollId)
+      .eq("user_id", user.id);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/polls");
+    revalidatePath("/polls");
+  });
 }

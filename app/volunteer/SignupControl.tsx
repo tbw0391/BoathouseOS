@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { signUpForNeed, cancelNeedSignup } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function SignupControl({
   needId,
@@ -19,7 +20,7 @@ export function SignupControl({
     setError(null);
     startTransition(async () => {
       try {
-        await signUpForNeed(needId);
+        unwrap(await signUpForNeed(needId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -30,7 +31,7 @@ export function SignupControl({
     setError(null);
     startTransition(async () => {
       try {
-        await cancelNeedSignup(needId);
+        unwrap(await cancelNeedSignup(needId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }

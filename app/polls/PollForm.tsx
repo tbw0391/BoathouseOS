@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { createPoll } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function PollForm({ coaches }: { coaches: { id: string; display_name: string }[] }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -14,7 +15,7 @@ export function PollForm({ coaches }: { coaches: { id: string; display_name: str
     setError(null);
     startTransition(async () => {
       try {
-        await createPoll(formData);
+        unwrap(await createPoll(formData));
         formRef.current?.reset();
         setOpen(false);
         setBoardOnly(false);

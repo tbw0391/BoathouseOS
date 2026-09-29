@@ -5,6 +5,7 @@ import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { formatErgTime, tidyErgTime } from "@/lib/erg";
 import { swapBoats } from "@/lib/seatRacing";
 import { addPiece, createSeatRace, deletePiece, deleteSeatRace, setPieceTimes } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 type Person = { id: string; name: string };
 
@@ -33,7 +34,7 @@ export function NewSeatRaceForm({ today }: { today: string }) {
         setError(null);
         start(async () => {
           try {
-            await createSeatRace(fd);
+            unwrap(await createSeatRace(fd));
           } catch (e) {
             if (e instanceof Error && e.message === "NEXT_REDIRECT") throw e;
             setError(e instanceof Error ? e.message : "Couldn't start it.");
@@ -126,7 +127,7 @@ export function PieceEditor({
               start(async () => {
                 setError(null);
                 try {
-                  await setPieceTimes(raceId, piece.id, a, b);
+                  unwrap(await setPieceTimes(raceId, piece.id, a, b));
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Couldn't save.");
                 }
@@ -172,7 +173,7 @@ export function SeatRaceBuilder({
     setError(null);
     start(async () => {
       try {
-        await addPiece(raceId, boatA, boatB);
+        unwrap(await addPiece(raceId, boatA, boatB));
         after();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Couldn't add it.");

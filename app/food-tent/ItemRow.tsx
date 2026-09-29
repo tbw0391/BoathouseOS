@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateFoodTentItem, deleteFoodTentItem } from "./actions";
 import type { FoodTentItem } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function ItemRow({
   item,
@@ -25,7 +26,7 @@ export function ItemRow({
     setError(null);
     startTransition(async () => {
       try {
-        await updateFoodTentItem(formData);
+        unwrap(await updateFoodTentItem(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

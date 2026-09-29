@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { CircleCheck } from "lucide-react";
 import { checkIn } from "@/app/check-in/actions";
+import { unwrap } from "@/lib/userError";
 
 // Big green button for coaches/admins. Once they've checked in today it
 // turns into a quiet confirmation with the time instead.
@@ -23,7 +24,7 @@ export function CheckInButton({ checkedInAt }: { checkedInAt: string | null }) {
     setError(null);
     startTransition(async () => {
       try {
-        await checkIn();
+        unwrap(await checkIn());
       } catch (e) {
         setError(e instanceof Error ? e.message : "Couldn't check in.");
       }

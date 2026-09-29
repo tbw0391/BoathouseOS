@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { createVolunteerNeed } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function NeedForm({ eventId }: { eventId: string }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -13,7 +14,7 @@ export function NeedForm({ eventId }: { eventId: string }) {
     setError(null);
     startTransition(async () => {
       try {
-        await createVolunteerNeed(formData);
+        unwrap(await createVolunteerNeed(formData));
         formRef.current?.reset();
         setOpen(false);
       } catch (e) {

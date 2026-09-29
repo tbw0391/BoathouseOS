@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { submitSuggestion } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function SuggestionForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -14,7 +15,7 @@ export function SuggestionForm() {
     setSubmitted(false);
     startTransition(async () => {
       try {
-        await submitSuggestion(formData);
+        unwrap(await submitSuggestion(formData));
         formRef.current?.reset();
         setSubmitted(true);
       } catch (e) {

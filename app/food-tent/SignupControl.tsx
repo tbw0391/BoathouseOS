@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { signUpForItem, cancelSignup } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function SignupControl({
   itemId,
@@ -23,7 +24,7 @@ export function SignupControl({
     formData.set("quantity", String(quantity));
     startTransition(async () => {
       try {
-        await signUpForItem(formData);
+        unwrap(await signUpForItem(formData));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -37,7 +38,7 @@ export function SignupControl({
     formData.set("quantity", String(editQuantity));
     startTransition(async () => {
       try {
-        await signUpForItem(formData);
+        unwrap(await signUpForItem(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -51,7 +52,7 @@ export function SignupControl({
     formData.set("item_id", itemId);
     startTransition(async () => {
       try {
-        await cancelSignup(formData);
+        unwrap(await cancelSignup(formData));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }

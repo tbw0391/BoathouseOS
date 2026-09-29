@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updatePoll } from "./actions";
 import type { Poll } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function EditPollForm({
   poll,
@@ -28,7 +29,7 @@ export function EditPollForm({
     formData.set("poll_id", poll.id);
     startTransition(async () => {
       try {
-        await updatePoll(formData);
+        unwrap(await updatePoll(formData));
         onSaved();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

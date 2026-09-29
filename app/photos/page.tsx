@@ -6,6 +6,7 @@ import { PhotoSocial } from "./PhotoSocial";
 import { StorageImage } from "@/components/StorageImage";
 import { clubDateKey } from "@/lib/raceDay";
 import { boatsByDay } from "@/lib/photoBoats";
+import { ActionForm } from "@/components/ActionForm";
 
 export default async function PhotosPage() {
   const supabase = await createClient();
@@ -137,12 +138,12 @@ export default async function PhotosPage() {
                       }))}
                   />
                   {canDelete && (
-                    <form action={deletePhoto}>
+                    <ActionForm action={deletePhoto}>
                       <input type="hidden" name="photo_id" value={photo.id} />
                       <button type="submit" className="text-xs text-red-600 hover:text-red-700">
                         Delete
                       </button>
-                    </form>
+                    </ActionForm>
                   )}
                 </div>
               </div>

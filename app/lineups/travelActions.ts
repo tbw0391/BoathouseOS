@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { clubDateTime } from "@/lib/ical";
-import { UserError } from "@/lib/userError";
+import { UserError, tryAction } from "@/lib/userError";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -53,30 +53,34 @@ export async function saveTripDetails(eventId: string, formData: FormData) {
 
 // A coach adds a bus or van; anyone offers their own car.
 export async function addVehicle(eventId: string, label: string, seats: number, asDriver: boolean) {
-  const supabase = await createClient();
-  const who = await me(supabase);
-  if (!asDriver && !who.isManager) throw new UserError("Only coaches and admins can add a bus.");
-  if (!Number.isInteger(seats) || seats < 1 || seats > 80) throw new UserError("Pick how many seats.");
-  const name = label.trim().slice(0, 60) || `${who.name.split(" ")[0]}'s car`;
-  const { error } = await supabase.from("travel_vehicles").insert({
-    event_id: eventId,
-    label: name,
-    seats,
-    driver_id: asDriver ? who.user.id : null,
-    created_by: who.user.id,
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const who = await me(supabase);
+    if (!asDriver && !who.isManager) throw new UserError("Only coaches and admins can add a bus.");
+    if (!Number.isInteger(seats) || seats < 1 || seats > 80) throw new UserError("Pick how many seats.");
+    const name = label.trim().slice(0, 60) || `${who.name.split(" ")[0]}'s car`;
+    const { error } = await supabase.from("travel_vehicles").insert({
+      event_id: eventId,
+      label: name,
+      seats,
+      driver_id: asDriver ? who.user.id : null,
+      created_by: who.user.id,
+    });
+    if (error) throw new Error(error.message);
+    done(eventId);
   });
-  if (error) throw new Error(error.message);
-  done(eventId);
 }
 
 export async function removeVehicle(eventId: string, vehicleId: string) {
-  const supabase = await createClient();
-  await me(supabase);
-  // RLS lets coaches/admins remove any ride and drivers their own.
-  const { error, count } = await supabase.from("travel_vehicles").delete({ count: "exact" }).eq("id", vehicleId);
-  if (error) throw new Error(error.message);
-  if (!count) throw new UserError("You can only remove your own car.");
-  done(eventId);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await me(supabase);
+    // RLS lets coaches/admins remove any ride and drivers their own.
+    const { error, count } = await supabase.from("travel_vehicles").delete({ count: "exact" }).eq("id", vehicleId);
+    if (error) throw new Error(error.message);
+    if (!count) throw new UserError("You can only remove your own car.");
+    done(eventId);
+  });
 }
 
 export async function takeSeat(eventId: string, vehicleId: string, personId: string) {
@@ -112,20 +116,22 @@ export async function removeRoom(eventId: string, roomId: string) {
 }
 
 export async function setRoom(eventId: string, roomId: string | null, personId: string) {
-  const supabase = await createClient();
-  await requireManager(supabase);
-  await supabase.from("travel_room_members").delete().eq("event_id", eventId).eq("profile_id", personId);
-  if (roomId) {
-    const { data: room } = await supabase.from("travel_rooms").select("capacity").eq("id", roomId).single();
-    const { count } = await supabase
-      .from("travel_room_members")
-      .select("profile_id", { count: "exact", head: true })
-      .eq("room_id", roomId);
-    if ((count ?? 0) >= ((room as { capacity: number } | null)?.capacity ?? 0)) throw new UserError("That room is full.");
-    const { error } = await supabase
-      .from("travel_room_members")
-      .insert({ room_id: roomId, event_id: eventId, profile_id: personId });
-    if (error) throw new Error(error.message);
-  }
-  done(eventId);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
+    await supabase.from("travel_room_members").delete().eq("event_id", eventId).eq("profile_id", personId);
+    if (roomId) {
+      const { data: room } = await supabase.from("travel_rooms").select("capacity").eq("id", roomId).single();
+      const { count } = await supabase
+        .from("travel_room_members")
+        .select("profile_id", { count: "exact", head: true })
+        .eq("room_id", roomId);
+      if ((count ?? 0) >= ((room as { capacity: number } | null)?.capacity ?? 0)) throw new UserError("That room is full.");
+      const { error } = await supabase
+        .from("travel_room_members")
+        .insert({ room_id: roomId, event_id: eventId, profile_id: personId });
+      if (error) throw new Error(error.message);
+    }
+    done(eventId);
+  });
 }

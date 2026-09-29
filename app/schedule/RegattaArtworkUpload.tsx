@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { setRegattaArtwork } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 // Coach/admin control on a regatta card for its logo — the artwork that goes
 // in the middle of every medal badge rowers win at this regatta.
@@ -18,7 +19,7 @@ export function RegattaArtworkUpload({ eventId, artworkUrl }: { eventId: string;
     formData.set("artwork_url", url ?? "");
     startTransition(async () => {
       try {
-        await setRegattaArtwork(formData);
+        unwrap(await setRegattaArtwork(formData));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }

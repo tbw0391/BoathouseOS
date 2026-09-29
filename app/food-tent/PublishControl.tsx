@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { publishFoodList } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function PublishControl({ eventId }: { eventId: string }) {
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export function PublishControl({ eventId }: { eventId: string }) {
     setError(null);
     startTransition(async () => {
       try {
-        await publishFoodList(eventId);
+        unwrap(await publishFoodList(eventId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }

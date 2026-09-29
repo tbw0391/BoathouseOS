@@ -1,5 +1,4 @@
 import "server-only";
-import { createHash } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emailConfigured, sendEmails } from "@/lib/email";
 import { groupingKey, shortStack, shouldReport } from "@/lib/errorReportRules";
@@ -10,6 +9,13 @@ import { groupingKey, shortStack, shouldReport } from "@/lib/errorReportRules";
 // Called from instrumentation.ts. Never throws.
 
 const EMAIL_EVERY_MS = 60 * 60 * 1000;
+
+// Web Crypto rather than node:crypto: Next.js also builds instrumentation
+// for the edge runtime, where Node's modules don't exist.
+async function sha1Hex(text: string): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(text));
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 type Where = { path: string; route: string | null; routeType: string | null };
 
@@ -29,7 +35,7 @@ export async function reportServerError(err: unknown, where: Where) {
     const error = err instanceof Error ? err : new Error(String(err));
     const message = error.message.slice(0, 1000) || "(no message)";
     const digest = (error as { digest?: unknown }).digest;
-    const fingerprint = createHash("sha1").update(groupingKey(message, where.route)).digest("hex");
+    const fingerprint = await sha1Hex(groupingKey(message, where.route));
     const now = new Date();
 
     const admin = createAdminClient();

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { getCalendarFeedToken } from "./calendarActions";
+import { unwrap } from "@/lib/userError";
 
 // "Add to my phone's calendar": a private feed link the calendar app keeps
 // checking, so changes show up on their own.
@@ -15,7 +16,7 @@ export function CalendarSubscribe({ host }: { host: string }) {
     setError(null);
     start(async () => {
       try {
-        setToken(await getCalendarFeedToken(reset));
+        setToken(unwrap(await getCalendarFeedToken(reset)));
         setCopied(false);
       } catch {
         setError("Couldn't make your calendar link. Please try again.");

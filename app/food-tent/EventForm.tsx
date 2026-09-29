@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { createRegattaEvent } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function EventForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -13,7 +14,7 @@ export function EventForm() {
     setError(null);
     startTransition(async () => {
       try {
-        await createRegattaEvent(formData);
+        unwrap(await createRegattaEvent(formData));
         formRef.current?.reset();
         setOpen(false);
       } catch (e) {

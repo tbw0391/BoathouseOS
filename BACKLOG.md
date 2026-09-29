@@ -691,23 +691,23 @@
       there's only one club and no global-admin concept yet.
 
 ## Error messages
-- [ ] Friendly error messages are hidden on the live site (found
-      2026-09-28): Next.js production replaces any message thrown from a
-      server action with "An error occurred in the Server Components
-      render...". Fix in place (lib/userError.ts): every friendly message in
-      the action files is now a UserError (318 of them); an action whose
-      body is wrapped in tryAction() hands a UserError back as { error } and
+- [x] Friendly error messages are hidden on the live site (found
+      2026-09-28, done 2026-09-29): Next.js production replaces any message
+      thrown from a server action with "An error occurred in the Server
+      Components render...". Fix (lib/userError.ts): every friendly message
+      in the action files is a UserError; every action that throws one wraps
+      its body in tryAction(), which hands a UserError back as { error }, and
       the page calls unwrap() (or unwrapIfResult in shared run helpers) to
-      show it. Database/unexpected errors still throw and stay hidden.
-      Converted so far (2026-09-28): profile (edit, photo, shortcuts, text
-      alerts, board/tent leader/treasurer/apparel chair, remove, reset
-      password, delete), sign up, oar sheet, lineup and saved-crew seats,
-      photos, workouts, Water Conditions (calls, lightning, settings), pay
-      buttons and apparel checkout. Still to do: the rest of the actions
-      called from pages (lineups/races, schedule, messages, food tent,
-      volunteer, polls, payments admin, apparel admin, travel/trailer,
-      coach tools, admin settings). Actions used straight as <form action>
-      need a small client wrapper first.
+      show it. Forms that post straight from a server page use
+      components/ActionForm.tsx, which shows the message under the form.
+      Database/unexpected errors still throw and stay hidden from members.
+- [x] Unexpected errors go to global admins (2026-09-29, 0100_error_reports.sql):
+      instrumentation.ts onRequestError saves each one in error_reports
+      (grouped by message and page, with a count) and emails global admins
+      for a new one, one that's back after being marked fixed, or one still
+      happening an hour after the last email. /global-admin/errors lists
+      them with Mark fixed / Clear fixed. New actions that throw a UserError
+      need tryAction() + unwrap() on the page, or the message is hidden.
 
 ## Security (before public launch)
 - [x] Admin approval for new signups (2026-09-25, migration 0060): self-signups start "pending", see

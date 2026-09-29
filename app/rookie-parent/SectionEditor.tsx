@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateRookieParentSection } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function SectionEditor({
   settingKey,
@@ -20,7 +21,7 @@ export function SectionEditor({
     setError(null);
     startTransition(async () => {
       try {
-        await updateRookieParentSection(settingKey, String(formData.get("text") ?? ""));
+        unwrap(await updateRookieParentSection(settingKey, String(formData.get("text") ?? "")));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

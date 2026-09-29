@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { Heart, MessageCircle } from "lucide-react";
 import { addPhotoComment, deletePhotoComment, setPhotoLiked } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export interface PhotoCommentView {
   id: string;
@@ -37,7 +38,7 @@ export function PhotoSocial({
     setCount((c) => c + (next ? 1 : -1));
     startTransition(async () => {
       try {
-        await setPhotoLiked(photoId, next);
+        unwrap(await setPhotoLiked(photoId, next));
       } catch {
         setLiked(!next);
         setCount((c) => c + (next ? -1 : 1));
@@ -50,7 +51,7 @@ export function PhotoSocial({
     const text = String(formData.get("body") ?? "");
     startTransition(async () => {
       try {
-        await addPhotoComment(photoId, text);
+        unwrap(await addPhotoComment(photoId, text));
         formRef.current?.reset();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Couldn't post that.");
@@ -62,7 +63,7 @@ export function PhotoSocial({
     if (!window.confirm("Delete this comment?")) return;
     startTransition(async () => {
       try {
-        await deletePhotoComment(commentId);
+        unwrap(await deletePhotoComment(commentId));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Couldn't delete that.");
       }

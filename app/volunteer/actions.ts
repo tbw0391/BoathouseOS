@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { UserError } from "@/lib/userError";
+import { UserError, tryAction } from "@/lib/userError";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -26,31 +26,33 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
 }
 
 export async function createVolunteerNeed(formData: FormData) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
 
-  const eventId = String(formData.get("event_id") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const slotsRaw = String(formData.get("slots_needed") ?? "1").trim();
-  const slotsNeeded = Math.max(1, Number(slotsRaw) || 1);
-  const description = String(formData.get("description") ?? "").trim() || null;
+    const eventId = String(formData.get("event_id") ?? "").trim();
+    const title = String(formData.get("title") ?? "").trim();
+    const slotsRaw = String(formData.get("slots_needed") ?? "1").trim();
+    const slotsNeeded = Math.max(1, Number(slotsRaw) || 1);
+    const description = String(formData.get("description") ?? "").trim() || null;
 
-  if (!eventId || !title) {
-    throw new UserError("Title is required.");
-  }
+    if (!eventId || !title) {
+      throw new UserError("Title is required.");
+    }
 
-  const { error } = await supabase.from("volunteer_needs").insert({
-    event_id: eventId,
-    title,
-    slots_needed: slotsNeeded,
-    description,
-    created_by: user.id,
+    const { error } = await supabase.from("volunteer_needs").insert({
+      event_id: eventId,
+      title,
+      slots_needed: slotsNeeded,
+      description,
+      created_by: user.id,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/volunteer");
+    revalidatePath("/");
   });
-
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/volunteer");
-  revalidatePath("/");
 }
 
 export interface VolunteerNeedImportRow {
@@ -60,74 +62,78 @@ export interface VolunteerNeedImportRow {
 }
 
 export async function importVolunteerNeeds(eventId: string, rows: VolunteerNeedImportRow[]) {
-  const supabase = await createClient();
-  const { user } = await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
 
-  if (!eventId) throw new UserError("Missing event.");
+    if (!eventId) throw new UserError("Missing event.");
 
-  const toInsert: {
-    event_id: string;
-    title: string;
-    slots_needed: number;
-    description: string | null;
-    created_by: string;
-  }[] = [];
-  const rowErrors: string[] = [];
+    const toInsert: {
+      event_id: string;
+      title: string;
+      slots_needed: number;
+      description: string | null;
+      created_by: string;
+    }[] = [];
+    const rowErrors: string[] = [];
 
-  rows.forEach((row, i) => {
-    const rowLabel = `Row ${i + 2}`; // +2: header row + 1-index
-    const title = String(row.title ?? "").trim();
-    if (!title) {
-      rowErrors.push(`${rowLabel}: missing title.`);
-      return;
+    rows.forEach((row, i) => {
+      const rowLabel = `Row ${i + 2}`; // +2: header row + 1-index
+      const title = String(row.title ?? "").trim();
+      if (!title) {
+        rowErrors.push(`${rowLabel}: missing title.`);
+        return;
+      }
+
+      const slotsRaw = String(row.slots_needed ?? "1").trim();
+      const slotsNeeded = Math.max(1, Number(slotsRaw) || 1);
+
+      toInsert.push({
+        event_id: eventId,
+        title,
+        slots_needed: slotsNeeded,
+        description: String(row.description ?? "").trim() || null,
+        created_by: user.id,
+      });
+    });
+
+    if (toInsert.length === 0) {
+      return { imported: 0, errors: rowErrors.length ? rowErrors : ["No valid rows found."] };
     }
 
-    const slotsRaw = String(row.slots_needed ?? "1").trim();
-    const slotsNeeded = Math.max(1, Number(slotsRaw) || 1);
+    const { error, data } = await supabase.from("volunteer_needs").insert(toInsert).select("id");
+    if (error) throw new Error(error.message);
 
-    toInsert.push({
-      event_id: eventId,
-      title,
-      slots_needed: slotsNeeded,
-      description: String(row.description ?? "").trim() || null,
-      created_by: user.id,
-    });
+    revalidatePath("/volunteer");
+    revalidatePath("/");
+    return { imported: data?.length ?? 0, errors: rowErrors };
   });
-
-  if (toInsert.length === 0) {
-    return { imported: 0, errors: rowErrors.length ? rowErrors : ["No valid rows found."] };
-  }
-
-  const { error, data } = await supabase.from("volunteer_needs").insert(toInsert).select("id");
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/volunteer");
-  revalidatePath("/");
-  return { imported: data?.length ?? 0, errors: rowErrors };
 }
 
 export async function updateVolunteerNeed(formData: FormData) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const needId = String(formData.get("need_id") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const slotsRaw = String(formData.get("slots_needed") ?? "1").trim();
-  const slotsNeeded = Math.max(1, Number(slotsRaw) || 1);
-  const description = String(formData.get("description") ?? "").trim() || null;
+    const needId = String(formData.get("need_id") ?? "").trim();
+    const title = String(formData.get("title") ?? "").trim();
+    const slotsRaw = String(formData.get("slots_needed") ?? "1").trim();
+    const slotsNeeded = Math.max(1, Number(slotsRaw) || 1);
+    const description = String(formData.get("description") ?? "").trim() || null;
 
-  if (!needId || !title) {
-    throw new UserError("Title is required.");
-  }
+    if (!needId || !title) {
+      throw new UserError("Title is required.");
+    }
 
-  const { error } = await supabase
-    .from("volunteer_needs")
-    .update({ title, slots_needed: slotsNeeded, description })
-    .eq("id", needId);
+    const { error } = await supabase
+      .from("volunteer_needs")
+      .update({ title, slots_needed: slotsNeeded, description })
+      .eq("id", needId);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/volunteer");
+    revalidatePath("/volunteer");
+  });
 }
 
 export async function deleteVolunteerNeed(needId: string) {
@@ -142,41 +148,45 @@ export async function deleteVolunteerNeed(needId: string) {
 }
 
 export async function signUpForNeed(needId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UserError("Not signed in.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
 
-  if (!needId) throw new UserError("Missing volunteer slot.");
+    if (!needId) throw new UserError("Missing volunteer slot.");
 
-  const { error } = await supabase
-    .from("volunteer_signups")
-    .upsert({ need_id: needId, user_id: user.id }, { onConflict: "need_id,user_id" });
+    const { error } = await supabase
+      .from("volunteer_signups")
+      .upsert({ need_id: needId, user_id: user.id }, { onConflict: "need_id,user_id" });
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/volunteer");
-  revalidatePath("/");
+    revalidatePath("/volunteer");
+    revalidatePath("/");
+  });
 }
 
 export async function cancelNeedSignup(needId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UserError("Not signed in.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
 
-  if (!needId) throw new UserError("Missing volunteer slot.");
+    if (!needId) throw new UserError("Missing volunteer slot.");
 
-  const { error } = await supabase
-    .from("volunteer_signups")
-    .delete()
-    .eq("need_id", needId)
-    .eq("user_id", user.id);
+    const { error } = await supabase
+      .from("volunteer_signups")
+      .delete()
+      .eq("need_id", needId)
+      .eq("user_id", user.id);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/volunteer");
-  revalidatePath("/");
+    revalidatePath("/volunteer");
+    revalidatePath("/");
+  });
 }

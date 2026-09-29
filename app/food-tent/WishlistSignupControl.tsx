@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { signUpForWishlistItem, cancelWishlistSignup } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function WishlistSignupControl({
   itemId,
@@ -23,7 +24,7 @@ export function WishlistSignupControl({
     formData.set("quantity", String(quantity));
     startTransition(async () => {
       try {
-        await signUpForWishlistItem(formData);
+        unwrap(await signUpForWishlistItem(formData));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -37,7 +38,7 @@ export function WishlistSignupControl({
     formData.set("quantity", String(editQuantity));
     startTransition(async () => {
       try {
-        await signUpForWishlistItem(formData);
+        unwrap(await signUpForWishlistItem(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -51,7 +52,7 @@ export function WishlistSignupControl({
     formData.set("item_id", itemId);
     startTransition(async () => {
       try {
-        await cancelWishlistSignup(formData);
+        unwrap(await cancelWishlistSignup(formData));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }

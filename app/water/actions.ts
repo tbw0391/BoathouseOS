@@ -87,7 +87,8 @@ export async function startLightningHold() {
     const { supabase, user } = await requireRole(["coach", "admin"]);
     const { data: open } = await supabase.from("lightning_holds").select("id").is("cleared_at", null).limit(1);
     if ((open as { id: string }[] | null)?.length) {
-      await strikeAgain();
+      const again = await strikeAgain();
+      if (!again.ok) throw new UserError(again.error);
       return;
     }
     const { error } = await supabase.from("lightning_holds").insert({ started_by: user.id });

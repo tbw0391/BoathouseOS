@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteRegatta } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 // Two taps, with what goes along with it spelled out, since a regatta takes
 // its results and medals with it.
@@ -39,7 +40,7 @@ export function DeleteRegattaButton({ eventId, title }: { eventId: string; title
             setError(null);
             startTransition(async () => {
               try {
-                await deleteRegatta(eventId);
+                unwrap(await deleteRegatta(eventId));
                 router.push("/lineups");
               } catch (e) {
                 setError(e instanceof Error ? e.message : "Couldn't delete.");

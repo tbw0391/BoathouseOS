@@ -27,6 +27,7 @@ import {
   updateThemeColors,
   resetThemeColors,
 } from "./actions";
+import { ActionForm } from "@/components/ActionForm";
 
 const VISIBILITY_LABEL: Record<string, string> = {
   everyone: "Everyone",
@@ -78,7 +79,7 @@ export default async function AdminPage() {
       <p className="text-sm text-gray-500 mb-4">
         Pick the 4 colors used across the site&apos;s buttons, borders, and background.
       </p>
-      <form action={updateThemeColors} className="flex flex-col gap-3 max-w-sm mb-8">
+      <ActionForm action={updateThemeColors} altAction={resetThemeColors} className="flex flex-col gap-3 max-w-sm mb-8">
         {(Object.keys(THEME_COLOR_LABELS) as ThemeColorKey[]).map((key) => (
           <div key={key} className="border rounded-lg px-4 py-3 text-sm flex items-center justify-between gap-3">
             <span className="font-medium">{THEME_COLOR_LABELS[key]}</span>
@@ -102,13 +103,13 @@ export default async function AdminPage() {
           </button>
           <button
             type="submit"
-            formAction={resetThemeColors}
+            data-action="alt"
             className="text-sm text-gray-500 hover:underline px-2"
           >
             Reset to defaults
           </button>
         </div>
-      </form>
+      </ActionForm>
 
       <h2 className="text-lg font-semibold mb-2">Home screen buttons</h2>
       <p className="text-sm text-gray-500 mb-4">
@@ -141,7 +142,7 @@ export default async function AdminPage() {
         turned on alerts on their phone.
       </p>
 
-      <form action={updateAlertSettings} className="flex flex-col gap-3 max-w-sm">
+      <ActionForm action={updateAlertSettings} className="flex flex-col gap-3 max-w-sm">
         {ALERT_TYPES.map((t) => (
           <div key={t.kind} className="border rounded-lg px-4 py-3 text-sm flex flex-col gap-2">
             <span className="font-medium">{t.label}</span>
@@ -168,14 +169,14 @@ export default async function AdminPage() {
         >
           Save
         </button>
-      </form>
+      </ActionForm>
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Oar tape</h2>
       <p className="text-sm text-gray-500 mb-4">
         Oars are named by their tape color and number of rings (&quot;3 Green&quot;). Coxes pick
         from these on each boat&apos;s oar sheet.
       </p>
-      <form action={updateOarSettings} className="flex flex-col gap-3 max-w-sm">
+      <ActionForm action={updateOarSettings} className="flex flex-col gap-3 max-w-sm">
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium">Tape colors</span>
           <input
@@ -203,7 +204,7 @@ export default async function AdminPage() {
         >
           Save
         </button>
-      </form>
+      </ActionForm>
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Lineups sections</h2>
       <p className="text-sm text-gray-500 mb-6">
@@ -211,7 +212,7 @@ export default async function AdminPage() {
         or off for everyone.
       </p>
 
-      <form action={updateLineupSectionVisibility} className="flex flex-col gap-3 max-w-sm">
+      <ActionForm action={updateLineupSectionVisibility} className="flex flex-col gap-3 max-w-sm">
         {LINEUP_SECTIONS.map((s) => {
           const current = lineupSectionVisibility[s.id] ?? "everyone";
           return (
@@ -240,7 +241,7 @@ export default async function AdminPage() {
         >
           Save
         </button>
-      </form>
+      </ActionForm>
     </div>
   );
 }

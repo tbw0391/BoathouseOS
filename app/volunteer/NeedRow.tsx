@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateVolunteerNeed, deleteVolunteerNeed } from "./actions";
 import type { VolunteerNeed } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function NeedRow({
   need,
@@ -23,7 +24,7 @@ export function NeedRow({
     setError(null);
     startTransition(async () => {
       try {
-        await updateVolunteerNeed(formData);
+        unwrap(await updateVolunteerNeed(formData));
         setEditing(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

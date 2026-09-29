@@ -65,61 +65,65 @@ export async function logWorkout(
 }
 
 export async function deleteWorkout(workoutId: string) {
-  const supabase = await createClient();
-  const { error, count } = await supabase.from("erg_workouts").delete({ count: "exact" }).eq("id", workoutId);
-  if (error || !count) throw new UserError("Couldn't remove that workout.");
-  revalidatePath("/workouts");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { error, count } = await supabase.from("erg_workouts").delete({ count: "exact" }).eq("id", workoutId);
+    if (error || !count) throw new UserError("Couldn't remove that workout.");
+    revalidatePath("/workouts");
+  });
 }
 
 export async function importConcept2(profileId: string, csvText: string) {
-  const supabase = await createClient();
-  const user = await requireActFor(supabase, profileId);
-  if (csvText.length > 5_000_000) throw new UserError("That file is too big.");
-  const rows = parseConcept2Csv(csvText);
-  if (rows.length === 0) throw new UserError("That doesn't look like a Concept2 logbook export.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const user = await requireActFor(supabase, profileId);
+    if (csvText.length > 5_000_000) throw new UserError("That file is too big.");
+    const rows = parseConcept2Csv(csvText);
+    if (rows.length === 0) throw new UserError("That doesn't look like a Concept2 logbook export.");
 
-  const { data: existing } = await supabase
-    .from("erg_workouts")
-    .select("source_ref")
-    .eq("profile_id", profileId)
-    .not("source_ref", "is", null);
-  const have = new Set(((existing as { source_ref: string }[] | null) ?? []).map((r) => r.source_ref));
-  const fresh = rows.filter((r) => !have.has(r.sourceRef));
-
-  for (let i = 0; i < fresh.length; i += 500) {
-    const { error } = await supabase.from("erg_workouts").insert(
-      fresh.slice(i, i + 500).map((r) => ({
-        profile_id: profileId,
-        done_on: r.doneOn,
-        piece: r.piece,
-        distance_m: r.distanceM,
-        time_seconds: r.timeSeconds,
-        stroke_rate: r.strokeRate,
-        notes: r.notes?.slice(0, 500) ?? null,
-        source: "concept2",
-        source_ref: r.sourceRef,
-        entered_by: user.id,
-      }))
-    );
-    if (error) throw new Error(error.message);
-  }
-
-  // The newest imported 2K/5K test, if it's newer than any logged before.
-  for (const which of ["2k", "5k"] as const) {
-    const newest = fresh
-      .filter((r) => testDistance(r.distanceM, r.piece) === which && r.timeSeconds != null)
-      .sort((a, b) => b.doneOn.localeCompare(a.doneOn))[0];
-    if (!newest) continue;
-    const { data: later } = await supabase
+    const { data: existing } = await supabase
       .from("erg_workouts")
-      .select("id")
+      .select("source_ref")
       .eq("profile_id", profileId)
-      .eq("distance_m", which === "2k" ? 2000 : 5000)
-      .gt("done_on", newest.doneOn)
-      .limit(1);
-    if (!(later as { id: string }[] | null)?.length) await updateProfileTest(profileId, which, newest.timeSeconds!);
-  }
+      .not("source_ref", "is", null);
+    const have = new Set(((existing as { source_ref: string }[] | null) ?? []).map((r) => r.source_ref));
+    const fresh = rows.filter((r) => !have.has(r.sourceRef));
 
-  revalidatePath("/workouts");
-  return { added: fresh.length, skipped: rows.length - fresh.length };
+    for (let i = 0; i < fresh.length; i += 500) {
+      const { error } = await supabase.from("erg_workouts").insert(
+        fresh.slice(i, i + 500).map((r) => ({
+          profile_id: profileId,
+          done_on: r.doneOn,
+          piece: r.piece,
+          distance_m: r.distanceM,
+          time_seconds: r.timeSeconds,
+          stroke_rate: r.strokeRate,
+          notes: r.notes?.slice(0, 500) ?? null,
+          source: "concept2",
+          source_ref: r.sourceRef,
+          entered_by: user.id,
+        }))
+      );
+      if (error) throw new Error(error.message);
+    }
+
+    // The newest imported 2K/5K test, if it's newer than any logged before.
+    for (const which of ["2k", "5k"] as const) {
+      const newest = fresh
+        .filter((r) => testDistance(r.distanceM, r.piece) === which && r.timeSeconds != null)
+        .sort((a, b) => b.doneOn.localeCompare(a.doneOn))[0];
+      if (!newest) continue;
+      const { data: later } = await supabase
+        .from("erg_workouts")
+        .select("id")
+        .eq("profile_id", profileId)
+        .eq("distance_m", which === "2k" ? 2000 : 5000)
+        .gt("done_on", newest.doneOn)
+        .limit(1);
+      if (!(later as { id: string }[] | null)?.length) await updateProfileTest(profileId, which, newest.timeSeconds!);
+    }
+
+    revalidatePath("/workouts");
+    return { added: fresh.length, skipped: rows.length - fresh.length };
+  });
 }

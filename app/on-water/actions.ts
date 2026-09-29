@@ -7,50 +7,52 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { guardianIdsFor, sendPush } from "@/lib/push";
 import type { Profile } from "@/lib/database.types";
 import { isOnWaterColor } from "@/lib/onWaterColors";
-import { UserError } from "@/lib/userError";
+import { UserError, tryAction } from "@/lib/userError";
 
 export async function startSession(boatId: string, color: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UserError("Not signed in.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
 
-  const { data: callerProfile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  const role = (callerProfile as Pick<Profile, "role"> | null)?.role;
-  // Admins can cox too.
-  if (role !== "coxswain" && role !== "admin") {
-    throw new UserError("Only coxswains can turn on GPS tracking.");
-  }
+    const { data: callerProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    const role = (callerProfile as Pick<Profile, "role"> | null)?.role;
+    // Admins can cox too.
+    if (role !== "coxswain" && role !== "admin") {
+      throw new UserError("Only coxswains can turn on GPS tracking.");
+    }
 
-  const { data: boat } = await supabase.from("boats").select("id").eq("id", boatId).maybeSingle();
-  if (!boat) throw new UserError("Pick which boat you're in.");
-  if (!isOnWaterColor(color)) throw new UserError("Pick a color.");
+    const { data: boat } = await supabase.from("boats").select("id").eq("id", boatId).maybeSingle();
+    if (!boat) throw new UserError("Pick which boat you're in.");
+    if (!isOnWaterColor(color)) throw new UserError("Pick a color.");
 
-  // A phone left tracking from an earlier outing would show twice on the map.
-  await supabase
-    .from("on_water_sessions")
-    .update({ ended_at: new Date().toISOString() })
-    .eq("coxswain_id", user.id)
-    .is("ended_at", null);
+    // A phone left tracking from an earlier outing would show twice on the map.
+    await supabase
+      .from("on_water_sessions")
+      .update({ ended_at: new Date().toISOString() })
+      .eq("coxswain_id", user.id)
+      .is("ended_at", null);
 
-  const { data, error } = await supabase
-    .from("on_water_sessions")
-    .insert({ coxswain_id: user.id, boat_id: boatId, color })
-    .select("id")
-    .single();
+    const { data, error } = await supabase
+      .from("on_water_sessions")
+      .insert({ coxswain_id: user.id, boat_id: boatId, color })
+      .select("id")
+      .single();
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/on-water");
-  revalidatePath("/coach/tracking");
-  const sessionId = data.id as string;
-  after(() => alertCrewFamilies(sessionId, boatId, user.id));
-  return sessionId;
+    revalidatePath("/on-water");
+    revalidatePath("/coach/tracking");
+    const sessionId = data.id as string;
+    after(() => alertCrewFamilies(sessionId, boatId, user.id));
+    return sessionId;
+  });
 }
 
 // Tells the crew's parents their boat is out (everyone seated in today's
@@ -117,34 +119,38 @@ async function alertCrewFamilies(sessionId: string, boatId: string, coxswainId: 
 }
 
 export async function endSession(sessionId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UserError("Not signed in.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
 
-  const { error } = await supabase
-    .from("on_water_sessions")
-    .update({ ended_at: new Date().toISOString() })
-    .eq("id", sessionId);
+    const { error } = await supabase
+      .from("on_water_sessions")
+      .update({ ended_at: new Date().toISOString() })
+      .eq("id", sessionId);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/on-water");
-  revalidatePath("/coach/tracking");
+    revalidatePath("/on-water");
+    revalidatePath("/coach/tracking");
+  });
 }
 
 export async function setBoatFollowed(boatId: string, follow: boolean) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UserError("Not signed in.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
 
-  const { error } = follow
-    ? await supabase
-        .from("on_water_follows")
-        .upsert({ profile_id: user.id, boat_id: boatId }, { onConflict: "profile_id,boat_id", ignoreDuplicates: true })
-    : await supabase.from("on_water_follows").delete().eq("profile_id", user.id).eq("boat_id", boatId);
-  if (error) throw new Error(error.message);
+    const { error } = follow
+      ? await supabase
+          .from("on_water_follows")
+          .upsert({ profile_id: user.id, boat_id: boatId }, { onConflict: "profile_id,boat_id", ignoreDuplicates: true })
+      : await supabase.from("on_water_follows").delete().eq("profile_id", user.id).eq("boat_id", boatId);
+    if (error) throw new Error(error.message);
+  });
 }

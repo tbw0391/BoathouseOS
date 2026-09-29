@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { switchDemoProfile } from "@/app/login/actions";
+import { unwrap } from "@/lib/userError";
 
 type Option = { role: string; label: string; blurb: string };
 
@@ -15,7 +16,7 @@ export function ProfilePicker({ profiles, current }: { profiles: Option[]; curre
     setPendingRole(role);
     startTransition(async () => {
       try {
-        await switchDemoProfile(role);
+        unwrap(await switchDemoProfile(role));
       } catch (err) {
         // redirect() inside the action surfaces as a thrown NEXT_REDIRECT.
         if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;

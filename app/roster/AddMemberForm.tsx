@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { addMember } from "./actions";
 import { TEAM_LABELS, TEAM_OPTIONS } from "@/lib/teams";
+import { unwrap } from "@/lib/userError";
 
 export function AddMemberForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -18,7 +19,7 @@ export function AddMemberForm() {
     setJustAdded(false);
     startTransition(async () => {
       try {
-        const result = await addMember(formData);
+        const result = unwrap(await addMember(formData));
         formRef.current?.reset();
         setInviteLink(result?.inviteLink ?? null);
         setJustAdded(true);

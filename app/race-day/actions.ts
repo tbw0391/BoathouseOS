@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { LAUNCH_MINUTES_KEY, LAUNCH_MINUTE_OPTIONS } from "@/lib/raceDay";
-import { UserError } from "@/lib/userError";
+import { UserError, tryAction } from "@/lib/userError";
 
 async function requireRole(roles: string[]) {
   const supabase = await createClient();
@@ -27,11 +27,13 @@ export async function saveBowNumber(lineupId: string, bowNumber: string) {
 
 // Club settings are admin-only (RLS).
 export async function saveLaunchMinutes(minutes: number) {
-  const supabase = await requireRole(["admin"]);
-  if (!LAUNCH_MINUTE_OPTIONS.includes(minutes)) throw new UserError("Pick one of the listed times.");
-  const { error } = await supabase
-    .from("club_settings")
-    .upsert({ key: LAUNCH_MINUTES_KEY, value: String(minutes) }, { onConflict: "key" });
-  if (error) throw new Error(error.message);
-  revalidatePath("/race-day");
+  return tryAction(async () => {
+    const supabase = await requireRole(["admin"]);
+    if (!LAUNCH_MINUTE_OPTIONS.includes(minutes)) throw new UserError("Pick one of the listed times.");
+    const { error } = await supabase
+      .from("club_settings")
+      .upsert({ key: LAUNCH_MINUTES_KEY, value: String(minutes) }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    revalidatePath("/race-day");
+  });
 }

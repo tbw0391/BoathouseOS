@@ -5,6 +5,7 @@ import { createLineup } from "./actions";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_GROUPS } from "@/lib/lineupCategories";
 import type { Boat } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: Boat[] }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -15,7 +16,7 @@ export function CreateLineupForm({ eventId, boats }: { eventId: string; boats: B
     setError(null);
     startTransition(async () => {
       try {
-        await createLineup(formData);
+        unwrap(await createLineup(formData));
         formRef.current?.reset();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

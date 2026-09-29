@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Bell, BellOff } from "lucide-react";
 import { setBoatFollowed } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 // Parents (and anyone else watching) pick boats to hear about when they go
 // out, for practices where the crew isn't in a lineup.
@@ -28,7 +29,7 @@ export function FollowBoats({
     setError(null);
     startTransition(async () => {
       try {
-        await setBoatFollowed(boatId, next);
+        unwrap(await setBoatFollowed(boatId, next));
       } catch (e) {
         setFollowed((prev) => {
           const s = new Set(prev);

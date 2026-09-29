@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { submitMaintenanceRequest } from "./actions";
 import type { Boat, MaintenanceType } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 export function RequestForm({
   type,
@@ -23,7 +24,7 @@ export function RequestForm({
     setSubmitted(false);
     startTransition(async () => {
       try {
-        await submitMaintenanceRequest(type, formData);
+        unwrap(await submitMaintenanceRequest(type, formData));
         formRef.current?.reset();
         setSubmitted(true);
       } catch (e) {

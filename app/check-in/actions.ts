@@ -4,30 +4,32 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { AttendanceStatus, Profile } from "@/lib/database.types";
 import { ABSENCE_REASONS, todaysPracticeDate } from "@/lib/practiceAttendance";
-import { UserError } from "@/lib/userError";
+import { UserError, tryAction } from "@/lib/userError";
 
 export async function checkIn() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UserError("Not signed in.");
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
 
-  const { data: callerProfile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  const callerRole = (callerProfile as Pick<Profile, "role"> | null)?.role;
-  if (callerRole !== "coach" && callerRole !== "admin") {
-    throw new UserError("Only coaches and admins can check in.");
-  }
+    const { data: callerProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    const callerRole = (callerProfile as Pick<Profile, "role"> | null)?.role;
+    if (callerRole !== "coach" && callerRole !== "admin") {
+      throw new UserError("Only coaches and admins can check in.");
+    }
 
-  const { error } = await supabase.from("coach_check_ins").insert({ profile_id: user.id });
-  if (error) throw new Error(error.message);
+    const { error } = await supabase.from("coach_check_ins").insert({ profile_id: user.id });
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/");
-  revalidatePath(`/roster/${user.id}`);
+    revalidatePath("/");
+    revalidatePath(`/roster/${user.id}`);
+  });
 }
 
 async function setPracticeAttendance(status: AttendanceStatus | null, reason: string | null) {
@@ -68,14 +70,18 @@ async function setPracticeAttendance(status: AttendanceStatus | null, reason: st
 }
 
 export async function checkInToPractice() {
-  await setPracticeAttendance("checked_in", null);
+  return tryAction(async () => {
+    await setPracticeAttendance("checked_in", null);
+  });
 }
 
 export async function markAbsentFromPractice(reason: string) {
-  if (!(ABSENCE_REASONS as readonly string[]).includes(reason)) {
-    throw new UserError("Pick a reason.");
-  }
-  await setPracticeAttendance("absent", reason);
+  return tryAction(async () => {
+    if (!(ABSENCE_REASONS as readonly string[]).includes(reason)) {
+      throw new UserError("Pick a reason.");
+    }
+    await setPracticeAttendance("absent", reason);
+  });
 }
 
 // "Change" — clears today's answer so both buttons show again.

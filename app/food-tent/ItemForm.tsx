@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { addFoodTentItem } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 export function ItemForm({ eventId }: { eventId: string }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -13,7 +14,7 @@ export function ItemForm({ eventId }: { eventId: string }) {
     setError(null);
     startTransition(async () => {
       try {
-        await addFoodTentItem(formData);
+        unwrap(await addFoodTentItem(formData));
         formRef.current?.reset();
         setOpen(false);
       } catch (e) {

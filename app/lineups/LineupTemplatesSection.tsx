@@ -11,6 +11,7 @@ import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_GROUPS } from "@/lib/lineupCategories";
 import { SeatFiller } from "./SeatFiller";
 import type { Boat, LineupTemplate, LineupTemplateSeat, Profile } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 function TemplateCard({
   template,
@@ -48,7 +49,7 @@ function TemplateCard({
     if (boatId) formData.set("boat_id", boatId);
     startTransition(async () => {
       try {
-        await updateTemplateBoat(formData);
+        unwrap(await updateTemplateBoat(formData));
       } catch (err) {
         setBoatError(err instanceof Error ? err.message : "Something went wrong.");
       }
@@ -138,7 +139,7 @@ export function LineupTemplatesSection({
     setError(null);
     startTransition(async () => {
       try {
-        await createLineupTemplate(formData);
+        unwrap(await createLineupTemplate(formData));
         formRef.current?.reset();
         setBoatId("");
         setBoatClass("");
