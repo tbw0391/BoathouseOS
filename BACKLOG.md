@@ -795,8 +795,9 @@
       allowlist, calendar repeats/standing practices, CrewTimer parsing and
       race categories. GitHub Actions (.github/workflows/ci.yml) runs
       typecheck + lint + tests on every push.
-- [ ] Ongoing: new tables need `select public.apply_approval_gate();` at the
-      end of their migration. Review RLS on every new table, run /security-review before
+- [ ] Ongoing: new tables need a club_id column (see Multi-tenant Phase 1)
+      and `select public.apply_club_isolation();` plus
+      `select public.apply_approval_gate();` at the end of their migration. Review RLS on every new table, run /security-review before
       big releases, check Supabase Advisors → Security.
 
 ## Safe Sport compliance
@@ -827,15 +828,41 @@
       phone shots of Lineups, a Regatta race, and home in club colors to
       public/branding/screens/), maybe a
       guided tour.
-- [ ] Phase 1 (schema + RLS isolation only — no branding/onboarding/billing
-      yet) is fully designed and reviewed: a `clubs` table, `club_id` on
-      every table with composite FKs to enforce parent/child consistency, a
-      `current_club_id()` helper mirroring the existing `is_chat_group_member()`
-      pattern, and a full RLS rewrite. Full plan with exact file/policy
-      references saved at ~/.claude/plans/deep-snuggling-kahn.md — read that
-      file before starting, it has the specific gotchas already found
-      (chat_groups' OR-clause policy, the sync_team_chat_membership trigger,
-      club_settings' primary key, storage bucket read-isolation limits, etc.)
+- [x] Phase 1 (2026-09-29, 0103_clubs.sql): every club's data is walled
+      off in the database. A `clubs` table (everything already here is
+      the demo club, slug "demo"); `club_id` on every club table, filled
+      in by itself from the signed-in member's club; one restrictive "same
+      club only" policy per table (like the approval gate), so a member
+      only ever sees or writes their own club's rows; foreign keys between
+      club tables include club_id, so nothing can point at another club's
+      row; settings, payment settings, team/board chats, boat and task
+      type names and practice calls are one-per-club; SECURITY DEFINER
+      functions, storage uploads/deletes and the demo reset stay in the
+      club. Server code using the service role says which club it means
+      (lib/clubs.ts): signups, roster adds/imports, alerts and each club's
+      alert switches, calendar feeds, payments, apparel. Tested with a
+      throwaway second club (rolled back): it saw none of the demo's
+      members, events, settings, chats or messages, and couldn't write to
+      or link into them.
+      - New tables: add `club_id uuid not null default
+        public.default_club_id() references public.clubs (id)` and end the
+        migration with `select public.apply_club_isolation();` (plus the
+        approval gate). Platform-wide tables are listed in
+        public.platform_tables().
+      - Service-role inserts must pass club_id: with one club it falls back
+        to that club, but once a second club exists a missing club_id fails.
+      - Global admins are walled in like everyone else (Todd is in the demo
+        club). Seeing across clubs will go through a global-admin page using
+        the service role (Phase 2), not RLS.
+      - The 95 clubs on /choose-club stay a demo-only look inside the demo
+        club (colors + the races/lineups `club_slug` filter); they aren't
+        real clubs.
+      - Public buckets: file links still open for anyone who has them
+        (same as before). Real read isolation needs private buckets and
+        signed URLs.
+      - Self-signups and the demo accounts join the demo club
+        (SITE_CLUB_SLUG). Invites/QR codes that pick the club come with
+        onboarding.
 - [ ] Phase 2+ (deferred, not yet designed): dynamic branding/theming per
       club, self-serve club signup/onboarding (the QR-code invite can encode
       which club), Stripe billing, a super-admin view to manage clubs. The
@@ -858,12 +885,6 @@
       - One club per account: someone in two clubs uses two logins.
       - How new clubs get created: not decided yet — Todd wants more setup
         and testing done before rolling multi-club out.
-- [ ] Before starting Phase 1: refresh ~/.claude/plans/deep-snuggling-kahn.md,
-      written when the app had ~20 tables; ~40 have been added since
-      (payments, apparel, On the Water, polls, coach tasks, races, push,
-      scheduled alerts, photo likes/comments, erg times, ...), each needing
-      club_id + RLS. Also the demo's existing per-club `club_slug` on
-      races/lineups should fold into the real club_id.
 
 ## Maintenance requests
 - [x] Boat Maintenance: anyone can report an issue with a specific fleet boat
