@@ -12,10 +12,15 @@ export function smsConfigured(): boolean {
 // Twilio error 21610: the number replied STOP, so Twilio won't text it.
 const OPTED_OUT = 21610;
 
-// One text per number. Never throws; numbers that have opted out at Twilio
-// are marked opted out here too.
-export async function sendTexts(admin: ReturnType<typeof createAdminClient>, phones: string[], body: string) {
-  if (!smsConfigured() || phones.length === 0) return;
+// One text per number. Never throws; returns how many Twilio accepted.
+// Numbers that have opted out at Twilio are marked opted out here too.
+export async function sendTexts(
+  admin: ReturnType<typeof createAdminClient>,
+  phones: string[],
+  body: string
+): Promise<number> {
+  if (!smsConfigured() || phones.length === 0) return 0;
+  let accepted = 0;
   const sid = process.env.TWILIO_ACCOUNT_SID!;
   const auth = Buffer.from(`${sid}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64");
   const optedOut: string[] = [];
@@ -27,7 +32,8 @@ export async function sendTexts(admin: ReturnType<typeof createAdminClient>, pho
           headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ To: to, From: process.env.TWILIO_FROM_NUMBER!, Body: body }),
         });
-        if (!res.ok) {
+        if (res.ok) accepted++;
+        else {
           const err = (await res.json().catch(() => null)) as { code?: number; message?: string } | null;
           if (err?.code === OPTED_OUT) optedOut.push(to);
           else console.error("Text failed", res.status, err?.code, err?.message);
@@ -44,6 +50,7 @@ export async function sendTexts(admin: ReturnType<typeof createAdminClient>, pho
       .in("phone", optedOut)
       .is("opted_out_at", null);
   }
+  return accepted;
 }
 
 // Checks X-Twilio-Signature: base64 HMAC-SHA1 (auth token) of the full URL

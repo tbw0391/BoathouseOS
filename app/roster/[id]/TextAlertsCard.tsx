@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { MessageSquareText } from "lucide-react";
 import { SMS_CONSENT_TEXT, formatUsPhone } from "@/lib/smsRules";
-import { saveTextAlerts, turnOffTextAlerts } from "./actions";
+import { saveTextAlerts, sendMyTestText, turnOffTextAlerts } from "./actions";
 
 // Opt in to (or out of) text alerts on your own profile. The consent box
 // and its exact wording are what carriers check for.
@@ -12,6 +12,7 @@ export function TextAlertsCard({ phone, canOptIn }: { phone: string | null; canO
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [sent, setSent] = useState(false);
 
   function run(fn: () => Promise<void>) {
     setError(null);
@@ -37,14 +38,31 @@ export function TextAlertsCard({ phone, canOptIn }: { phone: string | null; canO
             On for <strong>{formatUsPhone(phone)}</strong>: lightning holds, today&apos;s practice
             changes, and race launch times. Reply STOP to any text to stop them.
           </p>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={() => run(turnOffTextAlerts)}
-            className="self-start text-sm border-2 border-gray-300 rounded px-3 py-2 disabled:opacity-50"
-          >
-            {isPending ? "Turning off..." : "Turn off text alerts"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() =>
+                run(async () => {
+                  setSent(false);
+                  await sendMyTestText();
+                  setSent(true);
+                })
+              }
+              className="text-sm border-2 border-[var(--color-primary)] rounded px-3 py-2 disabled:opacity-50"
+            >
+              Send me a test text
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => run(turnOffTextAlerts)}
+              className="text-sm border-2 border-gray-300 rounded px-3 py-2 disabled:opacity-50"
+            >
+              Turn off text alerts
+            </button>
+          </div>
+          {sent && <p className="text-sm text-green-700">Sent. It should arrive in a few seconds.</p>}
         </>
       ) : canOptIn ? (
         <form

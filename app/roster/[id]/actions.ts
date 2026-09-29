@@ -6,7 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { BoatSide, Role, Team } from "@/lib/database.types";
 import { PROFILE_BUTTONS } from "@/lib/profileButtons";
 import { tidyErgTime } from "@/lib/erg";
-import { SMS_CONSENT_TEXT, canOptInToTexts, normalizeUsPhone } from "@/lib/smsRules";
+import { SMS_CONSENT_TEXT, canOptInToTexts, normalizeUsPhone, smsBody } from "@/lib/smsRules";
+import { sendTexts, smsConfigured } from "@/lib/sms";
 
 const VALID_ROLES: Role[] = ["rower", "coxswain", "coach", "parent", "admin"];
 
@@ -468,4 +469,25 @@ export async function turnOffTextAlerts() {
     .eq("profile_id", user.id);
   if (error) throw new Error(error.message);
   revalidatePath(`/roster/${user.id}`);
+}
+
+// A test text to your own opted-in number, to check texts are working.
+export async function sendMyTestText() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+  if (!smsConfigured()) throw new Error("Texting isn't set up yet (Twilio settings missing in Vercel).");
+
+  const { data } = await supabase
+    .from("sms_consents")
+    .select("phone, opted_out_at")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  const consent = data as { phone: string; opted_out_at: string | null } | null;
+  if (!consent || consent.opted_out_at) throw new Error("Turn on text alerts first.");
+
+  const sent = await sendTexts(createAdminClient(), [consent.phone], smsBody("Test text", "Text alerts are working."));
+  if (sent === 0) throw new Error("Twilio didn't accept the text. Check Monitor → Logs → Errors in Twilio.");
 }
