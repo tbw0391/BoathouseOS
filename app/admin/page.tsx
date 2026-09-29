@@ -27,6 +27,7 @@ import {
   updateThemeColors,
   resetThemeColors,
 } from "./actions";
+import { updateStoreLink } from "@/app/store/actions";
 import { ActionForm } from "@/components/ActionForm";
 
 const VISIBILITY_LABEL: Record<string, string> = {
@@ -62,6 +63,7 @@ export default async function AdminPage() {
       "lineup_section_visibility",
       ALERT_SETTINGS_KEY,
       OAR_COLORS_KEY,
+      "team_store_url",
     ]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
@@ -70,6 +72,7 @@ export default async function AdminPage() {
   const lineupSectionVisibility = resolveLineupSectionVisibility(settingsByKey);
   const alertsEnabled = parseAlertSettings(settingsByKey.get(ALERT_SETTINGS_KEY));
   const oarSettings = parseOarSettings(settingsByKey.get(OAR_COLORS_KEY));
+  const storeUrl = settingsByKey.get("team_store_url") ?? null;
 
   return (
     <div className="min-h-screen p-8">
@@ -122,6 +125,33 @@ export default async function AdminPage() {
         onSave={updateNavAccess}
         savedMessage="Saved. Everyone sees the change next time they open the home screen."
       />
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">Team store</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        Paste the link to the club&apos;s online store. A Team Store button shows on the home
+        screen while a link is saved; leave it blank to hide it.
+      </p>
+      <ActionForm action={updateStoreLink} className="flex flex-col gap-3 max-w-sm">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">Store link</span>
+          <input
+            name="url"
+            type="url"
+            defaultValue={storeUrl ?? ""}
+            className="border rounded-lg px-3 py-2"
+            placeholder="https://..."
+          />
+        </label>
+        <a href="/store?edit=1" className="text-xs text-gray-500 hover:underline">
+          Pick featured items for the home screen →
+        </a>
+        <button
+          type="submit"
+          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          Save
+        </button>
+      </ActionForm>
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Profile buttons</h2>
       <p className="text-sm text-gray-500 mb-4">

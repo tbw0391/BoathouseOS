@@ -33,6 +33,8 @@ export async function updateStoreLink(formData: FormData) {
     if (error) throw new Error(error.message);
 
     revalidatePath("/store");
+    revalidatePath("/");
+    revalidatePath("/admin");
   });
 }
 
