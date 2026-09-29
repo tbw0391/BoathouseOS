@@ -8,6 +8,7 @@ import {
   LAUNCH_MINUTES_KEY,
   clubDateKey,
   clubTimeLabel,
+  delayedRaceTime,
   launchTime,
   parseLaunchMinutes,
   pickRaceDayEvent,
@@ -15,7 +16,7 @@ import {
   seatLabel,
 } from "@/lib/raceDay";
 import type { Lineup, LineupSeat, Profile, ScheduleEvent } from "@/lib/database.types";
-import { BowNumberEditor, LaunchMinutesPicker } from "./RaceDayControls";
+import { BowNumberEditor, LaunchMinutesPicker, RaceDelayPicker, RaceSoonButton } from "./RaceDayControls";
 
 // Everything a crew needs on race day: each race with its launch time, bow
 // number and crew, soonest first. Rowers and coxswains see their own races,
@@ -111,8 +112,10 @@ export default async function RaceDayPage() {
 
   const isToday = clubDateKey(new Date()) >= clubDateKey(event.starts_at);
   const hasCourse = event.start_lat != null || event.finish_lat != null;
-  const upcoming = lineups.filter((l) => !raceIsOver(l));
-  const done = lineups.filter((l) => raceIsOver(l));
+  const delayMinutes = event.race_delay_minutes ?? 0;
+  const now = new Date();
+  const upcoming = lineups.filter((l) => !raceIsOver(l, now, delayMinutes));
+  const done = lineups.filter((l) => raceIsOver(l, now, delayMinutes));
 
   return (
     <Shell>
@@ -143,10 +146,16 @@ export default async function RaceDayPage() {
         </div>
       </div>
 
+      {delayMinutes > 0 && (
+        <p className="mb-4 rounded-lg bg-amber-100 text-amber-900 px-3 py-2 text-sm font-medium">
+          Running {delayMinutes} minutes late. The times below include the delay.
+        </p>
+      )}
       <p className="text-sm text-gray-600 mb-4">
         Launch times are {launchMinutes} minutes before each race.
       </p>
       {role === "admin" && <LaunchMinutesPicker current={launchMinutes} />}
+      {isManager && <RaceDelayPicker eventId={event.id} current={delayMinutes} />}
 
       {lineups.length === 0 && (
         <p className="text-sm text-gray-600">
@@ -167,6 +176,7 @@ export default async function RaceDayPage() {
             nameById={nameById}
             followIds={followIds}
             launchMinutes={launchMinutes}
+            delayMinutes={delayMinutes}
             onWater={onWater.has(l.id)}
             canEdit={isManager}
           />
@@ -212,6 +222,7 @@ function RaceCard({
   nameById,
   followIds,
   launchMinutes,
+  delayMinutes,
   onWater,
   canEdit,
 }: {
@@ -220,6 +231,7 @@ function RaceCard({
   nameById: Map<string, string>;
   followIds: string[] | null;
   launchMinutes: number;
+  delayMinutes: number;
   onWater: boolean;
   canEdit: boolean;
 }) {
@@ -229,6 +241,7 @@ function RaceCard({
     if (b.seat_role === "coxswain") return 1;
     return b.seat_number - a.seat_number;
   });
+  const raceTime = lineup.race_time ? delayedRaceTime(lineup.race_time, delayMinutes) : null;
 
   return (
     <div className="rounded-lg border-2 border-[var(--color-primary)] p-4">
@@ -240,10 +253,13 @@ function RaceCard({
             {lineup.boat_class && ` · ${lineup.boat_class}`}
           </p>
         </div>
-        {lineup.race_time ? (
+        {raceTime ? (
           <div className="text-right shrink-0">
-            <p className="text-lg font-bold leading-tight">{clubTimeLabel(lineup.race_time)}</p>
-            <p className="text-xs text-gray-600">Launch {clubTimeLabel(launchTime(lineup.race_time, launchMinutes))}</p>
+            <p className="text-lg font-bold leading-tight">{clubTimeLabel(raceTime)}</p>
+            <p className="text-xs text-gray-600">Launch {clubTimeLabel(launchTime(raceTime, launchMinutes))}</p>
+            {delayMinutes > 0 && (
+              <p className="text-xs text-gray-500">Scheduled {clubTimeLabel(lineup.race_time!)}</p>
+            )}
           </div>
         ) : (
           <p className="text-xs text-gray-500 shrink-0">Time TBA</p>
@@ -254,6 +270,7 @@ function RaceCard({
         {onWater && (
           <span className="text-xs font-medium rounded-full bg-blue-100 text-blue-800 px-2 py-0.5">On the water now</span>
         )}
+        {canEdit && <RaceSoonButton lineupId={lineup.id} sentAt={lineup.race_soon_sent_at ?? null} />}
         {canEdit ? (
           <BowNumberEditor lineupId={lineup.id} current={lineup.bow_number} />
         ) : (

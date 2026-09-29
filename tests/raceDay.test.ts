@@ -5,6 +5,8 @@ import {
   parseLaunchMinutes,
   pickRaceDayEvent,
   raceIsOver,
+  regattaIsFinished,
+  delayedRaceTime,
   seatLabel,
   bowFromRaceName,
 } from "@/lib/raceDay";
@@ -74,5 +76,45 @@ describe("bowFromRaceName", () => {
     expect(bowFromRaceName("Race 39: Mens Rec 4+ (1500) (Bow 265)")).toBe("265");
     expect(bowFromRaceName("Men's 8+ Grand Final")).toBeNull();
     expect(bowFromRaceName(null)).toBeNull();
+  });
+});
+
+describe("running late", () => {
+  it("pushes the race back by the delay", () => {
+    expect(delayedRaceTime("2026-10-03T14:40:00Z", 20)).toBe("2026-10-03T15:00:00.000Z");
+    expect(delayedRaceTime("2026-10-03T14:40:00Z")).toBe("2026-10-03T14:40:00.000Z");
+  });
+
+  it("keeps a race open 2 hours past its delayed time", () => {
+    const race = { place: null, race_time: "2026-10-03T14:00:00Z" };
+    const now = new Date("2026-10-03T16:30:00Z");
+    expect(raceIsOver(race, now)).toBe(true);
+    expect(raceIsOver(race, now, 45)).toBe(false);
+  });
+});
+
+describe("regattaIsFinished", () => {
+  const regatta = { starts_at: "2026-10-03T12:00:00Z", ends_at: null };
+  const raceDayMorning = new Date("2026-10-03T14:00:00Z");
+
+  it("is finished once every boat has a result", () => {
+    expect(regattaIsFinished(regatta, [{ place: 1 }, { place: 4 }], raceDayMorning)).toBe(true);
+    expect(regattaIsFinished(regatta, [{ place: 1 }, { place: null }], raceDayMorning)).toBe(false);
+  });
+
+  it("isn't finished on the day with no boats yet", () => {
+    expect(regattaIsFinished(regatta, [], raceDayMorning)).toBe(false);
+  });
+
+  it("is finished the day after, results or not (club time)", () => {
+    // 11:30 PM Eastern on race day is still race day.
+    expect(regattaIsFinished(regatta, [{ place: null }], new Date("2026-10-04T03:30:00Z"))).toBe(false);
+    expect(regattaIsFinished(regatta, [{ place: null }], new Date("2026-10-04T05:00:00Z"))).toBe(true);
+  });
+
+  it("waits for the last day of a two-day regatta", () => {
+    const twoDay = { starts_at: "2026-10-03T12:00:00Z", ends_at: "2026-10-04T20:00:00Z" };
+    expect(regattaIsFinished(twoDay, [], new Date("2026-10-04T15:00:00Z"))).toBe(false);
+    expect(regattaIsFinished(twoDay, [], new Date("2026-10-05T12:00:00Z"))).toBe(true);
   });
 });

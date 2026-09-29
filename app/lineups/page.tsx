@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isPastEvent } from "@/lib/schedule";
+import { regattaIsFinished } from "@/lib/raceDay";
 import { getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
 import type { Lineup, Race, ScheduleEvent } from "@/lib/database.types";
 import { EventIcon } from "@/components/EventIcon";
@@ -42,14 +43,25 @@ export default async function LineupsPage() {
       eventIdsWithLineups.has(e.id) ||
       eventIdsWithRaces.has(e.id)
   );
+  // Finished regattas (every boat has a result, or the day's over) drop
+  // below the upcoming ones, most recent first.
+  const isFinished = (e: ScheduleEvent) =>
+    e.event_type === "regatta" &&
+    regattaIsFinished(
+      e,
+      lineups.filter((l) => l.event_id === e.id)
+    );
   const upcoming = relevantEvents
-    .filter((e) => !isPastEvent(e))
+    .filter((e) => !isPastEvent(e) && !isFinished(e))
     .sort((a, b) => {
       const aRegatta = a.event_type === "regatta" ? 0 : 1;
       const bRegatta = b.event_type === "regatta" ? 0 : 1;
       if (aRegatta !== bRegatta) return aRegatta - bRegatta;
       return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
     });
+  const finished = relevantEvents
+    .filter((e) => !isPastEvent(e) && isFinished(e))
+    .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
   const past = relevantEvents
     .filter((e) => isPastEvent(e))
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
@@ -82,7 +94,7 @@ export default async function LineupsPage() {
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">Lineups</h1>
 
-      {upcoming.length === 0 && past.length === 0 && (
+      {upcoming.length === 0 && finished.length === 0 && past.length === 0 && (
         <p className="text-sm text-gray-500">No events on the schedule yet.</p>
       )}
 
@@ -91,6 +103,17 @@ export default async function LineupsPage() {
           <EventButton key={event.id} event={event} />
         ))}
       </div>
+
+      {finished.length > 0 && (
+        <>
+          <h2 className="mt-8 mb-3 text-sm font-medium text-gray-500">Finished</h2>
+          <div className="flex flex-col gap-3 w-full">
+            {finished.map((event) => (
+              <EventButton key={event.id} event={event} />
+            ))}
+          </div>
+        </>
+      )}
 
       {canManage && (
         <Link href="/boats" className="mt-8 inline-block text-sm text-gray-600 underline">

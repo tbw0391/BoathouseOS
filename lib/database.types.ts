@@ -72,6 +72,8 @@ export interface ScheduleEvent {
   start_lng: number | null;
   finish_lat: number | null;
   finish_lng: number | null;
+  // Regatta running late: pushes back its race and launch times (0102).
+  race_delay_minutes: number;
   created_by: string | null;
   created_at: string;
 }
@@ -133,6 +135,8 @@ export interface Lineup {
   // The tracked boat crossed the start / reached the finish (0098).
   race_started_at: string | null;
   race_finished_at: string | null;
+  // A coach sent the "racing in about 20 minutes" alert (0102).
+  race_soon_sent_at: string | null;
 }
 
 export interface Boat {

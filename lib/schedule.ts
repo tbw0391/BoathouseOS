@@ -20,9 +20,9 @@ export async function getUnreadScheduleCount(userId: string): Promise<number> {
   return count ?? 0;
 }
 
-// For now regattas never move to Past: they stay under Upcoming until we
-// decide how long to keep them (it used to be two days after race day, see
-// git history). Everything else is past once its start time has gone by.
+// Regattas never move to Past: once finished they're listed under
+// "Finished" instead (regattaIsFinished in lib/raceDay.ts). Everything else
+// is past once its start time has gone by.
 export function isPastEvent(event: Pick<ScheduleEvent, "event_type" | "starts_at">, now = new Date()): boolean {
   if (event.event_type === "regatta") return false;
   return new Date(event.starts_at).getTime() < now.getTime();

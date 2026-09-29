@@ -82,7 +82,7 @@ import {
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
-import { clubDateKey, pickRaceDayEvent } from "@/lib/raceDay";
+import { clubDateKey, clubTimeLabel, delayedRaceTime, pickRaceDayEvent, raceIsOver } from "@/lib/raceDay";
 import { PRACTICE_CALL_LABELS, lightningMinutesLeft } from "@/lib/waterConditions";
 import { formatMoney } from "@/lib/payments";
 import { getTodaysCheckInLabel } from "@/lib/checkIns";
@@ -401,15 +401,11 @@ async function loadLineupBanners(
         ? eventById.get(lineup.event_id)
         : undefined;
       if (!lineup || !event) return null;
-      // Race's done: a result's in, or it's 2 hours past the scheduled time
-      // (regattas run late, so not right at the start time).
-      if (lineup.place != null) return null;
-      if (
-        lineup.race_time &&
-        new Date(lineup.race_time).getTime() + 2 * 60 * 60 * 1000 < Date.now()
-      ) {
-        return null;
-      }
+      // Race's done: a result's in, or it's 2 hours past the race time
+      // plus any running-late delay (regattas run late, so not right at the
+      // start time).
+      const delayMinutes = event.race_delay_minutes ?? 0;
+      if (raceIsOver(lineup, new Date(), delayMinutes)) return null;
       return {
         rowerName:
           isParent || isCoachOrAdmin
@@ -418,10 +414,8 @@ async function loadLineupBanners(
         boatName: lineup.boat_name,
         raceName: lineup.race_name,
         raceTimeLabel: lineup.race_time
-          ? new Date(lineup.race_time).toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            })
+          ? clubTimeLabel(delayedRaceTime(lineup.race_time, delayMinutes)) +
+            (delayMinutes ? ` (${delayMinutes} min late)` : "")
           : null,
         eventTitle: event.title,
         eventDate: new Date(event.starts_at).toLocaleDateString(),

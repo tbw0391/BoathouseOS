@@ -12,6 +12,18 @@ export function parseLaunchMinutes(raw: string | null | undefined): number {
   return Number.isInteger(n) && n > 0 && n <= 240 ? n : DEFAULT_LAUNCH_MINUTES;
 }
 
+// Tap choices for "running late" on the Race Day page.
+export const DELAY_MINUTE_OPTIONS = [0, 10, 15, 20, 30, 45, 60, 90];
+
+// Minutes before the (delayed) race time a coach's "racing soon" alert means.
+export const RACE_SOON_MINUTES = 20;
+
+// When a race will actually go: its scheduled time plus how late the regatta
+// is running.
+export function delayedRaceTime(raceTimeIso: string, delayMinutes: number = 0): string {
+  return new Date(new Date(raceTimeIso).getTime() + delayMinutes * 60 * 1000).toISOString();
+}
+
 export function launchTime(raceTimeIso: string, launchMinutes: number): Date {
   return new Date(new Date(raceTimeIso).getTime() - launchMinutes * 60 * 1000);
 }
@@ -39,11 +51,29 @@ export function pickRaceDayEvent<E extends EventLike>(events: E[], now: Date = n
   return events.find((e) => clubDateKey(e.starts_at) > today) ?? null;
 }
 
-// Done once a place is in, or 2 hours after the scheduled start (regattas
-// run late).
-export function raceIsOver(race: { place: number | null; race_time: string | null }, now: Date = new Date()): boolean {
+// Done once a place is in, or 2 hours after the start (plus any delay the
+// coach has set; regattas run late).
+export function raceIsOver(
+  race: { place: number | null; race_time: string | null },
+  now: Date = new Date(),
+  delayMinutes: number = 0
+): boolean {
   if (race.place != null) return true;
-  return race.race_time != null && new Date(race.race_time).getTime() + 2 * 60 * 60 * 1000 < now.getTime();
+  return (
+    race.race_time != null &&
+    new Date(delayedRaceTime(race.race_time, delayMinutes)).getTime() + 2 * 60 * 60 * 1000 < now.getTime()
+  );
+}
+
+// A regatta is finished (moves below the upcoming ones) once every one of
+// our boats there has a result, or once its last day is over, club time.
+export function regattaIsFinished(
+  event: { starts_at: string; ends_at: string | null },
+  lineups: { place: number | null }[],
+  now: Date = new Date()
+): boolean {
+  if (clubDateKey(event.ends_at ?? event.starts_at) < clubDateKey(now)) return true;
+  return lineups.length > 0 && lineups.every((l) => l.place != null);
 }
 
 export function seatLabel(seat: { seat_number: number; seat_role: string }, rowerSeats: number): string {

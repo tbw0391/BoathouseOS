@@ -4,6 +4,7 @@ import type { EventType, Lineup, Role, ScheduleEvent } from "@/lib/database.type
 import { createScheduleEvent } from "./actions";
 import { EventCard } from "./EventCard";
 import { isPastEvent } from "@/lib/schedule";
+import { regattaIsFinished } from "@/lib/raceDay";
 import { ActionForm } from "@/components/ActionForm";
 
 export async function ScheduleTypeView({ eventType, label }: { eventType: EventType; label: string }) {
@@ -38,16 +39,27 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
             "event_id",
             events.map((e) => e.id)
           )
-          .not("place", "is", null)
       : { data: [] as Pick<Lineup, "event_id" | "place">[] };
+  const eventLineups = (lineupsData as Pick<Lineup, "event_id" | "place">[] | null) ?? [];
   const bestPlaceByEventId = new Map<string, number>();
-  for (const l of (lineupsData as Pick<Lineup, "event_id" | "place">[] | null) ?? []) {
+  for (const l of eventLineups) {
     if (l.place == null || !l.event_id) continue;
     const current = bestPlaceByEventId.get(l.event_id);
     if (current === undefined || l.place < current) bestPlaceByEventId.set(l.event_id, l.place);
   }
 
-  const upcoming = events.filter((e) => !isPastEvent(e));
+  // Finished regattas (every boat has a result, or the day's over) drop
+  // below the upcoming ones, most recent first.
+  const isFinished = (e: ScheduleEvent) =>
+    e.event_type === "regatta" &&
+    regattaIsFinished(
+      e,
+      eventLineups.filter((l) => l.event_id === e.id)
+    );
+  const upcoming = events.filter((e) => !isPastEvent(e) && !isFinished(e));
+  const finished = events
+    .filter((e) => !isPastEvent(e) && isFinished(e))
+    .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
   const past = events
     .filter((e) => isPastEvent(e))
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
@@ -134,9 +146,26 @@ export async function ScheduleTypeView({ eventType, label }: { eventType: EventT
             />
           ))
         ) : (
-          <p className="text-sm text-gray-500">Nothing scheduled yet.</p>
+          <p className="text-sm text-gray-500">{finished.length ? "Nothing coming up." : "Nothing scheduled yet."}</p>
         )}
       </div>
+
+      {finished.length > 0 && (
+        <>
+          <h2 className="mt-6 mb-3 text-sm font-medium text-gray-500">Finished</h2>
+          <div className="flex flex-col gap-3">
+            {finished.map((event) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                eventType={eventType}
+                canManage={canManage}
+                medalPlace={bestPlaceByEventId.get(event.id) ?? null}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {past.length > 0 && (
         <details className="mt-6">

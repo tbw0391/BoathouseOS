@@ -5,7 +5,7 @@ import { billBalance } from "@/lib/billing";
 import { formatMoney } from "@/lib/payments";
 import { activeMemberIds, guardianIdsFor, householdIdsForRower, sendPush } from "@/lib/push";
 import { EXPIRING_DAYS, PAPERWORK } from "@/lib/paperwork";
-import { LAUNCH_MINUTES_KEY, clubTimeLabel, launchTime, parseLaunchMinutes } from "@/lib/raceDay";
+import { LAUNCH_MINUTES_KEY, clubTimeLabel, delayedRaceTime, launchTime, parseLaunchMinutes } from "@/lib/raceDay";
 
 // Alerts that depend on the clock rather than on someone doing something.
 // Run every 5 minutes by /api/cron/alerts (see 0080_scheduled_alerts.sql).
@@ -13,6 +13,9 @@ import { LAUNCH_MINUTES_KEY, clubTimeLabel, launchTime, parseLaunchMinutes } fro
 // once even if two runs overlap.
 
 type Admin = ReturnType<typeof createAdminClient>;
+
+// The longest race-day delay a coach can set (schedule_events check, 0102).
+const MAX_DELAY_MINUTES = 240;
 
 const easternDate = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
@@ -120,8 +123,9 @@ async function paymentDueAlerts(admin: Admin) {
   }
 }
 
-// 15 minutes before each race's launch time (race time minus the club's
-// launch minutes), tell the crew and their parents.
+// 15 minutes before each race's launch time (race time, plus however late
+// the coach says the regatta is running, minus the club's launch minutes),
+// tell the crew and their parents.
 async function launchSoonAlerts(admin: Admin) {
   const { data: setting } = await admin
     .from("club_settings")
@@ -130,18 +134,27 @@ async function launchSoonAlerts(admin: Admin) {
     .maybeSingle();
   const launchMinutes = parseLaunchMinutes((setting as { value: string | null } | null)?.value);
 
-  // Launch within the next 15 minutes (the job runs every 5).
+  // Launch within the next 15 minutes (the job runs every 5). Races
+  // scheduled up to the longest delay earlier may be due too.
   const now = Date.now();
-  const from = new Date(now + launchMinutes * 60 * 1000).toISOString();
-  const to = new Date(now + (launchMinutes + 15) * 60 * 1000).toISOString();
+  const from = now + launchMinutes * 60 * 1000;
+  const to = now + (launchMinutes + 15) * 60 * 1000;
   const { data } = await admin
     .from("lineups")
-    .select("id, boat_name, race_name, race_time, bow_number, place")
-    .gte("race_time", from)
-    .lte("race_time", to)
+    .select("id, boat_name, race_name, race_time, bow_number, place, schedule_events(race_delay_minutes)")
+    .gte("race_time", new Date(from - MAX_DELAY_MINUTES * 60 * 1000).toISOString())
+    .lte("race_time", new Date(to).toISOString())
     .is("place", null);
-  const lineups =
-    (data as Pick<Lineup, "id" | "boat_name" | "race_name" | "race_time" | "bow_number" | "place">[] | null) ?? [];
+  const lineups = (
+    (data as unknown as (Pick<Lineup, "id" | "boat_name" | "race_name" | "race_time" | "bow_number" | "place"> & {
+      schedule_events: { race_delay_minutes: number } | null;
+    })[] | null) ?? []
+  )
+    .map((l) => ({ ...l, race_time: delayedRaceTime(l.race_time!, l.schedule_events?.race_delay_minutes) }))
+    .filter((l) => {
+      const t = new Date(l.race_time).getTime();
+      return t >= from && t <= to;
+    });
   const claimed = await claim(admin, "launch_soon", lineups.map((l) => l.id));
 
   for (const lineup of lineups.filter((l) => claimed.has(l.id))) {

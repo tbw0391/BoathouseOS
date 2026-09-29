@@ -163,14 +163,16 @@
       (with the place once entered) for an hour. Needs the course set and
       the cox tracking; straight-line course math, so a very bendy course
       may mark the finish a little early or late.
-- [ ] RegattaCentral: pick a regatta from RegattaCentral's list when adding
+- [~] RegattaCentral (won't do): pick a regatta from RegattaCentral's list when adding
       one to the schedule, with its details and races filled in. Needs
       RegattaCentral's permission/API access rather than scraping.
       Checked 2026-09-29: their API v4 (api.regattacentral.com) has regatta
       search, events and races, but every call needs an API key, and "API
       credentials is currently limited to key clients and partners".
-      2026-09-29: Todd called RegattaCentral support and left a message
-      asking for a read-only partner key; waiting to hear back.
+      2026-09-29: RegattaCentral said no: they only give API access to
+      official timing vendors. Not pursuing it (and no scraping). Races
+      keep coming in through the existing paths: CrewTimer import, pasted
+      list / Excel import, and adding races by hand.
 
 ## Race Day, travel and trailer
 - [x] Race Day page (2026-09-28, /race-day, 0083): each race's launch time
@@ -189,12 +191,12 @@
 - [x] Course tab: start and finish pins (see Race Results).
 
 ## Lineups
-- [ ] When a regatta is complete, move it to the bottom of the regatta
-      list (asked 2026-09-29). Today /lineups puts upcoming regattas first by
-      date and past ones in their own list, so a regatta that's finished
-      racing stays at the top until its date passes. Decide what
-      "complete" means (every race has a result or is marked done, or the
-      day is over) and check the other regatta lists (Race Day, Schedule).
+- [x] Finished regattas move to the bottom (2026-09-29): on /lineups and
+      Schedule → Regattas, a regatta is "Finished" once every one of our
+      boats there has a result, or its last day is over (club time), and
+      it's listed under a Finished heading below the upcoming ones, most
+      recent first (regattaIsFinished in lib/raceDay.ts). Race Day already
+      moves on to the next regatta the day after.
 - [x] Create a lineup/boat for an event (boat name, boat class from a
       standard list — 1x/2x/2-/4+/4x/4-/8+ — auto-generates the right seats)
 - [x] Assign rowers/coxswain to seats (coach/admin only, everyone else sees
@@ -520,12 +522,14 @@
       N days" and tap buttons: Food Tent (tent leaders: draft to publish;
       families: sign up / see what you're bringing), Races & crews (coaches
       see how many races still need a lineup), and Coach announcements.
-- [ ] Race-time alerts: dropped for now (2026-09-27) because regattas
-      usually run late and a fixed "20 minutes before" would fire at the
-      wrong time. If revisited: a coach sets a "running late by N min"
-      delay on race day, or taps "send 20-minute alert" manually. The lineup
-      banner now drops off once a result is recorded or 2 hours after the
-      race's scheduled time (2026-09-27).
+- [x] Race-time alerts (2026-09-29, 0102_race_delay.sql): on Race Day,
+      coaches tap "Running late" (On time / +10 … +90 min). Every race and
+      launch time on Race Day and the home banner moves with it, the
+      automatic launch reminder fires at the new time, and the crews still
+      to race plus their parents get a "running N min late" / "back on
+      schedule" alert. Each race card also has a coach-only "racing in 20
+      min" button (once per race) to the crew and parents. Both are
+      switchable on /admin (running_late, race_soon); push only, not text.
 
 ## Infra / cross-cutting
 - [x] Real app icons (favicon, PWA icons, home page/login logo) — club branding

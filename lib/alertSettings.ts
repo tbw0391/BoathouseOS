@@ -43,6 +43,16 @@ export const ALERT_TYPES = [
     detail: "Phone alert to the crew and their parents 15 minutes before a race's launch time.",
   },
   {
+    kind: "running_late",
+    label: "Regatta running late",
+    detail: "Phone alert to the crews racing and their parents when a coach sets or clears a race-day delay.",
+  },
+  {
+    kind: "race_soon",
+    label: "Racing in 20 minutes",
+    detail: "Phone alert to a crew and their parents when a coach taps \"Racing soon\" on the Race Day page.",
+  },
+  {
     kind: "oar_sheet",
     label: "Oar sheet to fill in",
     detail: "Phone alert to a regatta boat's cox (or stroke, with no cox) when they're put in the boat.",
