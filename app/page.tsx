@@ -1868,7 +1868,7 @@ export default async function Home() {
           href="/race-day"
           className="w-full flex items-center gap-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium"
         >
-          <Flag className="w-5 h-5 shrink-0" />
+          <Flag className="w-5 h-5 shrink-0 text-red-600 fill-red-600" />
           Race day: {raceDayToday.title}. Launch times, bow numbers and crews →
         </Link>
       )}
@@ -2053,7 +2053,8 @@ export default async function Home() {
                 href={s.href}
                 className="relative flex flex-col items-center justify-center gap-2 text-center rounded-lg border-2 border-[var(--color-primary)] px-4 py-6 font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
               >
-                <Icon className="w-6 h-6" />
+                {/* Race day gets the starter's red flag. */}
+                <Icon className={s.href === "/race-day" ? "w-6 h-6 text-red-600 fill-red-600" : "w-6 h-6"} />
                 {s.label}
                 {badgeCount > 0 && (
                   <span className="absolute top-2 right-2 min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-xs">
