@@ -394,10 +394,10 @@
       Disconnect buttons. Same "c2:<id>" reference as the CSV import, so
       nothing doubles up; a new 2K/5K test updates the profile time. The
       section stays hidden until the keys are set.
-      - Todd: register an API key at log.concept2.com/developers/keys
-        (redirect URI https://www.boathouseos.app/api/concept2/callback),
-        then add CONCEPT2_CLIENT_ID and CONCEPT2_CLIENT_SECRET in Vercel and
-        redeploy. Test by connecting your own logbook.
+      - Todd: API key registered and CONCEPT2_CLIENT_ID /
+        CONCEPT2_CLIENT_SECRET added in Vercel (2026-09-29). Still to do:
+        test by connecting your own logbook on Workouts (no one has
+        connected yet as of 2026-09-29).
 
 ## Rookie Parent
 - [x] Rookie Parent tile/button (2026-09-27): /rookie-parent with buttons
