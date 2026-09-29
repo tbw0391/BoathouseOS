@@ -357,33 +357,14 @@ async function loadLineupBanners(
   }
   if (lineupRowerIds.length === 0) return [];
 
-  const { data: seatRows } = await supabase
-    .from("lineup_seats")
-    .select("*")
-    .in("rower_id", lineupRowerIds);
-  const seats = (seatRows as LineupSeat[] | null) ?? [];
-  if (seats.length === 0) return [];
-
-  const lineupIds = [...new Set(seats.map((s) => s.lineup_id))];
-  const { data: lineupRows } = await supabase
-    .from("lineups")
-    .select("*")
-    .in("id", lineupIds);
-  const lineupsData = (lineupRows as Lineup[] | null) ?? [];
-  const lineupById = new Map(lineupsData.map((l) => [l.id, l]));
-
-  const eventIds = [
-    ...new Set(
-      lineupsData.map((l) => l.event_id).filter((id): id is string => !!id),
-    ),
-  ];
-
-  const [{ data: eventRows }, rowerNameRows] = await Promise.all([
+  // Their seats in boats for events from today on, with each boat and event
+  // (one round trip; past seasons' seats never leave the database).
+  const [{ data: seatRows }, rowerNameRows] = await Promise.all([
     supabase
-      .from("schedule_events")
-      .select("*")
-      .in("id", eventIds)
-      .gte("starts_at", startOfToday()),
+      .from("lineup_seats")
+      .select("*, lineups!inner(*, schedule_events!inner(*))")
+      .in("rower_id", lineupRowerIds)
+      .gte("lineups.schedule_events.starts_at", startOfToday()),
     isParent || isCoachOrAdmin
       ? supabase
           .from("profiles")
@@ -391,8 +372,20 @@ async function loadLineupBanners(
           .in("id", lineupRowerIds)
       : Promise.resolve({ data: null }),
   ]);
-  const eventsData = (eventRows as ScheduleEvent[] | null) ?? [];
-  const eventById = new Map(eventsData.map((e) => [e.id, e]));
+  const joined =
+    (seatRows as unknown as (LineupSeat & {
+      lineups: Lineup & { schedule_events: ScheduleEvent };
+    })[] | null) ?? [];
+  if (joined.length === 0) return [];
+  const seats: LineupSeat[] = joined.map((j) => ({
+    id: j.id,
+    lineup_id: j.lineup_id,
+    seat_number: j.seat_number,
+    seat_role: j.seat_role,
+    rower_id: j.rower_id,
+  }));
+  const lineupById = new Map(joined.map((j) => [j.lineups.id, j.lineups as Lineup]));
+  const eventById = new Map(joined.map((j) => [j.lineups.schedule_events.id, j.lineups.schedule_events]));
 
   const rowerNameById = new Map<string, string>();
   for (const p of (rowerNameRows.data as
@@ -689,67 +682,59 @@ async function loadOarSheetBanners(
   supabase: SupabaseServerClient,
   userId: string,
 ): Promise<OarSheetBanner[]> {
+  // My seats in boats for regattas from today on, with the boat and regatta
+  // (one round trip).
   const { data: mySeatRows } = await supabase
     .from("lineup_seats")
-    .select("lineup_id")
+    .select(
+      "lineup_id, lineups!inner(id, boat_id, boat_name, race_name, schedule_events!inner(title, event_type, starts_at))",
+    )
     .eq("rower_id", userId)
-    .in("seat_role", ["rower", "coxswain"]);
-  const lineupIds = [
-    ...new Set(((mySeatRows as { lineup_id: string }[] | null) ?? []).map((s) => s.lineup_id)),
-  ];
-  if (lineupIds.length === 0) return [];
-
-  const { data: lineupRows } = await supabase
-    .from("lineups")
-    .select("id, boat_id, boat_name, race_name, event_id")
-    .in("id", lineupIds)
-    .not("boat_id", "is", null);
-  const lineups =
-    (lineupRows as Pick<Lineup, "id" | "boat_id" | "boat_name" | "race_name" | "event_id">[] | null) ?? [];
-  const eventIds = [...new Set(lineups.map((l) => l.event_id).filter((id): id is string => !!id))];
-  if (eventIds.length === 0) return [];
-
-  const { data: eventRows } = await supabase
-    .from("schedule_events")
-    .select("*")
-    .in("id", eventIds)
-    .eq("event_type", "regatta")
-    .gte("starts_at", startOfToday());
-  const eventById = new Map(((eventRows as ScheduleEvent[] | null) ?? []).map((e) => [e.id, e]));
-  const upcoming = lineups.filter((l) => l.event_id && eventById.has(l.event_id));
-  if (upcoming.length === 0) return [];
-  const ids = upcoming.map((l) => l.id);
+    .in("seat_role", ["rower", "coxswain"])
+    .not("lineups.boat_id", "is", null)
+    .eq("lineups.schedule_events.event_type", "regatta")
+    .gte("lineups.schedule_events.starts_at", startOfToday());
+  const upcoming = new Map(
+    (
+      (mySeatRows as unknown as {
+        lineup_id: string;
+        lineups: {
+          id: string;
+          boat_name: string;
+          race_name: string | null;
+          schedule_events: { title: string };
+        };
+      }[] | null) ?? []
+    ).map((r) => [r.lineup_id, r.lineups]),
+  );
+  if (upcoming.size === 0) return [];
+  const ids = [...upcoming.keys()];
 
   const [{ data: seatRows }, { data: oarRows }, { data: taskRows }] = await Promise.all([
     supabase.from("lineup_seats").select("lineup_id, seat_number, seat_role, rower_id").in("lineup_id", ids),
     supabase.from("lineup_oars").select("lineup_id, seat_number").in("lineup_id", ids),
-    supabase.from("coach_tasks").select("id, lineup_id").in("lineup_id", ids),
+    supabase.from("coach_tasks").select("lineup_id, coach_task_assignments(user_id)").in("lineup_id", ids),
   ]);
   const seats =
     (seatRows as { lineup_id: string; seat_number: number; seat_role: string; rower_id: string | null }[] | null) ?? [];
   const oars = (oarRows as { lineup_id: string; seat_number: number }[] | null) ?? [];
-  const tasks = (taskRows as { id: string; lineup_id: string }[] | null) ?? [];
-  const { data: assignmentRows } = tasks.length
-    ? await supabase.from("coach_task_assignments").select("task_id").in("task_id", tasks.map((t) => t.id))
-    : { data: [] };
-  const assignedTaskIds = new Set(((assignmentRows as { task_id: string }[] | null) ?? []).map((a) => a.task_id));
+  const tasks =
+    (taskRows as unknown as { lineup_id: string; coach_task_assignments: { user_id: string }[] }[] | null) ?? [];
 
-  return upcoming
-    .filter((l) => {
-      const boatSeats = seats.filter((s) => s.lineup_id === l.id);
+  return ids
+    .filter((id) => {
+      const boatSeats = seats.filter((s) => s.lineup_id === id);
       if (captainSeat(boatSeats)?.rower_id !== userId) return false;
       return !oarSheetComplete(
         boatSeats,
-        oars.filter((o) => o.lineup_id === l.id),
-        tasks.filter((t) => t.lineup_id === l.id).map((t) => ({ assigned: assignedTaskIds.has(t.id) ? 1 : 0 })),
+        oars.filter((o) => o.lineup_id === id),
+        tasks.filter((t) => t.lineup_id === id).map((t) => ({ assigned: t.coach_task_assignments.length })),
       );
     })
-    .map((l) => ({
-      lineupId: l.id,
-      boatName: l.boat_name,
-      raceName: l.race_name,
-      eventTitle: eventById.get(l.event_id!)!.title,
-    }));
+    .map((id) => {
+      const l = upcoming.get(id)!;
+      return { lineupId: id, boatName: l.boat_name, raceName: l.race_name, eventTitle: l.schedule_events.title };
+    });
 }
 
 // Coach Tasks (e.g. Launch/Recovery) assignment: shown to whoever is
@@ -1013,8 +998,8 @@ export default async function Home() {
   let raceDayToday: ScheduleEvent | null = null;
   let emailAlertsOn = true;
   const emailBackupOn = !!process.env.RESEND_API_KEY && !!process.env.EMAIL_FROM;
-  let lightningHold: { last_strike_at: string } | null = null;
-  let practiceCall: { status: string; note: string | null } | null = null;
+  let lightningHold = null as { last_strike_at: string } | null;
+  let practiceCall = null as { status: string; note: string | null } | null;
   let upcomingRegattaForecast: EventForecast | null = null;
   let unreadCount = 0;
   let unreadScheduleCount = 0;
@@ -1029,14 +1014,14 @@ export default async function Home() {
   let isApparelChair = false;
   let isGlobalAdmin = false;
   let pendingApprovalCount = 0;
-  let checkInLabel: string | null = null;
-  let myAttendance: PracticeAttendance | null = null;
-  let onWaterBanner: { label: string; color: string | null } | null = null;
-  let paymentsBanner: {
+  let checkInLabel = null as string | null;
+  let myAttendance = null as PracticeAttendance | null;
+  let onWaterBanner = null as { label: string; color: string | null } | null;
+  let paymentsBanner = null as {
     owedCents: number;
     bills: number;
     openSignups: number;
-  } | null = null;
+  } | null;
 
   let householdUserIds: string[] = [];
   let isFamily = false;
@@ -1110,113 +1095,12 @@ export default async function Home() {
     isFoodTentManager = isCoachOrAdmin || Boolean(caller?.is_tent_leader);
     isApparelChair = Boolean(caller?.is_apparel_chair);
 
-    if (isCoachOrAdmin) checkInLabel = await getTodaysCheckInLabel(user.id);
-    if (isRowerOrCoxswain) myAttendance = await getMyAttendanceToday(user.id);
-
-    // Boats out right now. RLS scopes this: coaches and admins see every
-    // outing, a coxswain only their own.
-    if (isCoachOrAdmin || callerRole === "coxswain") {
-      const { data: outingsData } = await supabase
-        .from("on_water_sessions")
-        .select("coxswain_id, color, boats(name)")
-        .is("ended_at", null)
-        .order("started_at", { ascending: true });
-      const outings =
-        (outingsData as unknown as
-          | {
-              coxswain_id: string;
-              color: string | null;
-              boats: { name: string } | null;
-            }[]
-          | null) ?? [];
-      const mine = outings.find((o) => o.coxswain_id === user.id);
-      if (mine) {
-        onWaterBanner = {
-          label: `You're tracking ${mine.boats?.name ?? "your boat"} — tap to open`,
-          color: mine.color,
-        };
-      } else if (isCoachOrAdmin && outings.length > 0) {
-        const names = outings.map((o) => o.boats?.name ?? "a boat").join(", ");
-        onWaterBanner = {
-          label: `🚣 ${outings.length} ${outings.length === 1 ? "boat" : "boats"} on the water: ${names}`,
-          color: null,
-        };
-      }
-    }
-
-    // What this household owes for its own rowers (a treasurer or admin can
-    // read every bill, so this filters to the family's rowers explicitly),
-    // and any season open for sign-up.
-    const { data: myLinks } = await supabase
-      .from("family_links")
-      .select("rower_id")
-      .in("guardian_id", [
-        user.id,
-        ...(caller?.spouse_id ? [caller.spouse_id] : []),
-      ]);
-    const myRowerIds = [
-      ...(isRowerOrCoxswain ? [user.id] : []),
-      ...((myLinks as { rower_id: string }[] | null) ?? []).map(
-        (l) => l.rower_id,
-      ),
-    ];
-    const [{ data: owedBills }, { count: openSignups }] = await Promise.all([
-      myRowerIds.length
-        ? supabase
-            .from("bills")
-            .select("id, amount_cents, discount_cents")
-            .eq("status", "owed")
-            .in("rower_id", myRowerIds)
-        : Promise.resolve({ data: [] }),
-      supabase
-        .from("charges")
-        .select("id", { count: "exact", head: true })
-        .eq("signup_open", true)
-        .is("archived_at", null),
-    ]);
-    const owed =
-      (owedBills as
-        | { id: string; amount_cents: number; discount_cents: number }[]
-        | null) ?? [];
-    let owedCents = 0;
-    if (owed.length) {
-      const { data: paidRows } = await supabase
-        .from("payments")
-        .select("bill_id, amount_cents")
-        .eq("status", "succeeded")
-        .in(
-          "bill_id",
-          owed.map((b) => b.id),
-        );
-      const paidCents = (
-        (paidRows as { amount_cents: number }[] | null) ?? []
-      ).reduce((t, p) => t + p.amount_cents, 0);
-      owedCents =
-        owed.reduce((t, b) => t + b.amount_cents - b.discount_cents, 0) -
-        paidCents;
-    }
-    if (owedCents > 0 || ((openSignups ?? 0) > 0 && myRowerIds.length > 0)) {
-      paymentsBanner = {
-        owedCents: Math.max(0, owedCents),
-        bills: owed.length,
-        openSignups: openSignups ?? 0,
-      };
-    }
-
     if ((coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id) {
       coachChatHref = `/messages/${(coachGroupResult.data as Pick<ChatGroup, "id">).id}`;
     }
-
     // The next regatta still to race: one stays "next" through midnight
     // (Eastern) after its last day, then the following one takes over, along
     // with its weather.
-    const [{ data: holdRows }, { data: callRow }] = await Promise.all([
-      supabase.from("lightning_holds").select("last_strike_at").is("cleared_at", null).limit(1),
-      supabase.from("practice_calls").select("status, note").eq("practice_date", clubDateKey(now)).maybeSingle(),
-    ]);
-    lightningHold = ((holdRows as { last_strike_at: string }[] | null) ?? [])[0] ?? null;
-    practiceCall = callRow as { status: string; note: string | null } | null;
-
     raceDayToday = pickRaceDayEvent((regattaResult.data as ScheduleEvent[] | null) ?? []);
     if (raceDayToday && clubDateKey(raceDayToday.starts_at) > clubDateKey(now)) raceDayToday = null;
 
@@ -1224,63 +1108,176 @@ export default async function Home() {
       ((regattaResult.data as ScheduleEvent[] | null) ?? []).find(
         (e) => forecastDayFor(e) !== null,
       ) ?? null;
-
-    // The "get ready" buttons each go away once followed: Food Tent and
-    // Volunteer once visited, Lineups only once boats have crews and until
-    // viewed, coaches' messages only while there's one unread.
-    if (upcomingRegatta) {
-      const coachGroupId = (coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id ?? null;
-      const [seen, { data: crewedLineups }, { data: coachMembership }] = await Promise.all([
-        regattaPrepSeen(supabase, user.id, upcomingRegatta.id),
-        supabase
-          .from("lineups")
-          .select("id, lineup_seats!inner(rower_id)")
-          .eq("event_id", upcomingRegatta.id)
-          .not("lineup_seats.rower_id", "is", null)
-          .limit(1),
-        coachGroupId
-          ? supabase
-              .from("chat_group_members")
-              .select("last_read_at")
-              .eq("group_id", coachGroupId)
-              .eq("user_id", user.id)
-              .maybeSingle()
-          : Promise.resolve({ data: null }),
-      ]);
-      const lastRead = (coachMembership as { last_read_at: string } | null)?.last_read_at;
-      const { count: coachUnread } =
-        coachGroupId && lastRead
-          ? await supabase
-              .from("messages")
-              .select("id", { count: "exact", head: true })
-              .eq("group_id", coachGroupId)
-              .neq("sender_id", user.id)
-              .gt("created_at", lastRead)
-          : { count: 0 };
-      getReady = {
-        foodTent: !seen.has("food_tent"),
-        volunteer: !seen.has("volunteer"),
-        lineups: (crewedLineups ?? []).length > 0 && !seen.has("lineups"),
-        coachMessages: (coachUnread ?? 0) > 0,
-      };
-    }
-
     householdUserIds = [user.id];
-    if (isParent) {
-      // Spouses are linked one-directionally, so check both: the caller's
-      // own spouse_id, and anyone whose spouse_id points back at the caller.
-      const { data: reverseSpouses } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("spouse_id", user.id);
-      const spouseIds = new Set<string>(
-        ((reverseSpouses as Pick<Profile, "id">[] | null) ?? []).map(
-          (p) => p.id,
-        ),
-      );
-      if (caller?.spouse_id) spouseIds.add(caller.spouse_id);
-      householdUserIds.push(...spouseIds);
-    }
+
+    // None of these depend on each other, so they run at the same time
+    // (one round trip each instead of one after another).
+    await Promise.all([
+      (async () => {
+        if (isCoachOrAdmin) checkInLabel = await getTodaysCheckInLabel(user.id);
+      })(),
+      (async () => {
+        if (isRowerOrCoxswain) myAttendance = await getMyAttendanceToday(user.id);
+      })(),
+      (async () => {
+        // Boats out right now. RLS scopes this: coaches and admins see every
+        // outing, a coxswain only their own.
+        if (isCoachOrAdmin || callerRole === "coxswain") {
+          const { data: outingsData } = await supabase
+            .from("on_water_sessions")
+            .select("coxswain_id, color, boats(name)")
+            .is("ended_at", null)
+            .order("started_at", { ascending: true });
+          const outings =
+            (outingsData as unknown as
+              | {
+                  coxswain_id: string;
+                  color: string | null;
+                  boats: { name: string } | null;
+                }[]
+              | null) ?? [];
+          const mine = outings.find((o) => o.coxswain_id === user.id);
+          if (mine) {
+            onWaterBanner = {
+              label: `You're tracking ${mine.boats?.name ?? "your boat"} — tap to open`,
+              color: mine.color,
+            };
+          } else if (isCoachOrAdmin && outings.length > 0) {
+            const names = outings.map((o) => o.boats?.name ?? "a boat").join(", ");
+            onWaterBanner = {
+              label: `🚣 ${outings.length} ${outings.length === 1 ? "boat" : "boats"} on the water: ${names}`,
+              color: null,
+            };
+          }
+        }
+      })(),
+      (async () => {
+        // What this household owes for its own rowers (a treasurer or admin can
+        // read every bill, so this filters to the family's rowers explicitly),
+        // and any season open for sign-up.
+        const { data: myLinks } = await supabase
+          .from("family_links")
+          .select("rower_id")
+          .in("guardian_id", [
+            user.id,
+            ...(caller?.spouse_id ? [caller.spouse_id] : []),
+          ]);
+        const myRowerIds = [
+          ...(isRowerOrCoxswain ? [user.id] : []),
+          ...((myLinks as { rower_id: string }[] | null) ?? []).map(
+            (l) => l.rower_id,
+          ),
+        ];
+        const [{ data: owedBills }, { count: openSignups }] = await Promise.all([
+          myRowerIds.length
+            ? supabase
+                .from("bills")
+                .select("id, amount_cents, discount_cents")
+                .eq("status", "owed")
+                .in("rower_id", myRowerIds)
+            : Promise.resolve({ data: [] }),
+          supabase
+            .from("charges")
+            .select("id", { count: "exact", head: true })
+            .eq("signup_open", true)
+            .is("archived_at", null),
+        ]);
+        const owed =
+          (owedBills as
+            | { id: string; amount_cents: number; discount_cents: number }[]
+            | null) ?? [];
+        let owedCents = 0;
+        if (owed.length) {
+          const { data: paidRows } = await supabase
+            .from("payments")
+            .select("bill_id, amount_cents")
+            .eq("status", "succeeded")
+            .in(
+              "bill_id",
+              owed.map((b) => b.id),
+            );
+          const paidCents = (
+            (paidRows as { amount_cents: number }[] | null) ?? []
+          ).reduce((t, p) => t + p.amount_cents, 0);
+          owedCents =
+            owed.reduce((t, b) => t + b.amount_cents - b.discount_cents, 0) -
+            paidCents;
+        }
+        if (owedCents > 0 || ((openSignups ?? 0) > 0 && myRowerIds.length > 0)) {
+          paymentsBanner = {
+            owedCents: Math.max(0, owedCents),
+            bills: owed.length,
+            openSignups: openSignups ?? 0,
+          };
+        }
+      })(),
+      (async () => {
+        const [{ data: holdRows }, { data: callRow }] = await Promise.all([
+          supabase.from("lightning_holds").select("last_strike_at").is("cleared_at", null).limit(1),
+          supabase.from("practice_calls").select("status, note").eq("practice_date", clubDateKey(now)).maybeSingle(),
+        ]);
+        lightningHold = ((holdRows as { last_strike_at: string }[] | null) ?? [])[0] ?? null;
+        practiceCall = callRow as { status: string; note: string | null } | null;
+      })(),
+      (async () => {
+        // The "get ready" buttons each go away once followed: Food Tent and
+        // Volunteer once visited, Lineups only once boats have crews and until
+        // viewed, coaches' messages only while there's one unread.
+        if (upcomingRegatta) {
+          const coachGroupId = (coachGroupResult.data as Pick<ChatGroup, "id"> | null)?.id ?? null;
+          const [seen, { data: crewedLineups }, { data: coachMembership }] = await Promise.all([
+            regattaPrepSeen(supabase, user.id, upcomingRegatta.id),
+            supabase
+              .from("lineups")
+              .select("id, lineup_seats!inner(rower_id)")
+              .eq("event_id", upcomingRegatta.id)
+              .not("lineup_seats.rower_id", "is", null)
+              .limit(1),
+            coachGroupId
+              ? supabase
+                  .from("chat_group_members")
+                  .select("last_read_at")
+                  .eq("group_id", coachGroupId)
+                  .eq("user_id", user.id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null }),
+          ]);
+          const lastRead = (coachMembership as { last_read_at: string } | null)?.last_read_at;
+          const { count: coachUnread } =
+            coachGroupId && lastRead
+              ? await supabase
+                  .from("messages")
+                  .select("id", { count: "exact", head: true })
+                  .eq("group_id", coachGroupId)
+                  .neq("sender_id", user.id)
+                  .gt("created_at", lastRead)
+              : { count: 0 };
+          getReady = {
+            foodTent: !seen.has("food_tent"),
+            volunteer: !seen.has("volunteer"),
+            lineups: (crewedLineups ?? []).length > 0 && !seen.has("lineups"),
+            coachMessages: (coachUnread ?? 0) > 0,
+          };
+        }
+      })(),
+      (async () => {
+        if (isParent) {
+          // Spouses are linked one-directionally, so check both: the caller's
+          // own spouse_id, and anyone whose spouse_id points back at the caller.
+          const { data: reverseSpouses } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("spouse_id", user.id);
+          const spouseIds = new Set<string>(
+            ((reverseSpouses as Pick<Profile, "id">[] | null) ?? []).map(
+              (p) => p.id,
+            ),
+          );
+          if (caller?.spouse_id) spouseIds.add(caller.spouse_id);
+          householdUserIds.push(...spouseIds);
+        }
+      })(),
+    ]);
   }
 
   if (user) {
@@ -1301,6 +1298,8 @@ export default async function Home() {
       forecastResult,
       announcementBannerResults,
       sentLineupNoticeResults,
+      birthdayResults,
+      prResults,
     ] = await Promise.all([
       loadFoodTentBanners(supabase, householdUserIds),
       loadLineupBanners(supabase, {
@@ -1331,6 +1330,8 @@ export default async function Home() {
       isCoachOrAdmin
         ? loadSentLineupNotices(supabase, user.id)
         : Promise.resolve([]),
+      loadBirthdaysToday(supabase),
+      loadMyRecentPrs(supabase, user.id),
     ]);
     sentLineupNotices = sentLineupNoticeResults;
     banners = foodBanners;
@@ -1342,10 +1343,8 @@ export default async function Home() {
     pendingRaceBanners = pendingRaceBannerResults;
     foodPrepBanners = foodPrepBannerResults;
     announcementBanners = announcementBannerResults;
-    [birthdaysToday, myPrs] = await Promise.all([
-      loadBirthdaysToday(supabase),
-      loadMyRecentPrs(supabase, user.id),
-    ]);
+    birthdaysToday = birthdayResults;
+    myPrs = prResults;
     const isGuardian = (familyLinkRows.data ?? []).length > 0;
     isFamily = isParent || isGuardian;
     signupCallBanners = isParent || isGuardian ? signupCallBannerResults : [];

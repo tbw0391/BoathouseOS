@@ -633,7 +633,8 @@
         Terms ("Text message alerts") and Privacy (Twilio, never shared
         for marketing) updated.
       - Todd: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER in
-        Vercel (done 2026-09-28, redeploy after push); set the number's
+        Vercel (done 2026-09-28); 0099 applied; first test text to Todd's
+        verified cell worked 2026-09-28 (practice call). Still to do: set the number's
         "A message comes in" webhook to
         https://www.boathouseos.app/api/twilio/inbound (HTTP POST); submit
         toll-free (or 10DLC) verification pointing at the profile opt-in,
