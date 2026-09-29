@@ -166,6 +166,10 @@
 - [ ] RegattaCentral: pick a regatta from RegattaCentral's list when adding
       one to the schedule, with its details and races filled in. Needs
       RegattaCentral's permission/API access rather than scraping.
+      Checked 2026-09-29: their API v4 (api.regattacentral.com) has regatta
+      search, events and races, but every call needs an API key, and "API
+      credentials is currently limited to key clients and partners". Todd:
+      ask RegattaCentral support for a read-only partner key.
 
 ## Race Day, travel and trailer
 - [x] Race Day page (2026-09-28, /race-day, 0083): each race's launch time
@@ -184,6 +188,12 @@
 - [x] Course tab: start and finish pins (see Race Results).
 
 ## Lineups
+- [ ] When a regatta is complete, move it to the bottom of the regatta
+      list (asked 2026-09-29). Today /lineups puts upcoming regattas first by
+      date and past ones in their own list, so a regatta that's finished
+      racing stays at the top until its date passes. Decide what
+      "complete" means (every race has a result or is marked done, or the
+      day is over) and check the other regatta lists (Race Day, Schedule).
 - [x] Create a lineup/boat for an event (boat name, boat class from a
       standard list — 1x/2x/2-/4+/4x/4-/8+ — auto-generates the right seats)
 - [x] Assign rowers/coxswain to seats (coach/admin only, everyone else sees
@@ -374,9 +384,17 @@
       profile time so PR celebrations still fire. Coaches get team rankings
       (best 2K/5K, split, watts, Concept2 weight-adjusted) by squad. Parents
       see and log their rowers'.
-- [ ] Concept2 automatic sync: needs a Concept2 Logbook API app
-      (log.concept2.com/developers) — client id/secret, then OAuth per rower.
-      CSV import covers it until then.
+- [ ] Concept2 automatic sync — code built 2026-09-29 (0101_concept2_links.sql,
+      lib/concept2.ts): "Connect Concept2" on Workouts signs in on
+      Concept2 (read-only), brings in the last year of RowErg pieces, then
+      an hourly pg_cron job (/api/cron/concept2) pulls new ones; Sync now /
+      Disconnect buttons. Same "c2:<id>" reference as the CSV import, so
+      nothing doubles up; a new 2K/5K test updates the profile time. The
+      section stays hidden until the keys are set.
+      - Todd: register an API key at log.concept2.com/developers/keys
+        (redirect URI https://www.boathouseos.app/api/concept2/callback),
+        then add CONCEPT2_CLIENT_ID and CONCEPT2_CLIENT_SECRET in Vercel and
+        redeploy. Test by connecting your own logbook.
 
 ## Rookie Parent
 - [x] Rookie Parent tile/button (2026-09-27): /rookie-parent with buttons

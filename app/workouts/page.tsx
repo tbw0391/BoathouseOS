@@ -2,9 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ergWatts, formatErgTime, split500, weightAdjusted } from "@/lib/erg";
-import { clubDateKey } from "@/lib/raceDay";
+import { CLUB_TIME_ZONE, clubDateKey } from "@/lib/raceDay";
 import { ErgChart } from "./ErgChart";
-import { ImportConcept2, LogWorkoutForm, RemoveWorkoutButton } from "./WorkoutForms";
+import { Concept2Sync, ImportConcept2, LogWorkoutForm, RemoveWorkoutButton } from "./WorkoutForms";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { concept2Configured } from "@/lib/concept2";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +33,9 @@ const chip = (active: boolean) =>
 export default async function WorkoutsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ who?: string; view?: string; test?: string; team?: string }>;
+  searchParams: Promise<{ who?: string; view?: string; test?: string; team?: string; c2?: string }>;
 }) {
-  const { who, view, test: testParam, team } = await searchParams;
+  const { who, view, test: testParam, team, c2 } = await searchParams;
   const test = testParam === "5k" ? "5k" : "2k";
   const supabase = await createClient();
   const {
@@ -76,6 +78,18 @@ export default async function WorkoutsPage({
         .limit(300)
     : { data: [] };
   const workouts = (rows as Workout[] | null) ?? [];
+  // Whether this rower's Concept2 logbook is connected. The table is
+  // service-role only (it holds tokens); the viewer can already see this
+  // rower, since they're in `people`.
+  const { data: c2Data } =
+    selected && concept2Configured()
+      ? await createAdminClient()
+          .from("concept2_links")
+          .select("last_synced_at, last_error")
+          .eq("profile_id", selected.id)
+          .maybeSingle()
+      : { data: null };
+  const c2Link = c2Data as { last_synced_at: string | null; last_error: string | null } | null;
   const tests = (distance: number) =>
     workouts
       .filter((w) => w.distance_m === distance && w.time_seconds != null)
@@ -167,6 +181,26 @@ export default async function WorkoutsPage({
               </div>
             )}
           </section>
+
+          {concept2Configured() && (
+            <Concept2Sync
+              profileId={selected.id}
+              connected={!!c2Link}
+              lastChecked={
+                c2Link?.last_synced_at
+                  ? new Date(c2Link.last_synced_at).toLocaleString("en-US", {
+                      timeZone: CLUB_TIME_ZONE,
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })
+                  : null
+              }
+              problem={c2Link?.last_error ?? null}
+              notice={c2 ?? null}
+            />
+          )}
 
           <ImportConcept2 profileId={selected.id} />
         </>

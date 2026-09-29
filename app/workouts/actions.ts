@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatErgTime, parseConcept2Csv, parseErgTime, testDistance } from "@/lib/erg";
+import { createClient } from "@/lib/supabase/server";
+import { syncConcept2 } from "@/lib/concept2";
+import { parseConcept2Csv, parseErgTime, testDistance } from "@/lib/erg";
+import { saveImportedWorkouts, updateProfileTest } from "@/lib/ergImport";
 import { UserError, tryAction } from "@/lib/userError";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -16,17 +18,6 @@ async function requireActFor(supabase: Supabase, profileId: string) {
   const { data: ok } = await supabase.rpc("can_act_for", { person: profileId });
   if (!ok) throw new UserError("You can only log workouts for yourself or your own rower.");
   return user;
-}
-
-// A 2K or 5K test becomes the profile's time (which logs it in erg_times
-// and spots PRs). Parents can't edit profiles, so this one column goes
-// through the service key after the check above.
-async function updateProfileTest(profileId: string, which: "2k" | "5k", seconds: number) {
-  const admin = createAdminClient();
-  await admin
-    .from("profiles")
-    .update(which === "2k" ? { erg_2k_time: formatErgTime(seconds) } : { erg_5k_time: formatErgTime(seconds) })
-    .eq("id", profileId);
 }
 
 export async function logWorkout(
@@ -81,49 +72,30 @@ export async function importConcept2(profileId: string, csvText: string) {
     const rows = parseConcept2Csv(csvText);
     if (rows.length === 0) throw new UserError("That doesn't look like a Concept2 logbook export.");
 
-    const { data: existing } = await supabase
-      .from("erg_workouts")
-      .select("source_ref")
-      .eq("profile_id", profileId)
-      .not("source_ref", "is", null);
-    const have = new Set(((existing as { source_ref: string }[] | null) ?? []).map((r) => r.source_ref));
-    const fresh = rows.filter((r) => !have.has(r.sourceRef));
-
-    for (let i = 0; i < fresh.length; i += 500) {
-      const { error } = await supabase.from("erg_workouts").insert(
-        fresh.slice(i, i + 500).map((r) => ({
-          profile_id: profileId,
-          done_on: r.doneOn,
-          piece: r.piece,
-          distance_m: r.distanceM,
-          time_seconds: r.timeSeconds,
-          stroke_rate: r.strokeRate,
-          notes: r.notes?.slice(0, 500) ?? null,
-          source: "concept2",
-          source_ref: r.sourceRef,
-          entered_by: user.id,
-        }))
-      );
-      if (error) throw new Error(error.message);
-    }
-
-    // The newest imported 2K/5K test, if it's newer than any logged before.
-    for (const which of ["2k", "5k"] as const) {
-      const newest = fresh
-        .filter((r) => testDistance(r.distanceM, r.piece) === which && r.timeSeconds != null)
-        .sort((a, b) => b.doneOn.localeCompare(a.doneOn))[0];
-      if (!newest) continue;
-      const { data: later } = await supabase
-        .from("erg_workouts")
-        .select("id")
-        .eq("profile_id", profileId)
-        .eq("distance_m", which === "2k" ? 2000 : 5000)
-        .gt("done_on", newest.doneOn)
-        .limit(1);
-      if (!(later as { id: string }[] | null)?.length) await updateProfileTest(profileId, which, newest.timeSeconds!);
-    }
-
+    const result = await saveImportedWorkouts(supabase, profileId, rows, user.id);
     revalidatePath("/workouts");
-    return { added: fresh.length, skipped: rows.length - fresh.length };
+    return result;
+  });
+}
+
+// Concept2 automatic sync (lib/concept2.ts): pull new pieces now, or stop.
+export async function syncConcept2Now(profileId: string) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireActFor(supabase, profileId);
+    const result = await syncConcept2(profileId);
+    if (!result) throw new UserError("Connect Concept2 first.");
+    revalidatePath("/workouts");
+    return result;
+  });
+}
+
+export async function disconnectConcept2(profileId: string) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireActFor(supabase, profileId);
+    const { error } = await createAdminClient().from("concept2_links").delete().eq("profile_id", profileId);
+    if (error) throw new Error(error.message);
+    revalidatePath("/workouts");
   });
 }

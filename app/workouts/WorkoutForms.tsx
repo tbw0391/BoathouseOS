@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { ERG_PIECES, tidyErgTime } from "@/lib/erg";
 import { unwrap } from "@/lib/userError";
-import { deleteWorkout, importConcept2, logWorkout } from "./actions";
+import { deleteWorkout, disconnectConcept2, importConcept2, logWorkout, syncConcept2Now } from "./actions";
 
 const chip = (active: boolean) =>
   `rounded-lg border-2 px-3 py-1.5 text-sm font-medium ${
@@ -186,6 +186,107 @@ export function ImportConcept2({ profileId }: { profileId: string }) {
         className="text-sm"
       />
       {pending && <p className="text-gray-600">Importing…</p>}
+      {message && <p className="text-gray-700">{message}</p>}
+    </section>
+  );
+}
+
+const C2_NOTICES: Record<string, string> = {
+  connected: "Concept2 connected. Pieces from the last year are in, and new ones show up by themselves.",
+  cancelled: "Concept2 wasn't connected.",
+  expired: "That took too long. Tap Connect Concept2 again.",
+  error: "Couldn't connect to Concept2. Please try again.",
+};
+
+// Automatic sync with the rower's Concept2 logbook (lib/concept2.ts).
+export function Concept2Sync({
+  profileId,
+  connected,
+  lastChecked,
+  problem,
+  notice,
+}: {
+  profileId: string;
+  connected: boolean;
+  lastChecked: string | null;
+  problem: string | null;
+  notice: string | null;
+}) {
+  const [message, setMessage] = useState<string | null>(notice ? (C2_NOTICES[notice] ?? null) : null);
+  const [pending, start] = useTransition();
+  const connectHref = `/api/concept2/connect?who=${encodeURIComponent(profileId)}`;
+  const run = (fn: () => Promise<string>) =>
+    start(async () => {
+      setMessage(null);
+      try {
+        setMessage(await fn());
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Something went wrong.");
+      }
+    });
+
+  return (
+    <section className="flex flex-col gap-2 text-sm">
+      <h2 className="text-lg font-semibold">Concept2 logbook</h2>
+      {!connected ? (
+        <>
+          <p className="text-gray-600">
+            Connect this rower&apos;s Concept2 logbook and their erg pieces show up here by themselves, checked every
+            hour. You sign in on Concept2&apos;s site; we can only read their results.
+          </p>
+          <a
+            href={connectHref}
+            className="self-start border-2 border-[var(--color-primary)] rounded px-3 py-2 font-medium"
+          >
+            Connect Concept2
+          </a>
+        </>
+      ) : (
+        <>
+          <p className="text-gray-700">
+            Connected. {lastChecked ? `Last checked ${lastChecked}.` : "Not checked yet."}
+          </p>
+          {problem && (
+            <p className="text-red-600">
+              {problem}{" "}
+              <a href={connectHref} className="underline">
+                Connect again
+              </a>
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {!problem && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  run(async () => {
+                    const { added } = unwrap(await syncConcept2Now(profileId));
+                    return added ? `Added ${added} new piece${added === 1 ? "" : "s"}.` : "Up to date.";
+                  })
+                }
+                className="border-2 border-[var(--color-primary)] rounded px-3 py-2 disabled:opacity-50"
+              >
+                Sync now
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                run(async () => {
+                  unwrap(await disconnectConcept2(profileId));
+                  return "Disconnected. Pieces already here stay.";
+                })
+              }
+              className="border-2 border-gray-300 rounded px-3 py-2 disabled:opacity-50"
+            >
+              Disconnect
+            </button>
+          </div>
+        </>
+      )}
+      {pending && <p className="text-gray-600">Working…</p>}
       {message && <p className="text-gray-700">{message}</p>}
     </section>
   );

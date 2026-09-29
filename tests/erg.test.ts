@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  concept2ResultToWorkout,
   ergWatts,
   formatErgTime,
   tidyErgTime,
@@ -76,5 +77,40 @@ describe("dots for colons (phone number pad)", () => {
   it("tidies a dotted time for display", () => {
     expect(tidyErgTime("6.45.2")).toBe("6:45.2");
     expect(tidyErgTime("nope")).toBe("nope");
+  });
+});
+
+describe("concept2ResultToWorkout", () => {
+  const base = { id: 123, date: "2026-09-20 17:32:00", type: "rower", distance: 2000, time: 4052, stroke_rate: 31, comments: " felt good ", workout_type: "FixedDistanceSplits" };
+
+  it("matches the CSV import's reference, so a piece is only kept once", () => {
+    expect(concept2ResultToWorkout(base)).toEqual({
+      sourceRef: "c2:123",
+      doneOn: "2026-09-20",
+      piece: "2000m",
+      distanceM: 2000,
+      timeSeconds: 405.2,
+      strokeRate: 31,
+      notes: "felt good",
+    });
+  });
+
+  it("names a 2000m piece so it counts as a 2K test", () => {
+    const w = concept2ResultToWorkout(base)!;
+    expect(testDistance(w.distanceM, w.piece)).toBe("2k");
+  });
+
+  it("names timed pieces by time and interval pieces as Intervals", () => {
+    expect(concept2ResultToWorkout({ ...base, workout_type: "FixedTimeSplits", distance: 7800, time: 18000 })!.piece).toBe("30:00");
+    expect(concept2ResultToWorkout({ ...base, workout_type: "FixedDistanceInterval", distance: 4000 })!.piece).toBe("Intervals");
+  });
+
+  it("skips other machines and empty results", () => {
+    expect(concept2ResultToWorkout({ ...base, type: "skierg" })).toBeNull();
+    expect(concept2ResultToWorkout({ ...base, distance: 0, time: 0 })).toBeNull();
+  });
+
+  it("drops a stroke rate that can't be right", () => {
+    expect(concept2ResultToWorkout({ ...base, stroke_rate: 0 })!.strokeRate).toBeNull();
   });
 });

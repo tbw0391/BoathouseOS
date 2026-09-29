@@ -155,6 +155,48 @@ export function parseConcept2Csv(text: string): ImportedWorkout[] {
   return out.filter((w) => w.distanceM != null || w.timeSeconds != null);
 }
 
+// One result from the Concept2 Logbook API (GET /api/users/me/results).
+// Time is in tenths of a second.
+export type Concept2Result = {
+  id: number;
+  date: string;
+  type: string;
+  distance: number | null;
+  time: number | null;
+  workout_type?: string | null;
+  stroke_rate?: number | null;
+  comments?: string | null;
+};
+
+// The same shape the CSV import makes, with the same "c2:<id>" reference,
+// so a piece imported both ways is only kept once. Only RowErg pieces.
+export function concept2ResultToWorkout(r: Concept2Result): ImportedWorkout | null {
+  if (r.type !== "rower") return null;
+  const doneOn = r.date?.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+  if (!doneOn) return null;
+  const distanceM = r.distance != null && r.distance > 0 && r.distance <= 100000 ? Math.round(r.distance) : null;
+  const timeSeconds = r.time != null && r.time > 0 && r.time < 360000 ? Math.round(r.time) / 10 : null;
+  if (distanceM == null && timeSeconds == null) return null;
+  const kind = r.workout_type ?? "";
+  const piece = /Interval/i.test(kind)
+    ? "Intervals"
+    : kind === "FixedTimeSplits" && timeSeconds != null
+      ? formatErgTime(timeSeconds).replace(/\.0$/, "")
+      : distanceM != null
+        ? `${distanceM}m`
+        : "Workout";
+  const rate = r.stroke_rate ?? NaN;
+  return {
+    sourceRef: `c2:${r.id}`,
+    doneOn,
+    piece,
+    distanceM,
+    timeSeconds,
+    strokeRate: Number.isFinite(rate) && rate >= 10 && rate <= 60 ? Math.round(rate) : null,
+    notes: r.comments?.trim().slice(0, 500) || null,
+  };
+}
+
 // What a time box shows once you leave it: "6.45.2" -> "6:45.2". Left as
 // typed if it isn't a time, so the save can say what's wrong.
 export function tidyErgTime(text: string): string {
