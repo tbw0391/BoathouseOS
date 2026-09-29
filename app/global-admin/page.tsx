@@ -37,6 +37,13 @@ export default async function GlobalAdminPage() {
         QR codes to print or show
       </Link>
 
+      <Link
+        href="/global-admin/errors"
+        className="border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm font-medium text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+      >
+        Errors on the live site
+      </Link>
+
       <section className="border rounded-lg p-4">
         <h2 className="text-lg font-semibold mb-1">Set a new default</h2>
         <p className="text-sm text-gray-500 mb-3">
