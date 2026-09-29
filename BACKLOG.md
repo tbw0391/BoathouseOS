@@ -95,7 +95,6 @@
       two-tap warning spelling out that its races, boats, oar sheets,
       results and medals, food tent, volunteer, trailer and travel lists
       go with it. Before this it was only on Schedule → Regattas.
-- [ ] RSVP (attending / not attending) per event (not now — Todd will pick it up later)
 - [x] Calendar view (2026-09-27): month grid on /schedule under the Regattas/
       Practice tiles. Dots per day by type; tap a day to list what's on it
       (regattas link to their page). Weekly/monthly/yearly events repeat.
