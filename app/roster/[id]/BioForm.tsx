@@ -1,5 +1,6 @@
 "use client";
 
+import { Camera } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -93,7 +94,11 @@ export function BioForm({
             No photo
           </div>
         )}
-        <input type="file" accept="image/*" onChange={handlePhotoChange} className="text-sm" />
+        <label className="cursor-pointer flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-accent)] text-white px-3 py-1.5 text-sm font-medium">
+          <Camera className="w-4 h-4" aria-hidden />
+          {photoUrl ? "Change photo" : "Add photo"}
+          <input type="file" accept="image/*" onChange={handlePhotoChange} className="sr-only" />
+        </label>
       </div>
       {uploading && <p className="text-sm text-gray-500">Uploading photo...</p>}
 

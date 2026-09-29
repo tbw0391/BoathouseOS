@@ -35,6 +35,7 @@ import {
 } from "@/lib/profileButtons";
 import { ProfileShortcuts } from "./ProfileShortcuts";
 import { TextAlertsCard } from "./TextAlertsCard";
+import { ProfilePhotoButton } from "./ProfilePhotoButton";
 import { canOptInToTexts } from "@/lib/smsRules";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
@@ -235,19 +236,22 @@ export default async function BioPage({
       </Link>
 
       <div className="mt-4 flex flex-wrap items-start gap-4">
-        {profile.photo_url ? (
-          <StorageImage
-            src={profile.photo_url}
-            alt=""
-            width={160}
-            height={160}
-            className="w-40 h-40 rounded-full object-cover border"
-          />
-        ) : (
-          <div className="w-40 h-40 rounded-full border flex items-center justify-center text-sm text-gray-400">
-            No photo
-          </div>
-        )}
+        <div className="flex flex-col items-center gap-2">
+          {profile.photo_url ? (
+            <StorageImage
+              src={profile.photo_url}
+              alt=""
+              width={160}
+              height={160}
+              className="w-40 h-40 rounded-full object-cover border"
+            />
+          ) : (
+            <div className="w-40 h-40 rounded-full border flex items-center justify-center text-sm text-gray-400">
+              No photo
+            </div>
+          )}
+          {canEdit && <ProfilePhotoButton profileId={profile.id} hasPhoto={!!profile.photo_url} />}
+        </div>
         <div>
           <h1 className="text-2xl font-bold">{profile.display_name}</h1>
           <p className="text-sm text-gray-500">

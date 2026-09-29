@@ -491,3 +491,28 @@ export async function sendMyTestText() {
   const sent = await sendTexts(createAdminClient(), [consent.phone], smsBody("Test text", "Text alerts are working."));
   if (sent === 0) throw new Error("Twilio didn't accept the text. Check Monitor → Logs → Errors in Twilio.");
 }
+
+// Sets a member's profile photo straight from their profile page (yourself,
+// or a coach/admin). The file is uploaded from the browser to the avatars
+// bucket; this only records where it landed, so it only accepts that bucket.
+export async function setProfilePhoto(profileId: string, url: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in.");
+
+  if (user.id !== profileId) {
+    const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    const role = (me as { role: string } | null)?.role;
+    if (role !== "admin" && role !== "coach") throw new Error("You can only change your own photo.");
+  }
+
+  const bucket = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/`;
+  if (!url.startsWith(bucket)) throw new Error("That photo didn't upload properly. Try again.");
+
+  const { error } = await supabase.from("profiles").update({ photo_url: url }).eq("id", profileId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/roster/${profileId}`);
+  revalidatePath("/", "layout");
+}
