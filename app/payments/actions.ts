@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { myClubId } from "@/lib/clubs";
 import { getStripe, siteOrigin } from "@/lib/stripe";
 import { createBills, getPaymentSettings, refreshBillStatus, startBillCheckout } from "@/lib/billing";
 import { parseMoney } from "@/lib/payments";
@@ -253,7 +254,8 @@ export async function connectStripe(): Promise<{ url: string } | { error: string
 
 async function startStripeOnboarding(stripe: Stripe): Promise<string> {
   const admin = createAdminClient();
-  const settings = await getPaymentSettings(admin);
+  const clubId = await myClubId();
+  const settings = await getPaymentSettings(admin, clubId);
 
   let accountId = settings.stripe_account_id;
   if (!accountId) {
@@ -266,7 +268,7 @@ async function startStripeOnboarding(stripe: Stripe): Promise<string> {
       country: "US",
     });
     accountId = account.id;
-    await admin.from("payment_settings").update({ stripe_account_id: accountId }).eq("id", true);
+    await admin.from("payment_settings").update({ stripe_account_id: accountId }).eq("club_id", clubId);
   }
 
   const origin = await siteOrigin();
@@ -284,13 +286,14 @@ export async function refreshStripeStatus() {
   await requireTreasurer();
   const stripe = getStripe();
   const admin = createAdminClient();
-  const settings = await getPaymentSettings(admin);
+  const clubId = await myClubId();
+  const settings = await getPaymentSettings(admin, clubId);
   if (!stripe || !settings.stripe_account_id) return;
   const account = await stripe.accounts.retrieve(settings.stripe_account_id);
   await admin
     .from("payment_settings")
     .update({ stripe_charges_enabled: account.charges_enabled })
-    .eq("id", true);
+    .eq("club_id", clubId);
   revalidatePayments();
 }
 
@@ -351,7 +354,7 @@ export async function payBill(billId: string, plan: "full" | "installments"): Pr
 async function payBillInternal(bill: Bill, charge: Charge, plan: "full" | "installments", userId: string) {
   const stripe = getStripe();
   const admin = createAdminClient();
-  const settings = await getPaymentSettings(admin);
+  const settings = await getPaymentSettings(admin, bill.club_id);
   if (!stripe || !settings.stripe_account_id || !settings.stripe_charges_enabled) return null;
 
   const { data: rower } = await admin.from("profiles").select("display_name").eq("id", bill.rower_id).single();

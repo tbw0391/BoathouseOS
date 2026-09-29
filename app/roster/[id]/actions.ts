@@ -319,6 +319,10 @@ export async function resetMemberPassword(profileId: string, newPassword: string
       throw new UserError("Password must be at least 8 characters.");
     }
 
+    // Read as the admin themselves, so it's only found in their own club.
+    const { data: target } = await supabase.from("profiles").select("id").eq("id", profileId).maybeSingle();
+    if (!target) throw new UserError("That member wasn't found.");
+
     const admin = createAdminClient();
     const { error } = await admin.auth.admin.updateUserById(profileId, { password: newPassword });
     if (error) {

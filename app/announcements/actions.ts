@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { activeMemberIds, sendPush } from "@/lib/push";
+import { clubMemberIds, sendPush } from "@/lib/push";
 import type { AnnouncementAudience } from "@/lib/database.types";
 import { UserError, tryAction } from "@/lib/userError";
 
@@ -64,7 +64,7 @@ export async function sendAnnouncement(formData: FormData) {
         .select("display_name")
         .eq("id", user.id)
         .single();
-      await sendPush(await activeMemberIds(roles), {
+      await sendPush(await clubMemberIds(user.id, roles), {
         kind: "announcement",
         title: `Announcement from ${(sender as { display_name: string } | null)?.display_name ?? "your coach"}`,
         body: message.length > 140 ? `${message.slice(0, 139)}…` : message,

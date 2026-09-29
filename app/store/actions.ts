@@ -77,7 +77,7 @@ export async function updateFeaturedItems(formData: FormData) {
 
     const { error } = await supabase
       .from("club_settings")
-      .upsert({ key: "team_store_featured_items", value: JSON.stringify(cleaned) }, { onConflict: "key" });
+      .upsert({ key: "team_store_featured_items", value: JSON.stringify(cleaned) }, { onConflict: "club_id,key" });
 
     if (error) throw new Error(error.message);
 

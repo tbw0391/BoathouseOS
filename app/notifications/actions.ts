@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { myClubId } from "@/lib/clubs";
 import { isDemoEmail } from "@/lib/demoAccount";
 import { PUSH_ENDPOINT_COOKIE, isPushServiceEndpoint } from "@/lib/push";
 import { UserError, tryAction } from "@/lib/userError";
@@ -50,6 +51,7 @@ export async function savePushSubscription(sub: PushSubscriptionInput, userAgent
       .upsert(
         {
           user_id: user.id,
+          club_id: await myClubId(),
           endpoint: sub.endpoint,
           p256dh: sub.keys.p256dh,
           auth: sub.keys.auth,

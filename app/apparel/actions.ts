@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { myClubId } from "@/lib/clubs";
 import { getStripe, siteOrigin } from "@/lib/stripe";
 import { getPaymentSettings, markOrderPaid, startOrderCheckout } from "@/lib/billing";
 import { parseMoney } from "@/lib/payments";
@@ -185,14 +186,16 @@ export async function placeOrder({
     }
 
     const admin = createAdminClient();
+    const clubId = await myClubId();
     const { data: productRows } = await admin
       .from("products")
       .select("*")
+      .eq("club_id", clubId)
       .in("id", [...new Set(cart.map((l) => l.productId))]);
     const products = new Map(((productRows as Product[] | null) ?? []).map((p) => [p.id, p]));
 
     if (windowId) {
-      const { data: windowRow } = await admin.from("order_windows").select("*").eq("id", windowId).single();
+      const { data: windowRow } = await admin.from("order_windows").select("*").eq("id", windowId).eq("club_id", clubId).single();
       const window = windowRow as OrderWindow | null;
       const now = Date.now();
       if (!window || Date.parse(window.opens_at) > now || Date.parse(window.closes_at) < now) {
@@ -225,7 +228,7 @@ export async function placeOrder({
     const total = cart.reduce((sum, l) => sum + (products.get(l.productId) as Product).price_cents * l.quantity, 0);
     const { data: orderRow, error } = await admin
       .from("orders")
-      .insert({ buyer_id: user.id, for_rower_id: forRowerId, window_id: windowId, total_cents: total })
+      .insert({ club_id: clubId, buyer_id: user.id, for_rower_id: forRowerId, window_id: windowId, total_cents: total })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
@@ -234,6 +237,7 @@ export async function placeOrder({
       .from("order_items")
       .insert(
         cart.map((l) => ({
+          club_id: clubId,
           order_id: order.id,
           product_id: l.productId,
           size: l.size,
@@ -246,7 +250,7 @@ export async function placeOrder({
     revalidateApparel();
 
     const stripe = getStripe();
-    const settings = await getPaymentSettings(admin);
+    const settings = await getPaymentSettings(admin, clubId);
     if (!stripe || !settings.stripe_account_id || !settings.stripe_charges_enabled) return null;
     return startOrderCheckout(admin, stripe, {
       order,

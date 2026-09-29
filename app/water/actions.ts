@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { activeMemberIds, sendPush } from "@/lib/push";
+import { clubMemberIds, sendPush } from "@/lib/push";
 import { clubDateKey } from "@/lib/raceDay";
 import { PRACTICE_CALL_LABELS, WATER_SETTINGS_KEY, type WaterSettings } from "@/lib/waterConditions";
 import { UserError, tryAction } from "@/lib/userError";
@@ -50,7 +50,7 @@ export async function saveWaterSettings(formData: FormData) {
     };
     const { error } = await supabase
       .from("club_settings")
-      .upsert({ key: WATER_SETTINGS_KEY, value: JSON.stringify(settings) }, { onConflict: "key" });
+      .upsert({ key: WATER_SETTINGS_KEY, value: JSON.stringify(settings) }, { onConflict: "club_id,key" });
     if (error) throw new Error(error.message);
     refresh();
   });
@@ -71,7 +71,7 @@ export async function makePracticeCall(status: string, note: string, waterTempF:
       called_at: new Date().toISOString(),
     });
     if (error) throw new Error(error.message);
-    await sendPush(await activeMemberIds(), {
+    await sendPush(await clubMemberIds(user.id), {
       kind: "practice_call",
       title: `Today: ${PRACTICE_CALL_LABELS[status]}`,
       body: cleanNote ?? "Tap for today's water conditions.",
@@ -93,7 +93,7 @@ export async function startLightningHold() {
     }
     const { error } = await supabase.from("lightning_holds").insert({ started_by: user.id });
     if (error) throw new Error(error.message);
-    await sendPush(await activeMemberIds(), {
+    await sendPush(await clubMemberIds(user.id), {
       kind: "lightning_hold",
       title: "⚡ Lightning: off the water now",
       body: "All boats head to the nearest safe landing. Wait 30 minutes after the last thunder.",
@@ -125,7 +125,7 @@ export async function clearLightningHold() {
       .update({ cleared_at: new Date().toISOString(), cleared_by: user.id })
       .is("cleared_at", null);
     if (error) throw new Error(error.message);
-    await sendPush(await activeMemberIds(), {
+    await sendPush(await clubMemberIds(user.id), {
       kind: "lightning_hold",
       title: "Lightning hold over",
       body: "The coaches have given the all clear.",

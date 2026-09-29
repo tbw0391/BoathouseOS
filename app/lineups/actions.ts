@@ -135,7 +135,7 @@ export async function importBoats(rows: BoatImportRow[]) {
   // class/notes for existing boats instead of failing on the unique name.
   const { error, data } = await supabase
     .from("boats")
-    .upsert(toUpsert, { onConflict: "name" })
+    .upsert(toUpsert, { onConflict: "club_id,name" })
     .select("id");
 
   if (error) throw new Error(error.message);

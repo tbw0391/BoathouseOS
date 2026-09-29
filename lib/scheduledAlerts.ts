@@ -37,26 +37,27 @@ async function claim(admin: Admin, kind: string, refs: string[]): Promise<Set<st
 async function foodDraftAlerts(admin: Admin) {
   const { data } = await admin
     .from("food_tent_status")
-    .select("event_id, schedule_events(title)")
+    .select("event_id, club_id, schedule_events(title)")
     .eq("status", "pending_confirmation")
     .gte("draft_generated_at", new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString());
-  const drafts = (data as unknown as { event_id: string; schedule_events: { title: string } | null }[] | null) ?? [];
+  const drafts =
+    (data as unknown as { event_id: string; club_id: string; schedule_events: { title: string } | null }[] | null) ?? [];
   const claimed = await claim(admin, "food_draft", drafts.map((d) => d.event_id));
   const ready = drafts.filter((d) => claimed.has(d.event_id));
   if (ready.length === 0) return;
 
-  const { data: leaders } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("is_tent_leader", true)
-    .not("approved_at", "is", null)
-    .is("disabled_at", null);
-  const managers = [
-    ...(await activeMemberIds(["coach", "admin"])),
-    ...((leaders as { id: string }[] | null) ?? []).map((p) => p.id),
-  ];
-
   for (const draft of ready) {
+    const { data: leaders } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("club_id", draft.club_id)
+      .eq("is_tent_leader", true)
+      .not("approved_at", "is", null)
+      .is("disabled_at", null);
+    const managers = [
+      ...(await activeMemberIds(draft.club_id, ["coach", "admin"])),
+      ...((leaders as { id: string }[] | null) ?? []).map((p) => p.id),
+    ];
     await sendPush(managers, {
       kind: "food_draft",
       title: "Food list draft ready",
@@ -127,32 +128,40 @@ async function paymentDueAlerts(admin: Admin) {
 // the coach says the regatta is running, minus the club's launch minutes),
 // tell the crew and their parents.
 async function launchSoonAlerts(admin: Admin) {
-  const { data: setting } = await admin
-    .from("club_settings")
-    .select("value")
-    .eq("key", LAUNCH_MINUTES_KEY)
-    .maybeSingle();
-  const launchMinutes = parseLaunchMinutes((setting as { value: string | null } | null)?.value);
+  // Each club sets its own launch minutes.
+  const { data: settings } = await admin.from("club_settings").select("club_id, value").eq("key", LAUNCH_MINUTES_KEY);
+  const minutesByClub = new Map(
+    ((settings as { club_id: string; value: string | null }[] | null) ?? []).map((s) => [
+      s.club_id,
+      parseLaunchMinutes(s.value),
+    ])
+  );
+  const launchMinutesFor = (clubId: string) => minutesByClub.get(clubId) ?? parseLaunchMinutes(null);
+  const longestLaunch = Math.max(parseLaunchMinutes(null), ...minutesByClub.values());
 
   // Launch within the next 15 minutes (the job runs every 5). Races
   // scheduled up to the longest delay earlier may be due too.
   const now = Date.now();
-  const from = now + launchMinutes * 60 * 1000;
-  const to = now + (launchMinutes + 15) * 60 * 1000;
+  const window = (clubId: string) => ({
+    from: now + launchMinutesFor(clubId) * 60 * 1000,
+    to: now + (launchMinutesFor(clubId) + 15) * 60 * 1000,
+  });
   const { data } = await admin
     .from("lineups")
-    .select("id, boat_name, race_name, race_time, bow_number, place, schedule_events(race_delay_minutes)")
-    .gte("race_time", new Date(from - MAX_DELAY_MINUTES * 60 * 1000).toISOString())
-    .lte("race_time", new Date(to).toISOString())
+    .select("id, club_id, boat_name, race_name, race_time, bow_number, place, schedule_events(race_delay_minutes)")
+    .gte("race_time", new Date(now - MAX_DELAY_MINUTES * 60 * 1000).toISOString())
+    .lte("race_time", new Date(now + (longestLaunch + 15) * 60 * 1000).toISOString())
     .is("place", null);
   const lineups = (
     (data as unknown as (Pick<Lineup, "id" | "boat_name" | "race_name" | "race_time" | "bow_number" | "place"> & {
+      club_id: string;
       schedule_events: { race_delay_minutes: number } | null;
     })[] | null) ?? []
   )
     .map((l) => ({ ...l, race_time: delayedRaceTime(l.race_time!, l.schedule_events?.race_delay_minutes) }))
     .filter((l) => {
       const t = new Date(l.race_time).getTime();
+      const { from, to } = window(l.club_id);
       return t >= from && t <= to;
     });
   const claimed = await claim(admin, "launch_soon", lineups.map((l) => l.id));
@@ -163,7 +172,7 @@ async function launchSoonAlerts(admin: Admin) {
       .map((s) => s.rower_id)
       .filter((id): id is string => !!id);
     if (crew.length === 0) continue;
-    const launch = launchTime(lineup.race_time!, launchMinutes);
+    const launch = launchTime(lineup.race_time!, launchMinutesFor(lineup.club_id));
     await sendPush([...crew, ...(await guardianIdsFor(crew))], {
       kind: "launch_soon",
       title: `Launch at ${clubTimeLabel(launch)}`,

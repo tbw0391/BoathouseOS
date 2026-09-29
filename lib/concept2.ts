@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { clubIdOf } from "@/lib/clubs";
 import { concept2ResultToWorkout, type Concept2Result, type ImportedWorkout } from "@/lib/erg";
 import { saveImportedWorkouts } from "@/lib/ergImport";
 
@@ -76,6 +77,7 @@ export async function connectConcept2(profileId: string, code: string, connected
   const admin = createAdminClient();
   const { error } = await admin.from("concept2_links").upsert({
     profile_id: profileId,
+    club_id: await clubIdOf(admin, profileId),
     c2_user_id: me.data.id,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,

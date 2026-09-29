@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { familyMemberIds, sendPush } from "@/lib/push";
+import { myClubId } from "@/lib/clubs";
 import { UserError, tryAction } from "@/lib/userError";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -93,7 +94,7 @@ export async function publishFoodList(eventId: string) {
         .eq("id", eventId)
         .single();
       await sendPush(
-        (await familyMemberIds()).filter((id) => id !== user.id),
+        (await familyMemberIds(await myClubId())).filter((id) => id !== user.id),
         {
           kind: "food_published",
           title: "Food tent signups are open",

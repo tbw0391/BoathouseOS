@@ -38,11 +38,12 @@ export async function importMembers(rows: ImportRow[]) {
 
     const { data: callerProfile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, club_id")
       .eq("id", user.id)
       .single();
 
     const callerRole = (callerProfile as { role: Role } | null)?.role;
+    const clubId = (callerProfile as { club_id: string } | null)?.club_id;
     if (callerRole !== "admin" && callerRole !== "coach") {
       throw new UserError("Only coaches and admins can import members.");
     }
@@ -87,6 +88,7 @@ export async function importMembers(rows: ImportRow[]) {
         : null;
 
       toInsert.push({
+        club_id: clubId,
         first_name: firstName,
         last_name: lastName,
         display_name: `${firstName} ${lastName}`.trim(),
@@ -110,7 +112,7 @@ export async function importMembers(rows: ImportRow[]) {
     }
 
     const profileTeamRows = (data ?? []).flatMap((profile, i) =>
-      teamsToInsert[i].map((team) => ({ profile_id: profile.id, team }))
+      teamsToInsert[i].map((team) => ({ profile_id: profile.id, team, club_id: clubId }))
     );
     if (profileTeamRows.length > 0) {
       const { error: teamsError } = await admin.from("profile_teams").insert(profileTeamRows);

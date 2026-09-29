@@ -41,7 +41,7 @@ async function editSections(change: (sections: RookieParentSection[]) => RookieP
     .from("club_settings")
     .upsert(
       { key: ROOKIE_PARENT_SECTIONS_KEY, value: JSON.stringify(change(current)) },
-      { onConflict: "key" },
+      { onConflict: "club_id,key" },
     );
   if (error) throw new Error(error.message);
 

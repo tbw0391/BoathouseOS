@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { clubIdOf } from "@/lib/clubs";
 import { ALERT_SETTINGS_KEY, EMAIL_BACKUP_KINDS, parseAlertSettings, type AlertKind } from "@/lib/alertSettings";
 import { alertEmail, emailConfigured, sendEmails } from "@/lib/email";
 import { isDemoEmail } from "@/lib/demoAccount";
@@ -63,16 +64,9 @@ function configure(): boolean {
 // throws: alerts are a nice-to-have on top of whatever action triggered them.
 export async function sendPush(userIds: string[], message: PushMessage) {
   try {
-    const ids = [...new Set(userIds)];
-    if (ids.length === 0) return;
-
     const admin = createAdminClient();
-    const { data: setting } = await admin
-      .from("club_settings")
-      .select("value")
-      .eq("key", ALERT_SETTINGS_KEY)
-      .maybeSingle();
-    if (!parseAlertSettings((setting as { value: string | null } | null)?.value)[message.kind]) return;
+    const ids = await recipientsWithKindOn(admin, [...new Set(userIds)], message.kind);
+    if (ids.length === 0) return;
 
     const { data } = await admin
       .from("push_subscriptions")
@@ -141,12 +135,36 @@ export async function sendPush(userIds: string[], message: PushMessage) {
   }
 }
 
-// Approved, active members, optionally only these roles.
-export async function activeMemberIds(roles?: string[]): Promise<string[]> {
+// Drops anyone whose club has this kind of alert switched off (each club's
+// admins pick theirs on /admin).
+async function recipientsWithKindOn(
+  admin: ReturnType<typeof createAdminClient>,
+  ids: string[],
+  kind: AlertKind
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const { data: people } = await admin.from("profiles").select("id, club_id").in("id", ids);
+  const rows = (people as { id: string; club_id: string }[] | null) ?? [];
+  const clubIds = [...new Set(rows.map((p) => p.club_id))];
+  const { data: settings } = await admin
+    .from("club_settings")
+    .select("club_id, value")
+    .eq("key", ALERT_SETTINGS_KEY)
+    .in("club_id", clubIds);
+  const valueByClub = new Map(
+    ((settings as { club_id: string; value: string | null }[] | null) ?? []).map((s) => [s.club_id, s.value])
+  );
+  const on = new Set(clubIds.filter((c) => parseAlertSettings(valueByClub.get(c) ?? null)[kind]));
+  return rows.filter((p) => on.has(p.club_id)).map((p) => p.id);
+}
+
+// Approved, active members of a club, optionally only these roles.
+export async function activeMemberIds(clubId: string, roles?: string[]): Promise<string[]> {
   const admin = createAdminClient();
   let query = admin
     .from("profiles")
     .select("id")
+    .eq("club_id", clubId)
     .not("approved_at", "is", null)
     .is("disabled_at", null);
   if (roles) query = query.in("role", roles);
@@ -154,14 +172,20 @@ export async function activeMemberIds(roles?: string[]): Promise<string[]> {
   return ((data as { id: string }[] | null) ?? []).map((p) => p.id);
 }
 
+// Approved, active members of this member's club (e.g. whoever just posted
+// something), optionally only these roles.
+export async function clubMemberIds(memberId: string, roles?: string[]): Promise<string[]> {
+  return activeMemberIds(await clubIdOf(createAdminClient(), memberId), roles);
+}
+
 // Parents plus anyone linked to a rower as a guardian (a coach can be both),
 // matching who sees the food tent banners.
-export async function familyMemberIds(): Promise<string[]> {
+export async function familyMemberIds(clubId: string): Promise<string[]> {
   const admin = createAdminClient();
   const [parents, active, { data: links }] = await Promise.all([
-    activeMemberIds(["parent"]),
-    activeMemberIds(),
-    admin.from("family_links").select("guardian_id"),
+    activeMemberIds(clubId, ["parent"]),
+    activeMemberIds(clubId),
+    admin.from("family_links").select("guardian_id").eq("club_id", clubId),
   ]);
   const activeSet = new Set(active);
   const guardians = ((links as { guardian_id: string }[] | null) ?? [])
@@ -231,11 +255,12 @@ export async function householdIdsForRower(rowerId: string): Promise<string[]> {
   return guardians.length > 0 ? guardians : [rowerId];
 }
 
-// Admins and treasurers (who manage payments).
-export async function treasurerIds(): Promise<string[]> {
+// A club's admins and treasurers (who manage payments).
+export async function treasurerIds(clubId: string): Promise<string[]> {
   const { data } = await createAdminClient()
     .from("profiles")
     .select("id")
+    .eq("club_id", clubId)
     .or("role.eq.admin,is_treasurer.eq.true")
     .not("approved_at", "is", null)
     .is("disabled_at", null);

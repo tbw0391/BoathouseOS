@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { siteClubId } from "@/lib/clubs";
 import { createClient } from "@/lib/supabase/server";
 import { findDemoProfile, isDemoEmail, type DemoProfile } from "@/lib/demoAccount";
 import { forgetThisDevicesPush } from "@/lib/push";
@@ -41,7 +42,7 @@ async function signInToDemoAccount(profile: DemoProfile) {
     const rowerId = await ensureDemoAccount(admin, findDemoProfile("rower")!);
     await admin
       .from("family_links")
-      .upsert({ guardian_id: userId, rower_id: rowerId }, { ignoreDuplicates: true });
+      .upsert({ guardian_id: userId, rower_id: rowerId, club_id: await siteClubId(admin) }, { ignoreDuplicates: true });
   }
 
   // Mint a one-time magic-link token server-side and redeem it right away,
@@ -95,8 +96,11 @@ async function ensureDemoAccount(
   }
 
   const lastName = profile.role === "admin" ? "User" : profile.label;
+  // The demo accounts live in the demo club.
+  const clubId = await siteClubId(admin);
   const { error: profileError } = await admin.from("profiles").insert({
     id: created.user.id,
+    club_id: clubId,
     email: profile.email,
     display_name: `Demo ${lastName}`,
     first_name: "Demo",
@@ -108,7 +112,7 @@ async function ensureDemoAccount(
     throw new Error(profileError.message);
   }
   if (profile.team) {
-    await admin.from("profile_teams").insert({ profile_id: created.user.id, team: profile.team });
+    await admin.from("profile_teams").insert({ profile_id: created.user.id, team: profile.team, club_id: clubId });
   }
   return created.user.id;
 }

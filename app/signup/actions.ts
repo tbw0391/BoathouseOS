@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { siteClubId } from "@/lib/clubs";
 import { getClientIp } from "@/lib/clientIp";
 import type { Team } from "@/lib/database.types";
 import { TERMS_REQUIRED, TERMS_VERSION } from "@/lib/terms";
@@ -72,8 +73,11 @@ export async function signUp(formData: FormData) {
       throw new Error(createError?.message ?? "Couldn't create an account with that email.");
     }
 
+    // Self-signups join the site's club until invites say which club.
+    const clubId = await siteClubId(admin);
     const { error: profileError } = await admin.from("profiles").insert({
       id: created.user.id,
+      club_id: clubId,
       email,
       display_name: `${firstName} ${lastName}`.trim(),
       first_name: firstName,
@@ -102,7 +106,7 @@ export async function signUp(formData: FormData) {
     if (teams.length > 0) {
       const { error: teamsError } = await admin
         .from("profile_teams")
-        .insert(teams.map((team) => ({ profile_id: created.user.id, team })));
+        .insert(teams.map((team) => ({ profile_id: created.user.id, team, club_id: clubId })));
       if (teamsError) throw new Error(teamsError.message);
     }
   });

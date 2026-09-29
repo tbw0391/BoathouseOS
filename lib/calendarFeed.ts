@@ -52,10 +52,10 @@ export async function calendarFeedFor(token: string, siteUrl: string): Promise<s
 
   const { data: profileRow } = await admin
     .from("profiles")
-    .select("id, role, spouse_id, approved_at, disabled_at")
+    .select("id, club_id, role, spouse_id, approved_at, disabled_at")
     .eq("id", profileId)
     .maybeSingle();
-  const profile = profileRow as Pick<Profile, "id" | "role" | "spouse_id" | "approved_at" | "disabled_at"> | null;
+  const profile = profileRow as Pick<Profile, "id" | "club_id" | "role" | "spouse_id" | "approved_at" | "disabled_at"> | null;
   if (!profile || !profile.approved_at || profile.disabled_at) return null;
 
   const now = new Date();
@@ -65,9 +65,9 @@ export async function calendarFeedFor(token: string, siteUrl: string): Promise<s
   const from = clubDateTime(fromKey, "00:00");
 
   const [{ data: eventRows }, { data: brandingRow }, { data: launchRow }] = await Promise.all([
-    admin.from("schedule_events").select("*").or(`starts_at.gte.${from.toISOString()},recurrence.neq.none`),
-    admin.from("club_settings").select("value").eq("key", "branding").maybeSingle(),
-    admin.from("club_settings").select("value").eq("key", LAUNCH_MINUTES_KEY).maybeSingle(),
+    admin.from("schedule_events").select("*").eq("club_id", profile.club_id).or(`starts_at.gte.${from.toISOString()},recurrence.neq.none`),
+    admin.from("club_settings").select("value").eq("club_id", profile.club_id).eq("key", "branding").maybeSingle(),
+    admin.from("club_settings").select("value").eq("club_id", profile.club_id).eq("key", LAUNCH_MINUTES_KEY).maybeSingle(),
   ]);
   const events = (eventRows as ScheduleEvent[] | null) ?? [];
   let clubName = "BoathouseOS";
@@ -124,6 +124,7 @@ export async function calendarFeedFor(token: string, siteUrl: string): Promise<s
   const { data: lineupRows } = await admin
     .from("lineups")
     .select("*")
+    .eq("club_id", profile.club_id)
     .not("race_time", "is", null)
     .gte("race_time", from.toISOString());
   let lineups = (lineupRows as Lineup[] | null) ?? [];

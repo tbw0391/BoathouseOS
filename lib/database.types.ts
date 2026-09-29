@@ -6,8 +6,16 @@ export type Role = 'rower' | 'coach' | 'coxswain' | 'parent' | 'admin';
 export type BoatSide = 'port' | 'starboard' | 'either';
 export type Team = 'mens' | 'womens' | 'development' | 'masters' | 'alumni' | 'coach' | 'parent';
 
+export interface Club {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
+  club_id: string;
   email: string;
   display_name: string;
   role: Role;
@@ -58,6 +66,7 @@ export type ScheduleRecurrence = 'none' | 'weekly' | 'monthly' | 'yearly';
 
 export interface ScheduleEvent {
   id: string;
+  club_id: string;
   title: string;
   description: string | null;
   location: string | null;
@@ -116,6 +125,7 @@ export type LineupCategory = string;
 
 export interface Lineup {
   id: string;
+  club_id: string;
   event_id: string | null;
   boat_id: string | null;
   boat_name: string;
@@ -166,6 +176,7 @@ export interface LineupSeat {
 
 export interface Race {
   id: string;
+  club_id: string;
   event_id: string;
   category: LineupCategory | null;
   race_name: string;
@@ -462,6 +473,7 @@ export type FeeMode = "club" | "payer";
 
 export interface PaymentSettings {
   id: boolean;
+  club_id: string;
   stripe_account_id: string | null;
   stripe_charges_enabled: boolean;
   default_fee_mode: FeeMode;
@@ -470,6 +482,7 @@ export interface PaymentSettings {
 
 export interface Charge {
   id: string;
+  club_id: string;
   title: string;
   description: string | null;
   kind: "season" | "dues" | "regatta" | "travel" | "apparel" | "other";
@@ -502,6 +515,7 @@ export interface Discount {
 
 export interface Bill {
   id: string;
+  club_id: string;
   charge_id: string;
   rower_id: string;
   amount_cents: number;
@@ -517,6 +531,7 @@ export interface Bill {
 
 export interface Payment {
   id: string;
+  club_id: string;
   bill_id: string | null;
   order_id: string | null;
   amount_cents: number;
@@ -564,6 +579,7 @@ export interface OrderWindow {
 
 export interface Order {
   id: string;
+  club_id: string;
   buyer_id: string;
   for_rower_id: string | null;
   window_id: string | null;

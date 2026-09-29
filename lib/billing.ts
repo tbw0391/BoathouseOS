@@ -12,6 +12,7 @@ import {
   platformFee,
 } from "@/lib/payments";
 import { householdIdsForRower, sendPush, treasurerIds } from "@/lib/push";
+import { clubIdOf } from "@/lib/clubs";
 
 // Bill and order bookkeeping that has to run with the service role: creating
 // bills with discounts applied, starting Stripe Checkout, and applying what
@@ -20,8 +21,8 @@ import { householdIdsForRower, sendPush, treasurerIds } from "@/lib/push";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-export async function getPaymentSettings(admin: Admin): Promise<PaymentSettings> {
-  const { data } = await admin.from("payment_settings").select("*").single();
+export async function getPaymentSettings(admin: Admin, clubId: string): Promise<PaymentSettings> {
+  const { data } = await admin.from("payment_settings").select("*").eq("club_id", clubId).single();
   return data as PaymentSettings;
 }
 
@@ -34,7 +35,7 @@ export async function createBills(
   if (rowerIds.length === 0) return [];
   const [{ data: existing }, { data: discountRows }] = await Promise.all([
     admin.from("bills").select("rower_id").eq("charge_id", charge.id).in("rower_id", rowerIds),
-    admin.from("discounts").select("*").eq("active", true),
+    admin.from("discounts").select("*").eq("club_id", charge.club_id).eq("active", true),
   ]);
   const have = new Set(((existing as { rower_id: string }[] | null) ?? []).map((b) => b.rower_id));
   const discounts = (discountRows as Discount[] | null) ?? [];
@@ -44,6 +45,7 @@ export async function createBills(
     .map((rowerId) => {
       const { discountCents, note } = applicableDiscount(charge.amount_cents, discounts, charge.id, rowerId);
       return {
+        club_id: charge.club_id,
         charge_id: charge.id,
         rower_id: rowerId,
         amount_cents: charge.amount_cents,
@@ -136,6 +138,7 @@ export async function startBillCheckout(
       account
     );
     await admin.from("payments").insert({
+      club_id: bill.club_id,
       bill_id: bill.id,
       amount_cents: remaining,
       surcharge_cents: surcharge,
@@ -255,6 +258,7 @@ export async function startOrderCheckout(
     { stripeAccount: settings.stripe_account_id }
   );
   await admin.from("payments").insert({
+    club_id: order.club_id,
     order_id: order.id,
     amount_cents: order.total_cents,
     surcharge_cents: surcharge,
@@ -377,7 +381,10 @@ export async function handleInvoicePaid(
     // Only needed to match a later refund.
   }
 
+  const { data: billRow } = await admin.from("bills").select("club_id").eq("id", billId).single();
+  if (!billRow) return;
   const { error } = await admin.from("payments").insert({
+    club_id: (billRow as { club_id: string }).club_id,
     bill_id: billId,
     amount_cents: net,
     surcharge_cents: surcharge,
@@ -411,7 +418,7 @@ export async function handleInvoicePaymentFailed(admin: Admin, invoice: Stripe.I
   const what = `${(charge as { title: string } | null)?.title ?? "A bill"} for ${
     (rower as { display_name: string } | null)?.display_name ?? "a rower"
   }`;
-  const [family, treasurers] = await Promise.all([householdIdsForRower(bill.rower_id), treasurerIds()]);
+  const [family, treasurers] = await Promise.all([householdIdsForRower(bill.rower_id), treasurerIds(await clubIdOf(admin, bill.rower_id))]);
   await Promise.all([
     sendPush(family, {
       kind: "payment_failed",

@@ -38,7 +38,7 @@ export default async function ManagePaymentsPage() {
       const account = await stripe.accounts.retrieve(settings.stripe_account_id);
       if (account.charges_enabled) {
         const admin = createAdminClient();
-        await admin.from("payment_settings").update({ stripe_charges_enabled: true }).eq("id", true);
+        await admin.from("payment_settings").update({ stripe_charges_enabled: true }).eq("club_id", settings.club_id);
         ({ data: settingsRow } = await supabase.from("payment_settings").select("*").single());
         settings = settingsRow as PaymentSettings;
       }

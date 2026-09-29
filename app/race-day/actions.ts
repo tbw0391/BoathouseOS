@@ -41,7 +41,7 @@ export async function saveLaunchMinutes(minutes: number) {
     if (!LAUNCH_MINUTE_OPTIONS.includes(minutes)) throw new UserError("Pick one of the listed times.");
     const { error } = await supabase
       .from("club_settings")
-      .upsert({ key: LAUNCH_MINUTES_KEY, value: String(minutes) }, { onConflict: "key" });
+      .upsert({ key: LAUNCH_MINUTES_KEY, value: String(minutes) }, { onConflict: "club_id,key" });
     if (error) throw new Error(error.message);
     revalidatePath("/race-day");
   });

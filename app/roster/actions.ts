@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { myClubId } from "@/lib/clubs";
 import type { Role, BoatSide, Team } from "@/lib/database.types";
 import { UserError, tryAction } from "@/lib/userError";
 
@@ -16,11 +17,12 @@ export async function addMember(formData: FormData) {
 
     const { data: callerProfile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, club_id")
       .eq("id", user.id)
       .single();
 
     const callerRole = (callerProfile as { role: Role } | null)?.role;
+    const clubId = (callerProfile as { club_id: string } | null)?.club_id;
     if (callerRole !== "admin" && callerRole !== "coach") {
       throw new UserError("Only coaches and admins can add members.");
     }
@@ -60,6 +62,7 @@ export async function addMember(formData: FormData) {
       const { data: inserted, error: profileError } = await admin
         .from("profiles")
         .insert({
+          club_id: clubId,
           email,
           display_name: displayName,
           first_name: firstName,
@@ -79,7 +82,7 @@ export async function addMember(formData: FormData) {
       if (teams.length > 0) {
         const { error: teamsError } = await admin
           .from("profile_teams")
-          .insert(teams.map((team) => ({ profile_id: inserted.id, team })));
+          .insert(teams.map((team) => ({ profile_id: inserted.id, team, club_id: clubId })));
         if (teamsError) throw new Error(teamsError.message);
       }
 
@@ -98,6 +101,7 @@ export async function addMember(formData: FormData) {
 
     const { error: profileError } = await admin.from("profiles").insert({
       id: linkData.user.id,
+      club_id: clubId,
       email,
       display_name: displayName,
       first_name: firstName,
@@ -115,7 +119,7 @@ export async function addMember(formData: FormData) {
     if (teams.length > 0) {
       const { error: teamsError } = await admin
         .from("profile_teams")
-        .insert(teams.map((team) => ({ profile_id: linkData.user.id, team })));
+        .insert(teams.map((team) => ({ profile_id: linkData.user.id, team, club_id: clubId })));
       if (teamsError) throw new Error(teamsError.message);
     }
 
@@ -143,6 +147,7 @@ export async function approveMember(profileId: string) {
     .from("profiles")
     .update({ approved_at: new Date().toISOString() })
     .eq("id", profileId)
+    .eq("club_id", await myClubId())
     .is("approved_at", null);
   if (error) throw new Error(error.message);
 
@@ -161,6 +166,7 @@ export async function declineMember(profileId: string) {
       .from("profiles")
       .delete()
       .eq("id", profileId)
+      .eq("club_id", await myClubId())
       .is("approved_at", null)
       .select("id");
     if (error) throw new Error(error.message);

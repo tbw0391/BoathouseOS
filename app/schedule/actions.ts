@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { activeMemberIds, formatAlertTime, sendPush } from "@/lib/push";
+import { clubMemberIds, formatAlertTime, sendPush } from "@/lib/push";
 import type { EventType, Role, ScheduleRecurrence } from "@/lib/database.types";
 import { UserError, tryAction } from "@/lib/userError";
 
@@ -68,7 +68,7 @@ export async function createScheduleEvent(formData: FormData) {
     revalidatePath(`/schedule/${event_type}`);
     revalidatePath("/schedule");
     after(async () =>
-      sendPush((await activeMemberIds()).filter((id) => id !== user.id), {
+      sendPush((await clubMemberIds(user.id)).filter((id) => id !== user.id), {
         kind: "schedule_new",
         title: `New on the schedule: ${title}`,
         body: [formatAlertTime(startsAt), location].filter(Boolean).join(" · "),
@@ -132,7 +132,7 @@ export async function updateScheduleEvent(formData: FormData) {
     const placeChanged = old && (old.location ?? null) !== location;
     if (timeChanged || placeChanged) {
       after(async () =>
-        sendPush((await activeMemberIds()).filter((id) => id !== user.id), {
+        sendPush((await clubMemberIds(user.id)).filter((id) => id !== user.id), {
           kind: "schedule_change",
           title: `Schedule change: ${title}`,
           body: [

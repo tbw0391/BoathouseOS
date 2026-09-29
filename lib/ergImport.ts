@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { clubIdOf } from "@/lib/clubs";
 import { formatErgTime, testDistance, type ImportedWorkout } from "@/lib/erg";
 
 // Saving imported Concept2 pieces, shared by the CSV upload and the
@@ -40,9 +41,11 @@ export async function saveImportedWorkouts(
     return true;
   });
 
+  const clubId = fresh.length ? await clubIdOf(createAdminClient(), profileId) : null;
   for (let i = 0; i < fresh.length; i += 500) {
     const { error } = await db.from("erg_workouts").insert(
       fresh.slice(i, i + 500).map((r) => ({
+        club_id: clubId,
         profile_id: profileId,
         done_on: r.doneOn,
         piece: r.piece,

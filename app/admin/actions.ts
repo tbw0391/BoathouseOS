@@ -55,7 +55,7 @@ export async function updateLineupSectionVisibility(formData: FormData) {
       .from("club_settings")
       .upsert(
         { key: "lineup_section_visibility", value: JSON.stringify(visibilityById) },
-        { onConflict: "key" }
+        { onConflict: "club_id,key" }
       );
 
     if (error) throw new Error(error.message);
@@ -86,7 +86,7 @@ export async function resetThemeColors() {
       .from("club_settings")
       .upsert(
         { key: "theme_colors", value: JSON.stringify(DEFAULT_THEME_COLORS) },
-        { onConflict: "key" }
+        { onConflict: "club_id,key" }
       );
 
     if (error) throw new Error(error.message);
@@ -120,7 +120,7 @@ export async function updateThemeColors(formData: FormData) {
 
     const { error } = await supabase
       .from("club_settings")
-      .upsert({ key: "theme_colors", value: JSON.stringify(colors) }, { onConflict: "key" });
+      .upsert({ key: "theme_colors", value: JSON.stringify(colors) }, { onConflict: "club_id,key" });
 
     if (error) throw new Error(error.message);
 
@@ -151,7 +151,7 @@ export async function updateAlertSettings(formData: FormData) {
 
     const { error } = await supabase
       .from("club_settings")
-      .upsert({ key: ALERT_SETTINGS_KEY, value: JSON.stringify(enabled) }, { onConflict: "key" });
+      .upsert({ key: ALERT_SETTINGS_KEY, value: JSON.stringify(enabled) }, { onConflict: "club_id,key" });
 
     if (error) throw new Error(error.message);
 
@@ -187,7 +187,7 @@ export async function updateNavAccess(access: Record<NavRole, string[]>) {
 
     const { error } = await supabase
       .from("club_settings")
-      .upsert({ key: NAV_ACCESS_KEY, value: JSON.stringify(clean) }, { onConflict: "key" });
+      .upsert({ key: NAV_ACCESS_KEY, value: JSON.stringify(clean) }, { onConflict: "club_id,key" });
     if (error) throw new Error(error.message);
 
     revalidatePath("/");
@@ -222,7 +222,7 @@ export async function updateProfileButtons(access: Record<ProfileGroup, string[]
 
     const { error } = await supabase
       .from("club_settings")
-      .upsert({ key: PROFILE_BUTTONS_KEY, value: JSON.stringify(clean) }, { onConflict: "key" });
+      .upsert({ key: PROFILE_BUTTONS_KEY, value: JSON.stringify(clean) }, { onConflict: "club_id,key" });
     if (error) throw new Error(error.message);
 
     revalidatePath("/roster", "layout");
@@ -263,7 +263,7 @@ export async function updateOarSettings(formData: FormData) {
 
     const { error } = await supabase
       .from("club_settings")
-      .upsert({ key: OAR_COLORS_KEY, value: JSON.stringify({ colors, maxRings }) }, { onConflict: "key" });
+      .upsert({ key: OAR_COLORS_KEY, value: JSON.stringify({ colors, maxRings }) }, { onConflict: "club_id,key" });
     if (error) throw new Error(error.message);
 
     revalidatePath("/admin");
