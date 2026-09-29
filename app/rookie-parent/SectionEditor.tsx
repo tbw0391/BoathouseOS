@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   deleteRookieParentSection,
   moveRookieParentSection,
@@ -60,7 +61,7 @@ function SectionForm({
       />
       <textarea
         name="text"
-        rows={8}
+        rows={12}
         defaultValue={section?.text ?? ""}
         placeholder="What rookie parents should know"
         className="border rounded px-3 py-2 text-sm"
@@ -82,17 +83,9 @@ function SectionForm({
   );
 }
 
-export function SectionEditor({
-  section,
-  canEdit,
-  isFirst,
-  isLast,
-}: {
-  section: RookieParentSection;
-  canEdit: boolean;
-  isFirst: boolean;
-  isLast: boolean;
-}) {
+// A section's own page: its title and text, plus Edit and Delete for admins.
+export function SectionEditor({ section, canEdit }: { section: RookieParentSection; canEdit: boolean }) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const { error, isPending, run } = useSectionAction();
@@ -102,8 +95,8 @@ export function SectionEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <h2 className="text-lg font-semibold">{section.title}</h2>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold">{section.title}</h1>
       {section.text ? (
         <div className="text-sm text-gray-700">
           {section.text.split("\n").map((line, i) => (
@@ -114,42 +107,31 @@ export function SectionEditor({
         <p className="text-sm text-gray-500">Nothing here yet.</p>
       )}
       {canEdit && (
-        <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-gray-600">
-          <button type="button" onClick={() => setEditing(true)} className="hover:text-black">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-4 py-2"
+          >
             Edit
           </button>
-          {!isFirst && (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => run(() => moveRookieParentSection(section.id, "up"))}
-              className="hover:text-black disabled:opacity-50"
-            >
-              Move up
-            </button>
-          )}
-          {!isLast && (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => run(() => moveRookieParentSection(section.id, "down"))}
-              className="hover:text-black disabled:opacity-50"
-            >
-              Move down
-            </button>
-          )}
           {confirmingDelete ? (
             <>
               <span className="text-gray-500">Delete this section?</span>
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => run(() => deleteRookieParentSection(section.id))}
-                className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                onClick={() =>
+                  run(
+                    () => deleteRookieParentSection(section.id),
+                    () => router.push("/rookie-parent"),
+                  )
+                }
+                className="text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
               >
                 Yes, delete
               </button>
-              <button type="button" onClick={() => setConfirmingDelete(false)} className="hover:text-black">
+              <button type="button" onClick={() => setConfirmingDelete(false)} className="text-gray-600 hover:text-black">
                 Keep
               </button>
             </>
@@ -161,6 +143,31 @@ export function SectionEditor({
         </div>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+// Up/down arrows beside a section's button on the Rookie Parent list.
+export function MoveButtons({ id, isFirst, isLast }: { id: string; isFirst: boolean; isLast: boolean }) {
+  const { error, isPending, run } = useSectionAction();
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="flex gap-1">
+        {(["up", "down"] as const).map((direction) => (
+          <button
+            key={direction}
+            type="button"
+            aria-label={direction === "up" ? "Move up" : "Move down"}
+            disabled={isPending || (direction === "up" ? isFirst : isLast)}
+            onClick={() => run(() => moveRookieParentSection(id, direction))}
+            className="w-9 h-9 rounded border text-sm disabled:opacity-30"
+          >
+            {direction === "up" ? "↑" : "↓"}
+          </button>
+        ))}
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }

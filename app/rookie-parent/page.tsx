@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import {
   LEGACY_ROOKIE_PARENT_KEYS,
   ROOKIE_PARENT_SECTIONS_KEY,
   parseRookieParentSections,
 } from "@/lib/rookieParent";
-import { AddSection, SectionEditor } from "./SectionEditor";
+import { AddSection, MoveButtons } from "./SectionEditor";
 
 export default async function RookieParentPage() {
   const supabase = await createClient();
@@ -33,35 +34,25 @@ export default async function RookieParentPage() {
       <h1 className="text-2xl font-bold mb-2">Rookie Parent</h1>
       <p className="text-sm text-gray-500 mb-6">New to the team? Start here.</p>
 
-      {sections.length > 0 && (
-        <div className="grid grid-cols-1 gap-3 max-w-md mb-8">
-          {sections.map((s) => (
-            <a
-              key={s.id}
-              href={`#section-${s.id}`}
-              className="rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 text-center font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+      <div className="flex flex-col gap-3 max-w-md">
+        {sections.map((s, i) => (
+          <div key={s.id} className="flex items-center gap-2">
+            <Link
+              href={`/rookie-parent/${s.id}`}
+              className="flex-1 rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 text-center font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
             >
               {s.title}
-            </a>
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-8 max-w-lg">
-        {sections.map((s, i) => (
-          <section key={s.id} id={`section-${s.id}`} className="scroll-mt-4">
-            <SectionEditor
-              section={s}
-              canEdit={isAdmin}
-              isFirst={i === 0}
-              isLast={i === sections.length - 1}
-            />
-          </section>
+            </Link>
+            {isAdmin && <MoveButtons id={s.id} isFirst={i === 0} isLast={i === sections.length - 1} />}
+          </div>
         ))}
-        {sections.length === 0 && !isAdmin && (
-          <p className="text-sm text-gray-500">Nothing here yet.</p>
+        {sections.length === 0 && <p className="text-sm text-gray-500">Nothing here yet.</p>}
+        {isAdmin && (
+          <div className="mt-4 flex flex-col gap-2">
+            <AddSection />
+            <p className="text-xs text-gray-500">Open a section to edit or delete it.</p>
+          </div>
         )}
-        {isAdmin && <AddSection />}
       </div>
     </div>
   );

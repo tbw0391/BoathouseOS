@@ -45,7 +45,7 @@ async function editSections(change: (sections: RookieParentSection[]) => RookieP
     );
   if (error) throw new Error(error.message);
 
-  revalidatePath("/rookie-parent");
+  revalidatePath("/rookie-parent", "layout");
 }
 
 // Saves a section's title and text; a null id adds a new section at the end.
