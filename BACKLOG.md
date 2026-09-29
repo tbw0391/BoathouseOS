@@ -692,14 +692,22 @@
 
 ## Error messages
 - [ ] Friendly error messages are hidden on the live site (found
-      2026-09-28): server actions throw Error("<helpful message>") and the
-      pages show e.message, but Next.js production replaces any thrown
-      message with "An error occurred in the Server Components render..."
-      So on boathouseos.app people see that generic text instead of e.g.
-      "Enter a US mobile number" or "Rings must be 1 to 8". Fix: actions
-      return { error } for expected problems (like sendMyTestText now
-      does) and only throw for real bugs. Do the most-used forms first
-      (sign up, profile, text alerts, oar sheet, lineups, payments).
+      2026-09-28): Next.js production replaces any message thrown from a
+      server action with "An error occurred in the Server Components
+      render...". Fix in place (lib/userError.ts): every friendly message in
+      the action files is now a UserError (318 of them); an action whose
+      body is wrapped in tryAction() hands a UserError back as { error } and
+      the page calls unwrap() (or unwrapIfResult in shared run helpers) to
+      show it. Database/unexpected errors still throw and stay hidden.
+      Converted so far (2026-09-28): profile (edit, photo, shortcuts, text
+      alerts, board/tent leader/treasurer/apparel chair, remove, reset
+      password, delete), sign up, oar sheet, lineup and saved-crew seats,
+      photos, workouts, Water Conditions (calls, lightning, settings), pay
+      buttons and apparel checkout. Still to do: the rest of the actions
+      called from pages (lineups/races, schedule, messages, food tent,
+      volunteer, polls, payments admin, apparel admin, travel/trailer,
+      coach tools, admin settings). Actions used straight as <form action>
+      need a small client wrapper first.
 
 ## Security (before public launch)
 - [x] Admin approval for new signups (2026-09-25, migration 0060): self-signups start "pending", see

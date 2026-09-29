@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap, type ActionResult } from "@/lib/userError";
 import { useState, useTransition } from "react";
 
 interface Seat {
@@ -26,7 +27,7 @@ export function SeatFiller({
 }: {
   seats: Seat[];
   roster: { id: string; display_name: string }[];
-  onAssign: (seatId: string, rowerId: string | null) => Promise<void>;
+  onAssign: (seatId: string, rowerId: string | null) => Promise<ActionResult<void>>;
 }) {
   const [rowerBySeat, setRowerBySeat] = useState<Record<string, string | null>>(
     Object.fromEntries(seats.map((s) => [s.id, s.rower_id]))
@@ -51,7 +52,7 @@ export function SeatFiller({
     setError(null);
     startTransition(async () => {
       try {
-        await onAssign(seatId, rowerId);
+        unwrap(await onAssign(seatId, rowerId));
       } catch (e) {
         setRowerBySeat(previous);
         setError(e instanceof Error ? e.message : "Couldn't save that seat.");

@@ -10,6 +10,7 @@ import {
 import type { LineupCategory } from "@/lib/database.types";
 import { bowFromRaceName } from "@/lib/raceDay";
 import { notifyOarSheetCaptain } from "@/lib/oarSheetAlerts";
+import { UserError } from "@/lib/userError";
 
 // The shared steps behind getting races and boats onto a regatta, used by
 // the Lineups actions and the Head of the Cuyahoga page alike so every path
@@ -19,7 +20,7 @@ export type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export function seatsForBoatClass(boatClass: string): { seat_number: number; seat_role: "rower" | "coxswain" }[] {
   const classSpec = BOAT_CLASSES[boatClass];
-  if (!classSpec) throw new Error(`Unknown boat class "${boatClass}".`);
+  if (!classSpec) throw new UserError(`Unknown boat class "${boatClass}".`);
 
   const seats: { seat_number: number; seat_role: "rower" | "coxswain" }[] = Array.from(
     { length: classSpec.rowerSeats },
@@ -41,7 +42,7 @@ export function resolveBoatType(boatType: string): { category: LineupCategory | 
   if (BOAT_CLASSES[boatType]) {
     return { category: null, boatClass: boatType };
   }
-  throw new Error("Please choose a valid boat type.");
+  throw new UserError("Please choose a valid boat type.");
 }
 
 export function isUniqueViolation(error: { code?: string }): boolean {
@@ -335,15 +336,15 @@ export async function buildLineupForRace(
     .select("event_id, category, race_name, race_time, lineup_id, club_slug")
     .eq("id", raceId)
     .single();
-  if (raceError || !race) throw new Error("That race couldn't be found.");
-  if (race.lineup_id) throw new Error("This race already has a lineup.");
+  if (raceError || !race) throw new UserError("That race couldn't be found.");
+  if (race.lineup_id) throw new UserError("This race already has a lineup.");
 
   const { data: boat, error: boatError } = await supabase
     .from("boats")
     .select("name, boat_class")
     .eq("id", boatId)
     .single();
-  if (boatError || !boat) throw new Error("That boat couldn't be found.");
+  if (boatError || !boat) throw new UserError("That boat couldn't be found.");
 
   const { category: templateCategory, notes: templateNotes, seats } = await boatLineupDefaults(
     supabase,

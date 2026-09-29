@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { activeMemberIds, formatAlertTime, sendPush } from "@/lib/push";
 import type { EventType, Role, ScheduleRecurrence } from "@/lib/database.types";
+import { UserError } from "@/lib/userError";
 
 const EVENT_TYPES: EventType[] = ["practice", "regatta", "meeting", "other"];
 const RECURRENCES: ScheduleRecurrence[] = ["none", "weekly", "monthly", "yearly"];
@@ -13,7 +14,7 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -23,7 +24,7 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
 
   const callerRole = (callerProfile as { role: Role } | null)?.role;
   if (callerRole !== "admin" && callerRole !== "coach") {
-    throw new Error("Only coaches and admins can manage the schedule.");
+    throw new UserError("Only coaches and admins can manage the schedule.");
   }
 
   return { user };
@@ -47,7 +48,7 @@ export async function createScheduleEvent(formData: FormData) {
     ? (recurrenceRaw as ScheduleRecurrence)
     : "none";
 
-  if (!title || !startsAtRaw) throw new Error("Title and start date/time are required.");
+  if (!title || !startsAtRaw) throw new UserError("Title and start date/time are required.");
 
   const startsAt = new Date(startsAtRaw).toISOString();
   const { error } = await supabase.from("schedule_events").insert({
@@ -95,8 +96,8 @@ export async function updateScheduleEvent(formData: FormData) {
     ? (recurrenceRaw as ScheduleRecurrence)
     : "none";
 
-  if (!eventId) throw new Error("Missing event.");
-  if (!title || !startsAtRaw) throw new Error("Title and start date/time are required.");
+  if (!eventId) throw new UserError("Missing event.");
+  if (!title || !startsAtRaw) throw new UserError("Title and start date/time are required.");
 
   const { data: before } = await supabase
     .from("schedule_events")
@@ -150,7 +151,7 @@ export async function deleteScheduleEvent(formData: FormData) {
 
   const eventId = String(formData.get("event_id") ?? "").trim();
   const eventType = String(formData.get("event_type") ?? "").trim();
-  if (!eventId) throw new Error("Missing event.");
+  if (!eventId) throw new UserError("Missing event.");
 
   const { error } = await supabase.from("schedule_events").delete().eq("id", eventId);
   if (error) throw new Error(error.message);
@@ -168,9 +169,9 @@ export async function setRegattaArtwork(formData: FormData) {
 
   const eventId = String(formData.get("event_id") ?? "").trim();
   const url = String(formData.get("artwork_url") ?? "").trim() || null;
-  if (!eventId) throw new Error("Missing event.");
+  if (!eventId) throw new UserError("Missing event.");
   if (url && !url.includes("/storage/v1/object/public/regatta-artwork/")) {
-    throw new Error("That image didn't upload correctly.");
+    throw new UserError("That image didn't upload correctly.");
   }
 
   const { error } = await supabase.from("schedule_events").update({ artwork_url: url }).eq("id", eventId);

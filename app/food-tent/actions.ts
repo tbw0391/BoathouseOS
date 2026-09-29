@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { familyMemberIds, sendPush } from "@/lib/push";
+import { UserError } from "@/lib/userError";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -21,7 +22,7 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
   const isManager =
     profile?.role === "admin" || profile?.role === "coach" || profile?.is_tent_leader;
 
-  if (!isManager) throw new Error("Only admins, coaches, and tent leaders can do that.");
+  if (!isManager) throw new UserError("Only admins, coaches, and tent leaders can do that.");
 
   return { user, supabase };
 }
@@ -35,7 +36,7 @@ export async function createRegattaEvent(formData: FormData) {
   const location = String(formData.get("location") ?? "").trim() || null;
 
   if (!title || !startsAt) {
-    throw new Error("Title and date are required.");
+    throw new UserError("Title and date are required.");
   }
 
   const { error } = await supabase.from("schedule_events").insert({
@@ -58,7 +59,7 @@ export async function publishFoodList(eventId: string) {
   const supabase = await createClient();
   const { user } = await requireManager(supabase);
 
-  if (!eventId) throw new Error("Missing event.");
+  if (!eventId) throw new UserError("Missing event.");
 
   const { error: itemsError } = await supabase
     .from("food_tent_items")
@@ -107,7 +108,7 @@ export async function clearFoodList(eventId: string) {
   const supabase = await createClient();
   await requireManager(supabase);
 
-  if (!eventId) throw new Error("Missing event.");
+  if (!eventId) throw new UserError("Missing event.");
 
   const { error: itemsError } = await supabase
     .from("food_tent_items")
@@ -136,7 +137,7 @@ export async function addFoodTentItem(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!eventId || !title) {
-    throw new Error("Item name is required.");
+    throw new UserError("Item name is required.");
   }
 
   const { error } = await supabase.from("food_tent_items").insert({
@@ -162,7 +163,7 @@ export async function importFoodTentItems(eventId: string, rows: FoodTentItemImp
   const supabase = await createClient();
   const { user } = await requireManager(supabase);
 
-  if (!eventId) throw new Error("Missing event.");
+  if (!eventId) throw new UserError("Missing event.");
 
   const toInsert: { event_id: string; title: string; quantity_needed: number; notes: string | null; created_by: string }[] =
     [];
@@ -210,7 +211,7 @@ export async function updateFoodTentItem(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!itemId || !title) {
-    throw new Error("Item name is required.");
+    throw new UserError("Item name is required.");
   }
 
   const { error } = await supabase
@@ -238,13 +239,13 @@ export async function signUpForItem(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const itemId = String(formData.get("item_id") ?? "").trim();
   const quantityRaw = String(formData.get("quantity") ?? "1").trim();
   const quantity = Math.max(1, Number(quantityRaw) || 1);
 
-  if (!itemId) throw new Error("Missing item.");
+  if (!itemId) throw new UserError("Missing item.");
 
   const { error } = await supabase
     .from("food_tent_signups")
@@ -261,10 +262,10 @@ export async function cancelSignup(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const itemId = String(formData.get("item_id") ?? "").trim();
-  if (!itemId) throw new Error("Missing item.");
+  if (!itemId) throw new UserError("Missing item.");
 
   const { error } = await supabase
     .from("food_tent_signups")
@@ -288,7 +289,7 @@ export async function addWishlistItem(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!title) {
-    throw new Error("Item name is required.");
+    throw new UserError("Item name is required.");
   }
 
   const { error } = await supabase.from("food_tent_wishlist_items").insert({
@@ -314,7 +315,7 @@ export async function updateWishlistItem(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!itemId || !title) {
-    throw new Error("Item name is required.");
+    throw new UserError("Item name is required.");
   }
 
   const { error } = await supabase
@@ -342,13 +343,13 @@ export async function signUpForWishlistItem(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const itemId = String(formData.get("item_id") ?? "").trim();
   const quantityRaw = String(formData.get("quantity") ?? "1").trim();
   const quantity = Math.max(1, Number(quantityRaw) || 1);
 
-  if (!itemId) throw new Error("Missing item.");
+  if (!itemId) throw new UserError("Missing item.");
 
   const { error } = await supabase
     .from("food_tent_wishlist_signups")
@@ -364,10 +365,10 @@ export async function cancelWishlistSignup(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const itemId = String(formData.get("item_id") ?? "").trim();
-  if (!itemId) throw new Error("Missing item.");
+  if (!itemId) throw new UserError("Missing item.");
 
   const { error } = await supabase
     .from("food_tent_wishlist_signups")

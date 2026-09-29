@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { clubDateTime } from "@/lib/ical";
+import { UserError } from "@/lib/userError";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -10,7 +11,7 @@ async function me(supabase: Supabase) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
   const { data } = await supabase.from("profiles").select("role, display_name").eq("id", user.id).single();
   const profile = data as { role: string; display_name: string } | null;
   return { user, isManager: profile?.role === "coach" || profile?.role === "admin", name: profile?.display_name ?? "" };
@@ -18,7 +19,7 @@ async function me(supabase: Supabase) {
 
 async function requireManager(supabase: Supabase) {
   const who = await me(supabase);
-  if (!who.isManager) throw new Error("Only coaches and admins can change this.");
+  if (!who.isManager) throw new UserError("Only coaches and admins can change this.");
   return who;
 }
 
@@ -54,8 +55,8 @@ export async function saveTripDetails(eventId: string, formData: FormData) {
 export async function addVehicle(eventId: string, label: string, seats: number, asDriver: boolean) {
   const supabase = await createClient();
   const who = await me(supabase);
-  if (!asDriver && !who.isManager) throw new Error("Only coaches and admins can add a bus.");
-  if (!Number.isInteger(seats) || seats < 1 || seats > 80) throw new Error("Pick how many seats.");
+  if (!asDriver && !who.isManager) throw new UserError("Only coaches and admins can add a bus.");
+  if (!Number.isInteger(seats) || seats < 1 || seats > 80) throw new UserError("Pick how many seats.");
   const name = label.trim().slice(0, 60) || `${who.name.split(" ")[0]}'s car`;
   const { error } = await supabase.from("travel_vehicles").insert({
     event_id: eventId,
@@ -74,7 +75,7 @@ export async function removeVehicle(eventId: string, vehicleId: string) {
   // RLS lets coaches/admins remove any ride and drivers their own.
   const { error, count } = await supabase.from("travel_vehicles").delete({ count: "exact" }).eq("id", vehicleId);
   if (error) throw new Error(error.message);
-  if (!count) throw new Error("You can only remove your own car.");
+  if (!count) throw new UserError("You can only remove your own car.");
   done(eventId);
 }
 
@@ -120,7 +121,7 @@ export async function setRoom(eventId: string, roomId: string | null, personId: 
       .from("travel_room_members")
       .select("profile_id", { count: "exact", head: true })
       .eq("room_id", roomId);
-    if ((count ?? 0) >= ((room as { capacity: number } | null)?.capacity ?? 0)) throw new Error("That room is full.");
+    if ((count ?? 0) >= ((room as { capacity: number } | null)?.capacity ?? 0)) throw new UserError("That room is full.");
     const { error } = await supabase
       .from("travel_room_members")
       .insert({ room_id: roomId, event_id: eventId, profile_id: personId });

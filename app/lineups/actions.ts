@@ -24,12 +24,13 @@ import {
   resolveBoatType,
   seatsForBoatClass,
 } from "@/lib/raceWorkflow";
+import { UserError, tryAction } from "@/lib/userError";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -39,7 +40,7 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
 
   const callerRole = (callerProfile as { role: string } | null)?.role;
   if (callerRole !== "admin" && callerRole !== "coach") {
-    throw new Error("Only coaches and admins can manage lineups.");
+    throw new UserError("Only coaches and admins can manage lineups.");
   }
 
   return { user };
@@ -51,7 +52,7 @@ export async function createBoat(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
-  if (!name) throw new Error("Boat name is required.");
+  if (!name) throw new UserError("Boat name is required.");
 
   const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
 
@@ -150,7 +151,7 @@ export async function updateBoat(formData: FormData) {
   const boatId = String(formData.get("boat_id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
-  if (!boatId || !name) throw new Error("Boat name is required.");
+  if (!boatId || !name) throw new UserError("Boat name is required.");
 
   const { category, boatClass } = resolveBoatType(String(formData.get("boat_type") ?? "").trim());
 
@@ -193,7 +194,7 @@ export async function deleteBoat(formData: FormData) {
   await requireManager(supabase);
 
   const boatId = String(formData.get("boat_id") ?? "").trim();
-  if (!boatId) throw new Error("Missing boat.");
+  if (!boatId) throw new UserError("Missing boat.");
 
   const { error } = await supabase.from("boats").delete().eq("id", boatId);
   if (error) throw new Error(error.message);
@@ -215,10 +216,10 @@ export async function createLineup(formData: FormData) {
   const raceTime = raceTimeRaw ? new Date(raceTimeRaw).toISOString() : null;
 
   if (!eventId || !boatId) {
-    throw new Error("Please choose a boat.");
+    throw new UserError("Please choose a boat.");
   }
   if (category && !LINEUP_CATEGORY_OPTIONS.includes(category)) {
-    throw new Error("Please choose a valid category.");
+    throw new UserError("Please choose a valid category.");
   }
 
   const { data: boat, error: boatError } = await supabase
@@ -226,7 +227,7 @@ export async function createLineup(formData: FormData) {
     .select("name, boat_class, category")
     .eq("id", boatId)
     .single();
-  if (boatError || !boat) throw new Error("That boat couldn't be found.");
+  if (boatError || !boat) throw new UserError("That boat couldn't be found.");
 
   const { seats } = await boatLineupDefaults(supabase, boatId, boat.boat_class);
 
@@ -270,7 +271,7 @@ export async function importRaces(eventId: string, rows: RaceImportRow[]) {
   const supabase = await createClient();
   const { user } = await requireManager(supabase);
 
-  if (!eventId) throw new Error("Missing event.");
+  if (!eventId) throw new UserError("Missing event.");
 
   const toInsert: { race_name: string; category: LineupCategory | null; race_time: string | null }[] = [];
   const rowErrors: string[] = [];
@@ -338,10 +339,10 @@ function easternTimeOn(date: string, hour: number, minute: number): string {
 export async function addPastedRaces(eventId: string, text: string) {
   const supabase = await createClient();
   const { user } = await requireManager(supabase);
-  if (!eventId) throw new Error("Missing event.");
+  if (!eventId) throw new UserError("Missing event.");
 
   const { data: event } = await supabase.from("schedule_events").select("starts_at").eq("id", eventId).single();
-  if (!event) throw new Error("That event couldn't be found.");
+  if (!event) throw new UserError("That event couldn't be found.");
   const eventDate = new Date(event.starts_at).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
   const races = text
@@ -356,7 +357,7 @@ export async function addPastedRaces(eventId: string, text: string) {
       if (!m[3] && Number(m[1]) > 12) hour = Number(m[1]);
       return { race_name: m[4].trim(), race_time: easternTimeOn(eventDate, hour, Number(m[2])) };
     });
-  if (races.length === 0) throw new Error("Type or paste at least one race.");
+  if (races.length === 0) throw new UserError("Type or paste at least one race.");
 
   const { raceIds } = await insertRaces(supabase, {
     eventId,
@@ -381,11 +382,11 @@ export interface CrewTimerRaceOption {
 
 async function loadCrewTimer(link: string): Promise<{ feed: Feed; date: string }> {
   const feedUrl = crewTimerFeedUrl(link);
-  if (!feedUrl) throw new Error("Paste the regatta's CrewTimer link, like crewtimer.com/regatta/r16268.");
+  if (!feedUrl) throw new UserError("Paste the regatta's CrewTimer link, like crewtimer.com/regatta/r16268.");
   const feed = await fetchCrewTimerFeed(feedUrl, 300);
-  if (!feed?.results) throw new Error("Couldn't find that regatta on CrewTimer.");
+  if (!feed?.results) throw new UserError("Couldn't find that regatta on CrewTimer.");
   const date = feed.regattaInfo?.Date;
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("That CrewTimer regatta has no date yet.");
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new UserError("That CrewTimer regatta has no date yet.");
   return { feed, date };
 }
 
@@ -403,8 +404,8 @@ function crewTimerStart(date: string, start: string | null): string | null {
 export async function findCrewTimerRaces(eventId: string, link: string, crewName: string) {
   const supabase = await createClient();
   await requireManager(supabase);
-  if (!eventId) throw new Error("Missing event.");
-  if (!crewName.trim()) throw new Error("Type your club's name as it appears on CrewTimer.");
+  if (!eventId) throw new UserError("Missing event.");
+  if (!crewName.trim()) throw new UserError("Type your club's name as it appears on CrewTimer.");
 
   const { feed, date } = await loadCrewTimer(link);
   const races = clubRaces(feed, [crewName]);
@@ -426,7 +427,7 @@ export async function findCrewTimerRaces(eventId: string, link: string, crewName
 export async function addCrewTimerRaces(eventId: string, link: string, crewName: string, keys: string[]) {
   const supabase = await createClient();
   const { user } = await requireManager(supabase);
-  if (!eventId) throw new Error("Missing event.");
+  if (!eventId) throw new UserError("Missing event.");
 
   const { feed, date } = await loadCrewTimer(link);
   const picked = new Set(keys);
@@ -437,7 +438,7 @@ export async function addCrewTimerRaces(eventId: string, link: string, crewName:
       race_time: crewTimerStart(date, r.start),
       category: hotcRaceCategory(r),
     }));
-  if (races.length === 0) throw new Error("Pick at least one race.");
+  if (races.length === 0) throw new UserError("Pick at least one race.");
 
   const { raceIds } = await insertRaces(supabase, {
     eventId,
@@ -457,7 +458,7 @@ export async function deleteRace(formData: FormData) {
   await requireManager(supabase);
 
   const raceId = String(formData.get("race_id") ?? "").trim();
-  if (!raceId) throw new Error("Missing race.");
+  if (!raceId) throw new UserError("Missing race.");
 
   const { error } = await supabase.from("races").delete().eq("id", raceId);
   if (error) throw new Error(error.message);
@@ -477,7 +478,7 @@ export async function createLineupForRace(formData: FormData) {
 
   const raceId = String(formData.get("race_id") ?? "").trim();
   const boatId = String(formData.get("boat_id") ?? "").trim();
-  if (!raceId || !boatId) throw new Error("Please choose a boat.");
+  if (!raceId || !boatId) throw new UserError("Please choose a boat.");
 
   await buildLineupForRace(supabase, { raceId, boatId, userId: user.id });
 
@@ -506,18 +507,18 @@ export async function createLineupTemplate(formData: FormData) {
       .select("boat_class, category")
       .eq("id", boatId)
       .single();
-    if (boatError || !boat) throw new Error("That boat couldn't be found.");
+    if (boatError || !boat) throw new UserError("That boat couldn't be found.");
     boatClass = boat.boat_class;
     category = boat.category;
     if (!name && category) name = LINEUP_CATEGORIES[category] ?? "";
   } else {
     boatClass = String(formData.get("boat_class") ?? "").trim();
-    if (!BOAT_CLASSES[boatClass]) throw new Error("A valid boat class is required.");
+    if (!BOAT_CLASSES[boatClass]) throw new UserError("A valid boat class is required.");
     const categoryRaw = String(formData.get("category") ?? "").trim();
     category = LINEUP_CATEGORY_OPTIONS.includes(categoryRaw) ? (categoryRaw as LineupCategory) : null;
   }
 
-  if (!name) throw new Error("A template name is required.");
+  if (!name) throw new UserError("A template name is required.");
 
   const seats = seatsForBoatClass(boatClass);
 
@@ -532,7 +533,7 @@ export async function createLineupTemplate(formData: FormData) {
     created_by: user.id,
   });
   if (error) {
-    if (boatId && isUniqueViolation(error)) throw new Error("That boat already has a saved crew.");
+    if (boatId && isUniqueViolation(error)) throw new UserError("That boat already has a saved crew.");
     throw new Error(error.message);
   }
 
@@ -551,17 +552,17 @@ export async function updateTemplateBoat(formData: FormData) {
 
   const templateId = String(formData.get("template_id") ?? "").trim();
   const boatId = String(formData.get("boat_id") ?? "").trim() || null;
-  if (!templateId) throw new Error("Missing template.");
+  if (!templateId) throw new UserError("Missing template.");
 
   if (boatId) {
     const [{ data: template, error: templateError }, { data: boat, error: boatError }] = await Promise.all([
       supabase.from("lineup_templates").select("boat_class").eq("id", templateId).single(),
       supabase.from("boats").select("boat_class").eq("id", boatId).single(),
     ]);
-    if (templateError || !template) throw new Error("That template couldn't be found.");
-    if (boatError || !boat) throw new Error("That boat couldn't be found.");
+    if (templateError || !template) throw new UserError("That template couldn't be found.");
+    if (boatError || !boat) throw new UserError("That boat couldn't be found.");
     if (boat.boat_class !== template.boat_class) {
-      throw new Error("That boat's class doesn't match this template's boat class.");
+      throw new UserError("That boat's class doesn't match this template's boat class.");
     }
   }
 
@@ -570,7 +571,7 @@ export async function updateTemplateBoat(formData: FormData) {
     .update({ boat_id: boatId })
     .eq("id", templateId);
   if (error) {
-    if (boatId && isUniqueViolation(error)) throw new Error("That boat already has a saved crew.");
+    if (boatId && isUniqueViolation(error)) throw new UserError("That boat already has a saved crew.");
     throw new Error(error.message);
   }
 
@@ -590,18 +591,20 @@ export async function deleteLineupTemplate(templateId: string) {
 }
 
 export async function assignTemplateSeat(seatId: string, rowerId: string | null) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const { error } = await supabase
-    .from("lineup_template_seats")
-    .update({ rower_id: rowerId })
-    .eq("id", seatId);
+    const { error } = await supabase
+      .from("lineup_template_seats")
+      .update({ rower_id: rowerId })
+      .eq("id", seatId);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
 
-  revalidatePath("/lineups");
-  revalidatePath("/boats");
+    revalidatePath("/lineups");
+    revalidatePath("/boats");
+  });
 }
 
 export async function updateLineupRace(formData: FormData) {
@@ -609,7 +612,7 @@ export async function updateLineupRace(formData: FormData) {
   await requireManager(supabase);
 
   const lineupId = String(formData.get("lineup_id") ?? "").trim();
-  if (!lineupId) throw new Error("Missing boat.");
+  if (!lineupId) throw new UserError("Missing boat.");
 
   const raceName = String(formData.get("race_name") ?? "").trim() || null;
   const raceTimeRaw = String(formData.get("race_time") ?? "").trim();
@@ -634,10 +637,10 @@ export async function updateLineupDetails(formData: FormData) {
   await requireManager(supabase);
 
   const lineupId = String(formData.get("lineup_id") ?? "").trim();
-  if (!lineupId) throw new Error("Missing boat.");
+  if (!lineupId) throw new UserError("Missing boat.");
   const category = String(formData.get("category") ?? "").trim();
   if (category && !LINEUP_CATEGORY_OPTIONS.includes(category)) {
-    throw new Error("Please choose a valid category.");
+    throw new UserError("Please choose a valid category.");
   }
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
@@ -655,13 +658,13 @@ export async function updateLineupPlace(formData: FormData) {
   await requireManager(supabase);
 
   const lineupId = String(formData.get("lineup_id") ?? "").trim();
-  if (!lineupId) throw new Error("Missing boat.");
+  if (!lineupId) throw new UserError("Missing boat.");
 
   const placeRaw = String(formData.get("place") ?? "").trim();
   let place: number | null = null;
   if (placeRaw) {
     place = Math.trunc(Number(placeRaw));
-    if (!Number.isFinite(place) || place < 1) throw new Error("Place must be a positive number.");
+    if (!Number.isFinite(place) || place < 1) throw new UserError("Place must be a positive number.");
   }
 
   const { error } = await supabase.from("lineups").update({ place }).eq("id", lineupId);
@@ -677,7 +680,7 @@ export async function deleteLineup(formData: FormData) {
   await requireManager(supabase);
 
   const lineupId = String(formData.get("lineup_id") ?? "").trim();
-  if (!lineupId) throw new Error("Missing boat.");
+  if (!lineupId) throw new UserError("Missing boat.");
 
   const { error } = await supabase.from("lineups").delete().eq("id", lineupId);
   if (error) throw new Error(error.message);
@@ -687,21 +690,23 @@ export async function deleteLineup(formData: FormData) {
 }
 
 export async function assignSeat(seatId: string, rowerId: string | null) {
-  const supabase = await createClient();
-  await requireManager(supabase);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
 
-  const { data: seat, error } = await supabase
-    .from("lineup_seats")
-    .update({ rower_id: rowerId })
-    .eq("id", seatId)
-    .select("lineup_id")
-    .single();
+    const { data: seat, error } = await supabase
+      .from("lineup_seats")
+      .update({ rower_id: rowerId })
+      .eq("id", seatId)
+      .select("lineup_id")
+      .single();
 
-  if (error) throw new Error(error.message);
-  if (rowerId && seat) await notifyOarSheetCaptain(supabase, seat.lineup_id, { onlySeatId: seatId });
+    if (error) throw new Error(error.message);
+    if (rowerId && seat) await notifyOarSheetCaptain(supabase, seat.lineup_id, { onlySeatId: seatId });
 
-  revalidatePath("/lineups");
-  revalidatePath("/");
+    revalidatePath("/lineups");
+    revalidatePath("/");
+  });
 }
 
 export type CoursePoint = { lat: number; lng: number } | null;
@@ -710,7 +715,7 @@ function validPoint(p: CoursePoint): CoursePoint {
   if (!p) return null;
   const { lat, lng } = p;
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
-    throw new Error("That spot isn't a valid map position.");
+    throw new UserError("That spot isn't a valid map position.");
   }
   return { lat, lng };
 }
@@ -741,7 +746,7 @@ export async function saveCourse(eventId: string, start: CoursePoint, finish: Co
 export async function deleteRegatta(eventId: string) {
   const supabase = await createClient();
   await requireManager(supabase);
-  if (!eventId) throw new Error("Missing regatta.");
+  if (!eventId) throw new UserError("Missing regatta.");
 
   const { error } = await supabase.from("schedule_events").delete().eq("id", eventId).eq("event_type", "regatta");
   if (error) throw new Error(error.message);

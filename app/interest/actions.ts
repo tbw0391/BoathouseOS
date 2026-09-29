@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp } from "@/lib/clientIp";
+import { UserError } from "@/lib/userError";
 
 const MAX_LENGTH = 200;
 const MAX_SUBMISSIONS_PER_IP_PER_HOUR = 5;
@@ -21,10 +22,10 @@ export async function submitInterest(formData: FormData) {
   const phone = field("phone");
 
   if (!email && !phone) {
-    throw new Error("Please enter an email or a phone number so we can reach you.");
+    throw new UserError("Please enter an email or a phone number so we can reach you.");
   }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw new Error("That email address doesn't look right.");
+    throw new UserError("That email address doesn't look right.");
   }
 
   const admin = createAdminClient();
@@ -37,12 +38,12 @@ export async function submitInterest(formData: FormData) {
     .eq("ip", ip)
     .gte("created_at", windowStart);
   if ((count ?? 0) >= MAX_SUBMISSIONS_PER_IP_PER_HOUR) {
-    throw new Error("Too many submissions from this network. Please try again later.");
+    throw new UserError("Too many submissions from this network. Please try again later.");
   }
 
   const { error } = await admin
     .from("interest_signups")
     .insert({ name, club_name: clubName, email, phone, ip });
 
-  if (error) throw new Error("Couldn't save your details. Please try again.");
+  if (error) throw new UserError("Couldn't save your details. Please try again.");
 }

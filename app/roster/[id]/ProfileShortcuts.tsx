@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/userError";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -27,7 +28,7 @@ export function ProfileShortcuts({ buttons, isCustom }: { buttons: Button[]; isC
     setError(null);
     startTransition(async () => {
       try {
-        await saveProfileButtonOrder(value);
+        unwrap(await saveProfileButtonOrder(value));
         setArranging(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Couldn't save.");

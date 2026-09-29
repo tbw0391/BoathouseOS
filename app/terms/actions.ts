@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { TERMS_VERSION } from "@/lib/terms";
+import { UserError } from "@/lib/userError";
 
 // Existing members agreeing to the current Terms (new ones do it at signup).
 export async function acceptTerms() {
@@ -10,7 +11,7 @@ export async function acceptTerms() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { error } = await supabase
     .from("profiles")

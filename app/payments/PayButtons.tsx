@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { payBill, signUpForCharge } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 // Pay-in-full / payment-plan buttons for a season sign-up or an open bill.
 // Sends the browser to Stripe's checkout page; if online payments aren't on
@@ -34,8 +35,8 @@ export function PayButtons({
       try {
         const url =
           mode === "signup"
-            ? await signUpForCharge(chargeId as string, rowerId as string, plan)
-            : await payBill(billId as string, plan);
+            ? unwrap(await signUpForCharge(chargeId as string, rowerId as string, plan))
+            : unwrap(await payBill(billId as string, plan));
         if (url) window.location.assign(url);
         else setMessage("You're signed up. The treasurer will let you know how to pay.");
       } catch (e) {

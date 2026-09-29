@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { placeOrder, type CartLine } from "./actions";
 import { CONVENIENCE_FEE_LABEL, PLATFORM_FEE_BPS, formatMoney } from "@/lib/payments";
 import type { Product } from "@/lib/database.types";
+import { unwrap } from "@/lib/userError";
 
 // One shop section: an open order window, or the in-stock items. Tap a size,
 // set how many, then check out for yourself or one of your rowers.
@@ -63,7 +64,7 @@ export function Shop({
     setError(null);
     startTransition(async () => {
       try {
-        const url = await placeOrder({ windowId, forRowerId: forRowerId || null, lines: cart });
+        const url = unwrap(await placeOrder({ windowId, forRowerId: forRowerId || null, lines: cart }));
         if (url) {
           window.location.assign(url);
         } else {

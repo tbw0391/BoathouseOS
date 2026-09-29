@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { UserError } from "@/lib/userError";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -17,7 +18,7 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
 
   const profile = callerProfile as { role: string } | null;
   if (profile?.role !== "admin" && profile?.role !== "coach") {
-    throw new Error("Only coaches and admins can do that.");
+    throw new UserError("Only coaches and admins can do that.");
   }
 
   return { user, supabase };
@@ -28,11 +29,11 @@ export async function createTaskType(formData: FormData) {
   const { user } = await requireManager(supabase);
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) throw new Error("Name is required.");
+  if (!name) throw new UserError("Name is required.");
 
   const { error } = await supabase.from("task_types").insert({ name, created_by: user.id });
   if (error) {
-    if (error.code === "23505") throw new Error(`"${name}" already exists.`);
+    if (error.code === "23505") throw new UserError(`"${name}" already exists.`);
     throw new Error(error.message);
   }
 
@@ -47,7 +48,7 @@ export async function deleteTaskType(typeId: string) {
   const { error } = await supabase.from("task_types").delete().eq("id", typeId);
   if (error) {
     if (error.code === "23503") {
-      throw new Error("Can't delete a task type that's still used by a task.");
+      throw new UserError("Can't delete a task type that's still used by a task.");
     }
     throw new Error(error.message);
   }
@@ -64,7 +65,7 @@ export async function createCoachTask(formData: FormData) {
   const taskTypeId = String(formData.get("task_type_id") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  if (!eventId || !taskTypeId) throw new Error("Task type is required.");
+  if (!eventId || !taskTypeId) throw new UserError("Task type is required.");
 
   const { error } = await supabase.from("coach_tasks").insert({
     event_id: eventId,
@@ -88,7 +89,7 @@ export async function updateCoachTask(formData: FormData) {
   const taskTypeId = String(formData.get("task_type_id") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  if (!taskId || !taskTypeId) throw new Error("Task type is required.");
+  if (!taskId || !taskTypeId) throw new UserError("Task type is required.");
 
   const { error } = await supabase
     .from("coach_tasks")
@@ -118,7 +119,7 @@ export async function assignRowerToTask(taskId: string, userId: string) {
   const supabase = await createClient();
   await requireManager(supabase);
 
-  if (!taskId || !userId) throw new Error("Missing task or rower.");
+  if (!taskId || !userId) throw new UserError("Missing task or rower.");
 
   const { error } = await supabase
     .from("coach_task_assignments")
@@ -135,7 +136,7 @@ export async function unassignRowerFromTask(taskId: string, userId: string) {
   const supabase = await createClient();
   await requireManager(supabase);
 
-  if (!taskId || !userId) throw new Error("Missing task or rower.");
+  if (!taskId || !userId) throw new UserError("Missing task or rower.");
 
   const { error } = await supabase
     .from("coach_task_assignments")

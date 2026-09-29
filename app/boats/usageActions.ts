@@ -2,16 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { UserError } from "@/lib/userError";
 
 async function requireManager() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
   const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = (data as { role: string } | null)?.role;
-  if (role !== "coach" && role !== "admin") throw new Error("Only coaches and admins can change this.");
+  if (role !== "coach" && role !== "admin") throw new UserError("Only coaches and admins can change this.");
   return supabase;
 }
 

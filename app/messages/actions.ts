@@ -5,20 +5,21 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPush } from "@/lib/push";
+import { UserError } from "@/lib/userError";
 
 export async function createChat(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const memberIds = formData.getAll("member_ids") as string[];
   const groupName = String(formData.get("group_name") ?? "").trim();
 
   const participantIds = [...new Set([user.id, ...memberIds])];
   if (participantIds.length < 2) {
-    throw new Error("Pick at least one other person to message.");
+    throw new UserError("Pick at least one other person to message.");
   }
 
   const isDirect = participantIds.length === 2 && !groupName;
@@ -52,7 +53,7 @@ export async function sendMessage(groupId: string, formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const body = String(formData.get("body") ?? "").trim();
   if (!body) return;
@@ -96,7 +97,7 @@ export async function deleteMessage(groupId: string, messageId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { error } = await supabase
     .from("messages")

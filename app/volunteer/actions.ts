@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { UserError } from "@/lib/userError";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -18,7 +19,7 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
   const profile = callerProfile as { role: string; is_tent_leader: boolean } | null;
   const isManager = profile?.role === "admin" || profile?.role === "coach" || profile?.is_tent_leader;
   if (!isManager) {
-    throw new Error("Only admins, coaches, and tent leaders can do that.");
+    throw new UserError("Only admins, coaches, and tent leaders can do that.");
   }
 
   return { user, supabase };
@@ -35,7 +36,7 @@ export async function createVolunteerNeed(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim() || null;
 
   if (!eventId || !title) {
-    throw new Error("Title is required.");
+    throw new UserError("Title is required.");
   }
 
   const { error } = await supabase.from("volunteer_needs").insert({
@@ -62,7 +63,7 @@ export async function importVolunteerNeeds(eventId: string, rows: VolunteerNeedI
   const supabase = await createClient();
   const { user } = await requireManager(supabase);
 
-  if (!eventId) throw new Error("Missing event.");
+  if (!eventId) throw new UserError("Missing event.");
 
   const toInsert: {
     event_id: string;
@@ -116,7 +117,7 @@ export async function updateVolunteerNeed(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim() || null;
 
   if (!needId || !title) {
-    throw new Error("Title is required.");
+    throw new UserError("Title is required.");
   }
 
   const { error } = await supabase
@@ -145,9 +146,9 @@ export async function signUpForNeed(needId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
-  if (!needId) throw new Error("Missing volunteer slot.");
+  if (!needId) throw new UserError("Missing volunteer slot.");
 
   const { error } = await supabase
     .from("volunteer_signups")
@@ -164,9 +165,9 @@ export async function cancelNeedSignup(needId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
-  if (!needId) throw new Error("Missing volunteer slot.");
+  if (!needId) throw new UserError("Missing volunteer slot.");
 
   const { error } = await supabase
     .from("volunteer_signups")

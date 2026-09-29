@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { EMERGENCY_TEXT_FIELDS } from "@/lib/emergencyInfo";
+import { UserError } from "@/lib/userError";
 
 // RLS allows the member, their guardians, coaches and admins.
 export async function saveEmergencyInfo(profileId: string, formData: FormData) {
@@ -10,7 +11,7 @@ export async function saveEmergencyInfo(profileId: string, formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const row: Record<string, string | null> = {};
   for (const f of EMERGENCY_TEXT_FIELDS) {
@@ -23,7 +24,7 @@ export async function saveEmergencyInfo(profileId: string, formData: FormData) {
     updated_at: new Date().toISOString(),
     updated_by: user.id,
   });
-  if (error) throw new Error("Couldn't save. Only this member, their parents and the coaches can change it.");
+  if (error) throw new UserError("Couldn't save. Only this member, their parents and the coaches can change it.");
   revalidatePath(`/roster/${profileId}`);
   revalidatePath("/coach/emergency");
 }

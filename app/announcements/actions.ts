@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { activeMemberIds, sendPush } from "@/lib/push";
 import type { AnnouncementAudience } from "@/lib/database.types";
+import { UserError } from "@/lib/userError";
 
 const VALID_AUDIENCES: AnnouncementAudience[] = ["rowers", "parents", "both"];
 
@@ -12,7 +13,7 @@ async function requireCoachOrAdmin(supabase: Awaited<ReturnType<typeof createCli
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -22,7 +23,7 @@ async function requireCoachOrAdmin(supabase: Awaited<ReturnType<typeof createCli
 
   const callerRole = (callerProfile as { role: string } | null)?.role;
   if (callerRole !== "coach" && callerRole !== "admin") {
-    throw new Error("Only coaches and admins can send announcements.");
+    throw new UserError("Only coaches and admins can send announcements.");
   }
 
   return user;
@@ -33,11 +34,11 @@ export async function sendAnnouncement(formData: FormData) {
   const user = await requireCoachOrAdmin(supabase);
 
   const message = String(formData.get("message") ?? "").trim();
-  if (!message) throw new Error("Write a message first.");
+  if (!message) throw new UserError("Write a message first.");
 
   const audience = String(formData.get("audience") ?? "");
   if (!VALID_AUDIENCES.includes(audience as AnnouncementAudience)) {
-    throw new Error("Please choose who this message is for.");
+    throw new UserError("Please choose who this message is for.");
   }
 
   const { error } = await supabase

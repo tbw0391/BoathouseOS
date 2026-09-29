@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrapIfResult } from "@/lib/userError";
 import { useState, useTransition } from "react";
 import { PRACTICE_CALL_LABELS, type WaterSettings } from "@/lib/waterConditions";
 import { clearLightningHold, makePracticeCall, saveWaterSettings, startLightningHold, strikeAgain } from "./actions";
@@ -18,7 +19,7 @@ function useRunner() {
     setError(null);
     start(async () => {
       try {
-        await fn();
+        unwrapIfResult(await fn());
         after?.();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

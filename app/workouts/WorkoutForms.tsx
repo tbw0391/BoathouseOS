@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ERG_PIECES, tidyErgTime } from "@/lib/erg";
+import { unwrap } from "@/lib/userError";
 import { deleteWorkout, importConcept2, logWorkout } from "./actions";
 
 const chip = (active: boolean) =>
@@ -41,14 +42,14 @@ export function LogWorkoutForm({ profileId, today }: { profileId: string; today:
         setMessage(null);
         start(async () => {
           try {
-            await logWorkout(profileId, {
+            unwrap(await logWorkout(profileId, {
               doneOn: date,
               piece: preset ? preset.label : otherName,
               distanceM: fixedDistance ?? (meters.trim() ? Number(meters.replace(/,/g, "")) : null),
               timeText: timed ? String(preset!.seconds! >= 3600 ? "1:00:00" : `${preset!.seconds! / 60}:00`) : time,
               strokeRate: rate.trim() ? Number(rate) : null,
               notes,
-            });
+            }));
             setTime("");
             setMeters("");
             setRate("");

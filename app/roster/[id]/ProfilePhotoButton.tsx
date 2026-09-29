@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/userError";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera } from "lucide-react";
@@ -28,7 +29,7 @@ export function ProfilePhotoButton({ profileId, hasPhoto }: { profileId: string;
       const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file);
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      await setProfilePhoto(profileId, `${data.publicUrl}?t=${Date.now()}`);
+      unwrap(await setProfilePhoto(profileId, `${data.publicUrl}?t=${Date.now()}`));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Photo upload failed.");

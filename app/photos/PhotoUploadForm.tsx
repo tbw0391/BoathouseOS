@@ -6,6 +6,7 @@ import { Camera, X } from "lucide-react";
 import { dayLabel, type PhotoBoatDay } from "@/lib/photoBoats";
 import { createClient } from "@/lib/supabase/client";
 import { addPhoto } from "./actions";
+import { unwrap } from "@/lib/userError";
 
 interface RosterOption {
   id: string;
@@ -88,7 +89,7 @@ export function PhotoUploadForm({
 
       startTransition(async () => {
         try {
-          await addPhoto(formData);
+          unwrap(await addPhoto(formData));
           setCaption("");
           setTaggedIds([]);
           fileInput.value = "";

@@ -24,13 +24,14 @@ import {
   profileButtonsFor,
   type ProfileGroup,
 } from "@/lib/profileButtons";
+import { UserError } from "@/lib/userError";
 
 export async function updateLineupSectionVisibility(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -38,7 +39,7 @@ export async function updateLineupSectionVisibility(formData: FormData) {
     .eq("id", user.id)
     .single();
   if ((callerProfile as { role: string } | null)?.role !== "admin") {
-    throw new Error("Only admins can change which lineup sections are shown.");
+    throw new UserError("Only admins can change which lineup sections are shown.");
   }
 
   const visibilityById: Record<string, NavVisibility> = {};
@@ -67,7 +68,7 @@ export async function resetThemeColors() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -75,7 +76,7 @@ export async function resetThemeColors() {
     .eq("id", user.id)
     .single();
   if ((callerProfile as { role: string } | null)?.role !== "admin") {
-    throw new Error("Only admins can change the site colors.");
+    throw new UserError("Only admins can change the site colors.");
   }
 
   const { error } = await supabase
@@ -95,7 +96,7 @@ export async function updateThemeColors(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -103,7 +104,7 @@ export async function updateThemeColors(formData: FormData) {
     .eq("id", user.id)
     .single();
   if ((callerProfile as { role: string } | null)?.role !== "admin") {
-    throw new Error("Only admins can change the site colors.");
+    throw new UserError("Only admins can change the site colors.");
   }
 
   const colors: Record<ThemeColorKey, string> = { ...DEFAULT_THEME_COLORS };
@@ -126,7 +127,7 @@ export async function updateAlertSettings(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -134,7 +135,7 @@ export async function updateAlertSettings(formData: FormData) {
     .eq("id", user.id)
     .single();
   if ((callerProfile as { role: string } | null)?.role !== "admin") {
-    throw new Error("Only admins can change alerts.");
+    throw new UserError("Only admins can change alerts.");
   }
 
   const enabled = Object.fromEntries(
@@ -157,7 +158,7 @@ export async function updateNavAccess(access: Record<NavRole, string[]>) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -165,7 +166,7 @@ export async function updateNavAccess(access: Record<NavRole, string[]>) {
     .eq("id", user.id)
     .single();
   if ((callerProfile as { role: string } | null)?.role !== "admin") {
-    throw new Error("Only admins can change which buttons are shown.");
+    throw new UserError("Only admins can change which buttons are shown.");
   }
 
   const clean: Record<string, string[]> = { [NAV_KNOWN_KEY]: NAV_SECTIONS.map((s) => s.href) };
@@ -190,7 +191,7 @@ export async function updateProfileButtons(access: Record<ProfileGroup, string[]
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -198,7 +199,7 @@ export async function updateProfileButtons(access: Record<ProfileGroup, string[]
     .eq("id", user.id)
     .single();
   if ((callerProfile as { role: string } | null)?.role !== "admin") {
-    throw new Error("Only admins can change which profile buttons are shown.");
+    throw new UserError("Only admins can change which profile buttons are shown.");
   }
 
   const clean: Record<string, string[]> = { [PROFILE_KNOWN_KEY]: PROFILE_BUTTONS.map((b) => b.href) };
@@ -223,7 +224,7 @@ export async function updateOarSettings(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -231,7 +232,7 @@ export async function updateOarSettings(formData: FormData) {
     .eq("id", user.id)
     .single();
   if ((callerProfile as { role: string } | null)?.role !== "admin") {
-    throw new Error("Only admins can change oar colors.");
+    throw new UserError("Only admins can change oar colors.");
   }
 
   const colors = [
@@ -243,9 +244,9 @@ export async function updateOarSettings(formData: FormData) {
         .map((c) => c[0].toUpperCase() + c.slice(1))
     ),
   ].slice(0, 20);
-  if (colors.length === 0) throw new Error("Enter at least one tape color.");
+  if (colors.length === 0) throw new UserError("Enter at least one tape color.");
   const maxRings = Math.trunc(Number(formData.get("max_rings")));
-  if (!Number.isFinite(maxRings) || maxRings < 1 || maxRings > 20) throw new Error("Rings must be 1 to 20.");
+  if (!Number.isFinite(maxRings) || maxRings < 1 || maxRings > 20) throw new UserError("Rings must be 1 to 20.");
 
   const { error } = await supabase
     .from("club_settings")

@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap, type ActionResult } from "@/lib/userError";
 import { useState, useTransition } from "react";
 
 function generatePassword(): string {
@@ -18,7 +19,7 @@ export function ResetPasswordButton({
   onReset,
 }: {
   name: string;
-  onReset: (password: string) => Promise<void>;
+  onReset: (password: string) => Promise<ActionResult<void>>;
 }) {
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -31,7 +32,7 @@ export function ResetPasswordButton({
     setError(null);
     startTransition(async () => {
       try {
-        await onReset(password);
+        unwrap(await onReset(password));
         setDone(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong.");

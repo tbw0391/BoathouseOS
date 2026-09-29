@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isDemoEmail } from "@/lib/demoAccount";
 import { PUSH_ENDPOINT_COOKIE, isPushServiceEndpoint } from "@/lib/push";
+import { UserError } from "@/lib/userError";
 
 export interface PushSubscriptionInput {
   endpoint: string;
@@ -16,10 +17,10 @@ export async function savePushSubscription(sub: PushSubscriptionInput, userAgent
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
   // Everyone trying the demo shares this account, so they'd get each
   // other's alerts.
-  if (isDemoEmail(user.email)) throw new Error("Alerts are off in the demo.");
+  if (isDemoEmail(user.email)) throw new UserError("Alerts are off in the demo.");
 
   const { data: me } = await supabase
     .from("profiles")
@@ -27,7 +28,7 @@ export async function savePushSubscription(sub: PushSubscriptionInput, userAgent
     .eq("id", user.id)
     .single();
   const profile = me as { approved_at: string | null; disabled_at: string | null } | null;
-  if (!profile?.approved_at || profile.disabled_at) throw new Error("Your account isn't active.");
+  if (!profile?.approved_at || profile.disabled_at) throw new UserError("Your account isn't active.");
 
   if (
     typeof sub?.endpoint !== "string" ||
@@ -38,7 +39,7 @@ export async function savePushSubscription(sub: PushSubscriptionInput, userAgent
     sub.keys.p256dh.length > 200 ||
     sub.keys.auth.length > 100
   ) {
-    throw new Error("That browser sent an invalid subscription.");
+    throw new UserError("That browser sent an invalid subscription.");
   }
 
   // Service-role upsert on the endpoint, so a device that someone else used
@@ -94,7 +95,7 @@ export async function setEmailAlerts(on: boolean) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
   const { error } = await supabase.from("profiles").update({ email_alerts: on }).eq("id", user.id);
   if (error) throw new Error(error.message);
 }

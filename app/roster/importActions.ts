@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Role, BoatSide, Team } from "@/lib/database.types";
+import { UserError } from "@/lib/userError";
 
 const VALID_ROLES: Role[] = ["rower", "coxswain", "coach", "parent", "admin"];
 const VALID_BOAT_SIDES: BoatSide[] = ["port", "starboard", "either"];
@@ -32,7 +33,7 @@ export async function importMembers(rows: ImportRow[]) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -42,7 +43,7 @@ export async function importMembers(rows: ImportRow[]) {
 
   const callerRole = (callerProfile as { role: Role } | null)?.role;
   if (callerRole !== "admin" && callerRole !== "coach") {
-    throw new Error("Only coaches and admins can import members.");
+    throw new UserError("Only coaches and admins can import members.");
   }
 
   const toInsert: Record<string, unknown>[] = [];

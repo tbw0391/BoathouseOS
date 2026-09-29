@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap, type ActionResult } from "@/lib/userError";
 import { useState, useTransition } from "react";
 
 export function RoleToggle({
@@ -11,7 +12,7 @@ export function RoleToggle({
   initialValue: boolean;
   onLabel: string;
   offLabel: string;
-  onToggle: (next: boolean) => Promise<void>;
+  onToggle: (next: boolean) => Promise<ActionResult<void>>;
 }) {
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export function RoleToggle({
     setError(null);
     startTransition(async () => {
       try {
-        await onToggle(next);
+        unwrap(await onToggle(next));
         setValue(next);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

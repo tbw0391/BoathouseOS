@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { UserError } from "@/lib/userError";
 
 // The database functions check global-admin status themselves (see
 // migration 0058), so these just call through.
@@ -14,7 +15,7 @@ export async function saveDemoBaseline() {
 
 export async function resetDemo(formData: FormData) {
   if (formData.get("confirm") !== "on") {
-    throw new Error("Tick the confirmation box to reset the demo.");
+    throw new UserError("Tick the confirmation box to reset the demo.");
   }
   const supabase = await createClient();
   const { error } = await supabase.rpc("demo_reset");

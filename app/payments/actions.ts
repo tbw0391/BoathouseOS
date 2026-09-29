@@ -8,6 +8,7 @@ import { getStripe, siteOrigin } from "@/lib/stripe";
 import { createBills, getPaymentSettings, refreshBillStatus, startBillCheckout } from "@/lib/billing";
 import { parseMoney } from "@/lib/payments";
 import type { Bill, Charge, Profile, Team } from "@/lib/database.types";
+import { UserError, tryAction, type ActionResult } from "@/lib/userError";
 
 const CHARGE_KINDS: Charge["kind"][] = ["season", "dues", "regatta", "travel", "apparel", "other"];
 
@@ -16,7 +17,7 @@ async function requireUser() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
   return { supabase, user };
 }
 
@@ -25,7 +26,7 @@ async function requireTreasurer() {
   const { supabase, user } = await requireUser();
   const { data } = await supabase.from("profiles").select("role, is_treasurer").eq("id", user.id).single();
   const me = data as Pick<Profile, "role" | "is_treasurer"> | null;
-  if (me?.role !== "admin" && !me?.is_treasurer) throw new Error("Only the treasurer or an admin can do that.");
+  if (me?.role !== "admin" && !me?.is_treasurer) throw new UserError("Only the treasurer or an admin can do that.");
   return { supabase, user };
 }
 
@@ -41,16 +42,16 @@ export async function createCharge(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const kind = String(formData.get("kind") ?? "dues") as Charge["kind"];
   const amount = parseMoney(String(formData.get("amount") ?? ""));
-  if (!title) throw new Error("Give the charge a name.");
-  if (!CHARGE_KINDS.includes(kind)) throw new Error("Pick what kind of charge this is.");
-  if (!amount) throw new Error("Enter an amount, like 250 or 250.00.");
+  if (!title) throw new UserError("Give the charge a name.");
+  if (!CHARGE_KINDS.includes(kind)) throw new UserError("Pick what kind of charge this is.");
+  if (!amount) throw new UserError("Enter an amount, like 250 or 250.00.");
 
   const installments = formData.get("allow_installments") === "on";
   const count = Number(formData.get("installment_count") ?? 4);
   const intervalDays = Number(formData.get("installment_interval_days") ?? 30);
-  if (installments && !(count >= 2 && count <= 12)) throw new Error("Payments must be between 2 and 12.");
+  if (installments && !(count >= 2 && count <= 12)) throw new UserError("Payments must be between 2 and 12.");
   if (installments && !(intervalDays >= 7 && intervalDays <= 120)) {
-    throw new Error("Days between payments must be between 7 and 120.");
+    throw new UserError("Days between payments must be between 7 and 120.");
   }
 
   const { data, error } = await supabase
@@ -96,7 +97,7 @@ export async function archiveCharge(chargeId: string, archived: boolean) {
 export async function assignCharge(chargeId: string, target: { teams?: Team[]; rowerIds?: string[] }) {
   const { supabase, user } = await requireTreasurer();
   const { data: charge } = await supabase.from("charges").select("*").eq("id", chargeId).single();
-  if (!charge) throw new Error("That charge couldn't be found.");
+  if (!charge) throw new UserError("That charge couldn't be found.");
 
   let rowerIds = target.rowerIds ?? [];
   if (target.teams?.length) {
@@ -127,10 +128,10 @@ export async function setBillDiscount(billId: string, discountDollars: string, n
   const { supabase } = await requireTreasurer();
   const { data } = await supabase.from("bills").select("*").eq("id", billId).single();
   const bill = data as Bill | null;
-  if (!bill) throw new Error("That bill couldn't be found.");
+  if (!bill) throw new UserError("That bill couldn't be found.");
   const discount = discountDollars.trim() === "" || discountDollars.trim() === "0" ? 0 : parseMoney(discountDollars);
-  if (discount === null) throw new Error("Enter the discount in dollars, like 50.");
-  if (discount > bill.amount_cents) throw new Error("The discount can't be more than the charge.");
+  if (discount === null) throw new UserError("Enter the discount in dollars, like 50.");
+  if (discount > bill.amount_cents) throw new UserError("The discount can't be more than the charge.");
 
   const { error } = await supabase
     .from("bills")
@@ -154,9 +155,9 @@ export async function recordManualPayment(formData: FormData) {
   const billId = String(formData.get("bill_id") ?? "");
   const method = String(formData.get("method") ?? "check");
   const amount = parseMoney(String(formData.get("amount") ?? ""));
-  if (!billId) throw new Error("Missing bill.");
-  if (!["cash", "check", "other"].includes(method)) throw new Error("Pick cash, check, or other.");
-  if (!amount) throw new Error("Enter the amount received.");
+  if (!billId) throw new UserError("Missing bill.");
+  if (!["cash", "check", "other"].includes(method)) throw new UserError("Pick cash, check, or other.");
+  if (!amount) throw new UserError("Enter the amount received.");
 
   const { error } = await supabase.from("payments").insert({
     bill_id: billId,
@@ -179,19 +180,19 @@ export async function createDiscount(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const kind = String(formData.get("kind") ?? "percent");
   const value = String(formData.get("value") ?? "").trim();
-  if (!name) throw new Error("Name the discount, like \"Sibling\" or \"Early bird\".");
+  if (!name) throw new UserError("Name the discount, like \"Sibling\" or \"Early bird\".");
 
   let percentBps: number | null = null;
   let amountCents: number | null = null;
   if (kind === "percent") {
     const pct = Number(value.replace("%", ""));
-    if (!(pct > 0 && pct <= 100)) throw new Error("Enter a percent between 1 and 100.");
+    if (!(pct > 0 && pct <= 100)) throw new UserError("Enter a percent between 1 and 100.");
     percentBps = Math.round(pct * 100);
   } else if (kind === "amount") {
     amountCents = parseMoney(value);
-    if (!amountCents) throw new Error("Enter a dollar amount, like 50.");
+    if (!amountCents) throw new UserError("Enter a dollar amount, like 50.");
   } else {
-    throw new Error("Pick percent or dollar amount.");
+    throw new UserError("Pick percent or dollar amount.");
   }
 
   const { error } = await supabase.from("discounts").insert({
@@ -287,7 +288,7 @@ export async function refreshStripeStatus() {
 
 async function requireCanSeeRower(supabase: Awaited<ReturnType<typeof createClient>>, rowerId: string) {
   const { data: ok } = await supabase.rpc("can_see_rower", { rower: rowerId });
-  if (ok !== true) throw new Error("You can only sign up or pay for yourself or your own rowers.");
+  if (ok !== true) throw new UserError("You can only sign up or pay for yourself or your own rowers.");
 }
 
 // A family signs a rower up for an open season (or other open charge): the
@@ -298,39 +299,43 @@ export async function signUpForCharge(
   chargeId: string,
   rowerId: string,
   plan: "full" | "installments"
-): Promise<string | null> {
-  const { supabase, user } = await requireUser();
-  await requireCanSeeRower(supabase, rowerId);
-  const admin = createAdminClient();
+): Promise<ActionResult<string | null>> {
+  return tryAction(async (): Promise<string | null> => {
+    const { supabase, user } = await requireUser();
+    await requireCanSeeRower(supabase, rowerId);
+    const admin = createAdminClient();
 
-  const { data: chargeRow } = await admin.from("charges").select("*").eq("id", chargeId).single();
-  const charge = chargeRow as Charge | null;
-  if (!charge || !charge.signup_open || charge.archived_at) throw new Error("Sign-up for this isn't open.");
-  if (plan === "installments" && !charge.allow_installments) throw new Error("This can't be split into payments.");
+    const { data: chargeRow } = await admin.from("charges").select("*").eq("id", chargeId).single();
+    const charge = chargeRow as Charge | null;
+    if (!charge || !charge.signup_open || charge.archived_at) throw new UserError("Sign-up for this isn't open.");
+    if (plan === "installments" && !charge.allow_installments) throw new UserError("This can't be split into payments.");
 
-  await createBills(admin, { charge, rowerIds: [rowerId], signedUpBy: user.id });
-  const { data: billRow } = await admin
-    .from("bills")
-    .select("*")
-    .eq("charge_id", chargeId)
-    .eq("rower_id", rowerId)
-    .single();
-  const bill = billRow as Bill;
-  revalidatePayments();
-  if (bill.status !== "owed") return null;
-  return payBillInternal(bill, charge, plan, user.id);
+    await createBills(admin, { charge, rowerIds: [rowerId], signedUpBy: user.id });
+    const { data: billRow } = await admin
+      .from("bills")
+      .select("*")
+      .eq("charge_id", chargeId)
+      .eq("rower_id", rowerId)
+      .single();
+    const bill = billRow as Bill;
+    revalidatePayments();
+    if (bill.status !== "owed") return null;
+    return payBillInternal(bill, charge, plan, user.id);
+  });
 }
 
-export async function payBill(billId: string, plan: "full" | "installments"): Promise<string> {
-  const { supabase, user } = await requireUser();
-  const { data } = await supabase.from("bills").select("*").eq("id", billId).single();
-  const bill = data as Bill | null;
-  if (!bill) throw new Error("That bill couldn't be found.");
-  await requireCanSeeRower(supabase, bill.rower_id);
-  const { data: charge } = await supabase.from("charges").select("*").eq("id", bill.charge_id).single();
-  const url = await payBillInternal(bill, charge as Charge, plan, user.id);
-  if (!url) throw new Error("Online payments aren't set up yet. The treasurer can take cash or a check.");
-  return url;
+export async function payBill(billId: string, plan: "full" | "installments"): Promise<ActionResult<string>> {
+  return tryAction(async (): Promise<string> => {
+    const { supabase, user } = await requireUser();
+    const { data } = await supabase.from("bills").select("*").eq("id", billId).single();
+    const bill = data as Bill | null;
+    if (!bill) throw new UserError("That bill couldn't be found.");
+    await requireCanSeeRower(supabase, bill.rower_id);
+    const { data: charge } = await supabase.from("charges").select("*").eq("id", bill.charge_id).single();
+    const url = await payBillInternal(bill, charge as Charge, plan, user.id);
+    if (!url) throw new UserError("Online payments aren't set up yet. The treasurer can take cash or a check.");
+    return url;
+  });
 }
 
 async function payBillInternal(bill: Bill, charge: Charge, plan: "full" | "installments", userId: string) {

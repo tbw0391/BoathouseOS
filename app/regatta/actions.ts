@@ -15,17 +15,18 @@ import {
   type HotcSchedule,
 } from "@/lib/hotc";
 import { insertRaces, type SupabaseServerClient } from "@/lib/raceWorkflow";
+import { UserError } from "@/lib/userError";
 
 async function requireManager(supabase: SupabaseServerClient) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const callerRole = (callerProfile as { role: string } | null)?.role;
   if (callerRole !== "admin" && callerRole !== "coach") {
-    throw new Error("Only coaches and admins can manage lineups.");
+    throw new UserError("Only coaches and admins can manage lineups.");
   }
   return { user };
 }
@@ -34,9 +35,9 @@ async function requireManager(supabase: SupabaseServerClient) {
 // looked up again here rather than trusting the form.
 async function loadSchedule(): Promise<HotcSchedule & { date: string; clubSlug: string }> {
   const club = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
-  if (!club) throw new Error("Pick your club first.");
+  if (!club) throw new UserError("Pick your club first.");
   const schedule = await getHotcSchedule(club);
-  if (!schedule?.date) throw new Error("Couldn't reach CrewTimer right now. Try again.");
+  if (!schedule?.date) throw new UserError("Couldn't reach CrewTimer right now. Try again.");
   return { ...(schedule as HotcSchedule & { date: string }), clubSlug: club.slug };
 }
 
@@ -97,7 +98,7 @@ export async function addRegattaRaceToLineups(formData: FormData) {
   const eventNum = String(formData.get("event_num") ?? "");
   const crew = String(formData.get("crew") ?? "");
   const race = schedule.races.find((r) => r.eventNum === eventNum && r.crew === crew);
-  if (!race) throw new Error("That race isn't in the schedule anymore.");
+  if (!race) throw new UserError("That race isn't in the schedule anymore.");
 
   const eventId = await findOrCreateEvent(supabase, schedule, user.id);
   await insertRaces(supabase, {

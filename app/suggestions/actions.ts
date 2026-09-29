@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { SuggestionCategory } from "@/lib/database.types";
+import { UserError } from "@/lib/userError";
 
 const VALID_CATEGORIES: SuggestionCategory[] = ["club", "app"];
 
@@ -11,14 +12,14 @@ export async function submitSuggestion(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const body = String(formData.get("body") ?? "").trim();
-  if (!body) throw new Error("Write your suggestion first.");
+  if (!body) throw new UserError("Write your suggestion first.");
 
   const category = String(formData.get("category") ?? "");
   if (!VALID_CATEGORIES.includes(category as SuggestionCategory)) {
-    throw new Error("Please choose whether this is about the club or the app.");
+    throw new UserError("Please choose whether this is about the club or the app.");
   }
 
   const { error } = await supabase
@@ -34,7 +35,7 @@ async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -44,7 +45,7 @@ async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) 
 
   const callerRole = (callerProfile as { role: string } | null)?.role;
   if (callerRole !== "admin") {
-    throw new Error("Only admins can manage suggestions.");
+    throw new UserError("Only admins can manage suggestions.");
   }
 }
 

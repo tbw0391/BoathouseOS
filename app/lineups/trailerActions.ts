@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { TRAILER_KIND_ORDER, type TrailerKind, type TrailerLeg } from "@/lib/trailer";
 import type { Lineup, TrailerItem } from "@/lib/database.types";
+import { UserError } from "@/lib/userError";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -11,10 +12,10 @@ async function requireManager(supabase: Supabase) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
   const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = (data as { role: string } | null)?.role;
-  if (role !== "coach" && role !== "admin") throw new Error("Only coaches and admins can change the trailer list.");
+  if (role !== "coach" && role !== "admin") throw new UserError("Only coaches and admins can change the trailer list.");
   return user;
 }
 

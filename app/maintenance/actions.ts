@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { MaintenanceType } from "@/lib/database.types";
+import { UserError } from "@/lib/userError";
 
 const PATH_BY_TYPE: Record<MaintenanceType, string> = {
   boat: "/boat-maintenance",
@@ -14,13 +15,13 @@ export async function submitMaintenanceRequest(type: MaintenanceType, formData: 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const description = String(formData.get("description") ?? "").trim();
   const boatId = String(formData.get("boat_id") ?? "").trim() || null;
 
-  if (!description) throw new Error("Describe the issue first.");
-  if (type === "boat" && !boatId) throw new Error("Please choose a boat.");
+  if (!description) throw new UserError("Describe the issue first.");
+  if (type === "boat" && !boatId) throw new UserError("Please choose a boat.");
 
   const { error } = await supabase.from("maintenance_requests").insert({
     type,
@@ -38,7 +39,7 @@ async function requireStaff(supabase: Awaited<ReturnType<typeof createClient>>) 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -48,7 +49,7 @@ async function requireStaff(supabase: Awaited<ReturnType<typeof createClient>>) 
 
   const callerRole = (callerProfile as { role: string } | null)?.role;
   if (callerRole !== "admin" && callerRole !== "coach") {
-    throw new Error("Only coaches and admins can manage maintenance requests.");
+    throw new UserError("Only coaches and admins can manage maintenance requests.");
   }
 }
 

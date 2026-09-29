@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { PAPERWORK } from "@/lib/paperwork";
+import { UserError } from "@/lib/userError";
 
 const dateOrNull = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
@@ -13,8 +14,8 @@ export async function savePaperwork(profileId: string, kind: string, completedOn
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
-  if (!PAPERWORK.some((p) => p.kind === kind)) throw new Error("Unknown paperwork.");
+  if (!user) throw new UserError("Not signed in.");
+  if (!PAPERWORK.some((p) => p.kind === kind)) throw new UserError("Unknown paperwork.");
 
   const completed = dateOrNull(completedOn);
   const expires = dateOrNull(expiresOn);
@@ -24,7 +25,7 @@ export async function savePaperwork(profileId: string, kind: string, completedOn
           .from("member_paperwork")
           .upsert({ profile_id: profileId, kind, completed_on: completed, expires_on: expires })
       : await supabase.from("member_paperwork").delete().eq("profile_id", profileId).eq("kind", kind);
-  if (error) throw new Error("Couldn't save. Only this member, their parents and the coaches can change it.");
+  if (error) throw new UserError("Couldn't save. Only this member, their parents and the coaches can change it.");
   revalidatePath(`/roster/${profileId}`);
   revalidatePath("/coach/paperwork");
 }

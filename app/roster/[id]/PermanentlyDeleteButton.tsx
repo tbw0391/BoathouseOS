@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap, type ActionResult } from "@/lib/userError";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
@@ -8,7 +9,7 @@ export function PermanentlyDeleteButton({
   onDelete,
 }: {
   name: string;
-  onDelete: () => Promise<void>;
+  onDelete: () => Promise<ActionResult<void>>;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function PermanentlyDeleteButton({
     setError(null);
     startTransition(async () => {
       try {
-        await onDelete();
+        unwrap(await onDelete());
         router.push("/roster");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

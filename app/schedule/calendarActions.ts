@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { UserError } from "@/lib/userError";
 
 // Makes (or, with reset, replaces) the signed-in member's calendar feed token.
 export async function getCalendarFeedToken(reset = false): Promise<string> {
@@ -9,7 +10,7 @@ export async function getCalendarFeedToken(reset = false): Promise<string> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   if (reset) await supabase.from("calendar_feeds").delete().eq("profile_id", user.id);
   const { data: existing } = await supabase

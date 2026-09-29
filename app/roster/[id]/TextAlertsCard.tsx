@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/userError";
 import { useState, useTransition } from "react";
 import { MessageSquareText } from "lucide-react";
 import { SMS_CONSENT_TEXT, formatUsPhone } from "@/lib/smsRules";
@@ -57,7 +58,7 @@ export function TextAlertsCard({ phone, canOptIn }: { phone: string | null; canO
             <button
               type="button"
               disabled={isPending}
-              onClick={() => run(turnOffTextAlerts)}
+              onClick={() => run(async () => unwrap(await turnOffTextAlerts()))}
               className="text-sm border-2 border-gray-300 rounded px-3 py-2 disabled:opacity-50"
             >
               Turn off text alerts
@@ -69,7 +70,7 @@ export function TextAlertsCard({ phone, canOptIn }: { phone: string | null; canO
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => saveTextAlerts(number, agreed));
+            run(async () => unwrap(await saveTextAlerts(number, agreed)));
           }}
           className="flex flex-col gap-3"
         >

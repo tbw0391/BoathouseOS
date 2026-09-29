@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { findDemoProfile, isDemoEmail, type DemoProfile } from "@/lib/demoAccount";
 import { forgetThisDevicesPush } from "@/lib/push";
+import { UserError } from "@/lib/userError";
 
 // "Try the demo" signs in as the admin, then /choose-club and
 // /choose-profile let the visitor switch to another type of user.
@@ -15,14 +16,14 @@ export async function signInAsDemo() {
 
 export async function switchDemoProfile(role: string) {
   const profile = findDemoProfile(role);
-  if (!profile) throw new Error("Unknown demo profile.");
+  if (!profile) throw new UserError("Unknown demo profile.");
   // Only from inside the demo, so a real member can't be swapped out of
   // their own account by a stray link.
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!isDemoEmail(user?.email)) throw new Error("Only available in the demo.");
+  if (!isDemoEmail(user?.email)) throw new UserError("Only available in the demo.");
 
   await signInToDemoAccount(profile);
   redirect("/");

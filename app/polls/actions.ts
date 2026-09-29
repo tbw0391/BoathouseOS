@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { UserError } from "@/lib/userError";
 
 async function requirePollCreator(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -19,7 +20,7 @@ async function requirePollCreator(supabase: Awaited<ReturnType<typeof createClie
   const canCreate =
     profile?.role === "admin" || profile?.role === "coach" || profile?.is_board_member;
 
-  if (!canCreate) throw new Error("Only admins, coaches, and board members can do that.");
+  if (!canCreate) throw new UserError("Only admins, coaches, and board members can do that.");
 
   return { user, supabase };
 }
@@ -35,7 +36,7 @@ async function requirePollManager(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const [{ data: callerProfile }, { data: pollData }] = await Promise.all([
     supabase.from("profiles").select("role, is_board_member").eq("id", user.id).single(),
@@ -47,7 +48,7 @@ async function requirePollManager(
   const canManage =
     profile?.role === "admin" || profile?.is_board_member || poll?.created_by === user.id;
 
-  if (!canManage) throw new Error("Only that poll's creator, admins, or board members can do that.");
+  if (!canManage) throw new UserError("Only that poll's creator, admins, or board members can do that.");
 
   return { user, supabase };
 }
@@ -65,8 +66,8 @@ export async function createPoll(formData: FormData) {
     .map((o) => o.trim())
     .filter(Boolean);
 
-  if (!question) throw new Error("Question is required.");
-  if (options.length < 2) throw new Error("Add at least 2 options (one per line).");
+  if (!question) throw new UserError("Question is required.");
+  if (options.length < 2) throw new UserError("Add at least 2 options (one per line).");
 
   // Generate the id ourselves and insert without .select(): asking
   // PostgREST to return the inserted row (INSERT ... RETURNING) makes
@@ -104,7 +105,7 @@ export async function createPoll(formData: FormData) {
 
 export async function updatePoll(formData: FormData) {
   const pollId = String(formData.get("poll_id") ?? "").trim();
-  if (!pollId) throw new Error("Missing poll.");
+  if (!pollId) throw new UserError("Missing poll.");
 
   const supabase = await createClient();
   await requirePollManager(supabase, pollId);
@@ -118,8 +119,8 @@ export async function updatePoll(formData: FormData) {
     .map((o) => o.trim())
     .filter(Boolean);
 
-  if (!question) throw new Error("Question is required.");
-  if (options.length < 2) throw new Error("Add at least 2 options (one per line).");
+  if (!question) throw new UserError("Question is required.");
+  if (options.length < 2) throw new UserError("Add at least 2 options (one per line).");
 
   const { error: pollError } = await supabase
     .from("polls")
@@ -214,12 +215,12 @@ export async function castVote(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const pollId = String(formData.get("poll_id") ?? "").trim();
   const optionIds = formData.getAll("option_id").map(String);
-  if (!pollId) throw new Error("Missing poll.");
-  if (optionIds.length === 0) throw new Error("Pick at least one option.");
+  if (!pollId) throw new UserError("Missing poll.");
+  if (optionIds.length === 0) throw new UserError("Pick at least one option.");
 
   const { data: pollData } = await supabase
     .from("polls")
@@ -227,7 +228,7 @@ export async function castVote(formData: FormData) {
     .eq("id", pollId)
     .single();
   if ((pollData as { closed_at: string | null } | null)?.closed_at) {
-    throw new Error("This poll is closed.");
+    throw new UserError("This poll is closed.");
   }
 
   // Only accept option ids that actually belong to this poll, so a tampered
@@ -238,7 +239,7 @@ export async function castVote(formData: FormData) {
     .eq("poll_id", pollId)
     .in("id", optionIds);
   const validOptionIds = ((validOptionsData as { id: string }[] | null) ?? []).map((o) => o.id);
-  if (validOptionIds.length === 0) throw new Error("Invalid option.");
+  if (validOptionIds.length === 0) throw new UserError("Invalid option.");
 
   const { error: deleteError } = await supabase
     .from("poll_votes")
@@ -264,10 +265,10 @@ export async function clearVote(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const pollId = String(formData.get("poll_id") ?? "").trim();
-  if (!pollId) throw new Error("Missing poll.");
+  if (!pollId) throw new UserError("Missing poll.");
 
   const { error } = await supabase
     .from("poll_votes")

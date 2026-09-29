@@ -8,6 +8,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { signUp } from "./actions";
 import { TEAM_LABELS, TEAM_OPTIONS } from "@/lib/teams";
+import { unwrap } from "@/lib/userError";
 
 const ROLE_OPTIONS = [
   { value: "rower", label: "Rower" },
@@ -25,7 +26,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      await signUp(formData);
+      unwrap(await signUp(formData));
 
       const email = String(formData.get("email") ?? "");
       const password = String(formData.get("password") ?? "");

@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { UserError } from "@/lib/userError";
 
 export async function updateStoreLink(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -18,7 +19,7 @@ export async function updateStoreLink(formData: FormData) {
 
   const callerRole = (callerProfile as { role: string } | null)?.role;
   if (callerRole !== "admin") {
-    throw new Error("Only admins can change the team store link.");
+    throw new UserError("Only admins can change the team store link.");
   }
 
   const url = String(formData.get("url") ?? "").trim();
@@ -38,7 +39,7 @@ export async function updateFeaturedItems(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -48,7 +49,7 @@ export async function updateFeaturedItems(formData: FormData) {
 
   const callerRole = (callerProfile as { role: string } | null)?.role;
   if (callerRole !== "admin") {
-    throw new Error("Only admins can change the featured store items.");
+    throw new UserError("Only admins can change the featured store items.");
   }
 
   const itemsRaw = String(formData.get("items") ?? "[]");
@@ -56,9 +57,9 @@ export async function updateFeaturedItems(formData: FormData) {
   try {
     items = JSON.parse(itemsRaw);
   } catch {
-    throw new Error("Invalid items payload.");
+    throw new UserError("Invalid items payload.");
   }
-  if (!Array.isArray(items)) throw new Error("Invalid items payload.");
+  if (!Array.isArray(items)) throw new UserError("Invalid items payload.");
 
   const cleaned = items
     .map((item) => ({

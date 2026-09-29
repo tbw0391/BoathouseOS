@@ -4,13 +4,14 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Role, BoatSide, Team } from "@/lib/database.types";
+import { UserError } from "@/lib/userError";
 
 export async function addMember(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: callerProfile } = await supabase
     .from("profiles")
@@ -20,7 +21,7 @@ export async function addMember(formData: FormData) {
 
   const callerRole = (callerProfile as { role: Role } | null)?.role;
   if (callerRole !== "admin" && callerRole !== "coach") {
-    throw new Error("Only coaches and admins can add members.");
+    throw new UserError("Only coaches and admins can add members.");
   }
 
   const email = String(formData.get("email") ?? "").trim();
@@ -36,7 +37,7 @@ export async function addMember(formData: FormData) {
   const createLogin = formData.get("create_login") === "on";
 
   if (!email || !firstName || !lastName) {
-    throw new Error("First name, last name, and email are required.");
+    throw new UserError("First name, last name, and email are required.");
   }
 
   const admin = createAdminClient();
@@ -51,7 +52,7 @@ export async function addMember(formData: FormData) {
     .eq("email", email)
     .maybeSingle();
   if (existingProfile) {
-    throw new Error("A member with this email already exists.");
+    throw new UserError("A member with this email already exists.");
   }
 
   if (!createLogin) {
@@ -70,7 +71,7 @@ export async function addMember(formData: FormData) {
       .single();
 
     if (profileError) {
-      if (profileError.code === "23505") throw new Error("A member with this email already exists.");
+      if (profileError.code === "23505") throw new UserError("A member with this email already exists.");
       throw new Error(profileError.message);
     }
 
@@ -106,7 +107,7 @@ export async function addMember(formData: FormData) {
   });
 
   if (profileError) {
-    if (profileError.code === "23505") throw new Error("A member with this email already exists.");
+    if (profileError.code === "23505") throw new UserError("A member with this email already exists.");
     throw new Error(profileError.message);
   }
 
@@ -126,10 +127,10 @@ async function requireAdmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
 
   const { data: isAdmin } = await supabase.rpc("is_club_admin");
-  if (!isAdmin) throw new Error("Only admins can approve new members.");
+  if (!isAdmin) throw new UserError("Only admins can approve new members.");
 }
 
 export async function approveMember(profileId: string) {
@@ -160,7 +161,7 @@ export async function declineMember(profileId: string) {
     .is("approved_at", null)
     .select("id");
   if (error) throw new Error(error.message);
-  if (!deleted?.length) throw new Error("That person isn't waiting for approval.");
+  if (!deleted?.length) throw new UserError("That person isn't waiting for approval.");
 
   const { error: authError } = await admin.auth.admin.deleteUser(profileId);
   if (authError && authError.status !== 404) throw new Error(authError.message);

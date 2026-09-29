@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap, type ActionResult } from "@/lib/userError";
 import { useState, useTransition } from "react";
 
 export function RemoveMemberButton({
@@ -9,7 +10,7 @@ export function RemoveMemberButton({
 }: {
   name: string;
   isRemoved: boolean;
-  onToggle: (next: boolean) => Promise<void>;
+  onToggle: (next: boolean) => Promise<ActionResult<void>>;
 }) {
   const [removed, setRemoved] = useState(isRemoved);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +24,7 @@ export function RemoveMemberButton({
     setError(null);
     startTransition(async () => {
       try {
-        await onToggle(next);
+        unwrap(await onToggle(next));
         setRemoved(next);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");

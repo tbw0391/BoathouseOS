@@ -3,16 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { LAUNCH_MINUTES_KEY, LAUNCH_MINUTE_OPTIONS } from "@/lib/raceDay";
+import { UserError } from "@/lib/userError";
 
 async function requireRole(roles: string[]) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in.");
+  if (!user) throw new UserError("Not signed in.");
   const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = (data as { role: string } | null)?.role;
-  if (!role || !roles.includes(role)) throw new Error("You can't change this.");
+  if (!role || !roles.includes(role)) throw new UserError("You can't change this.");
   return supabase;
 }
 
@@ -27,7 +28,7 @@ export async function saveBowNumber(lineupId: string, bowNumber: string) {
 // Club settings are admin-only (RLS).
 export async function saveLaunchMinutes(minutes: number) {
   const supabase = await requireRole(["admin"]);
-  if (!LAUNCH_MINUTE_OPTIONS.includes(minutes)) throw new Error("Pick one of the listed times.");
+  if (!LAUNCH_MINUTE_OPTIONS.includes(minutes)) throw new UserError("Pick one of the listed times.");
   const { error } = await supabase
     .from("club_settings")
     .upsert({ key: LAUNCH_MINUTES_KEY, value: String(minutes) }, { onConflict: "key" });

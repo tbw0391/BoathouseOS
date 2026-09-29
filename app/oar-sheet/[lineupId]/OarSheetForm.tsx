@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { oarLabel, tapeSwatch } from "@/lib/oarSheet";
+import { unwrapIfResult } from "@/lib/userError";
 import { fillBoatWithColor, setSeatOar, setTaskPerson } from "./actions";
 
 export type OarSeatRow = {
@@ -56,11 +57,11 @@ export function OarSheetForm({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function run(fn: () => Promise<void>, after?: () => void) {
+  function run(fn: () => Promise<unknown>, after?: () => void) {
     setError(null);
     startTransition(async () => {
       try {
-        await fn();
+        unwrapIfResult(await fn());
         after?.();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Couldn't save.");

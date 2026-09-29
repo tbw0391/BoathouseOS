@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/userError";
 import { Camera } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -71,7 +72,7 @@ export function BioForm({
     formData.set("photo_url", photoUrl);
     startTransition(async () => {
       try {
-        await updateBio(profile.id, formData);
+        unwrap(await updateBio(profile.id, formData));
         router.push(`/roster/${profile.id}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
