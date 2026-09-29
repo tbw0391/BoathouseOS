@@ -773,6 +773,11 @@
       before real clubs sign up, and update it when data collection changes.
 - [x] Email forwarding for privacy@boathouseos.app (2026-09-29): Namecheap
       email forwarding (Advanced DNS → Mail Settings) to Todd's inbox.
+- [ ] On hold (2026-09-29): forward all boathouseos.app email (Namecheap
+      catch-all forwarder "*") to Todd's boathouseos.com Private Email
+      mailbox, then send a test to e.g. hello@boathouseos.app. To let Claude
+      send test emails, copy RESEND_API_KEY and EMAIL_FROM from Vercel into
+      .env.local.
 - [ ] Cisco Secure Access (on the work laptop) blocks boathouseos.app as a
       "security threat", likely because the domain is brand new. Report it
       via the block page's "Report an incorrect block" link; visiting
