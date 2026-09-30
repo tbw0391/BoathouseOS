@@ -1008,6 +1008,13 @@
       key ("cannot be made with a publishable API key" on Connect Stripe).
       Replace it with the sk_test_ secret key, redeploy, then Connect Stripe
       as admin. Not in .env.local yet either.
+      On hold 2026-09-30: after swapping keys, the demo's Connect Stripe
+      still fails with "Expired API Key provided: rk_live_…", so the live
+      site is still using an old expired live restricted key. Check the
+      Current production deployment postdates the change, team-level shared
+      env vars, and re-add STRIPE_SECRET_KEY fresh (sk_test_ only; never a
+      live key on the demo). Webhook re-made in test mode with the five
+      events below.
 - [ ] 2. In Stripe, add a webhook for "events on connected accounts" pointing
       at https://boathouseos.app/api/stripe/webhook, sending
       checkout.session.completed, invoice.paid, invoice.payment_failed,
