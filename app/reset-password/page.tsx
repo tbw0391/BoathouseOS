@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { ClubLogo } from "@/components/ClubBranding";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
@@ -45,14 +45,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8">
       <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-4">
-        <Image
-          src="/branding/logo-full.png"
-          alt="BoathouseOS"
-          width={789}
-          height={205}
-          priority
-          className="w-64 h-auto mx-auto"
-        />
+        <ClubLogo />
 
         <p className="text-sm text-gray-500 text-center">Set a new password.</p>
 

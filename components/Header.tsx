@@ -13,6 +13,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { signOut } from "@/app/login/actions";
+import { useBranding } from "@/components/ClubBranding";
 
 export function Header({
   unreadCount,
@@ -28,6 +29,7 @@ export function Header({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { iconSrc } = useBranding();
 
   return (
     <header className="sticky top-0 z-10 border-b bg-white">
@@ -72,6 +74,9 @@ export function Header({
               height={54}
               className="h-14 w-auto"
             />
+          ) : iconSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={iconSrc} alt="Home" width={56} height={56} className="w-14 h-14" />
           ) : (
             <Image
               src="/icons/icon-512.png"

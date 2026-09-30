@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getThemeColors } from "@/lib/theme";
 import { siteClubBranding } from "@/lib/clubBranding";
+import { BrandingProvider } from "@/components/ClubBranding";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { cookies } from "next/headers";
 import "./globals.css";
@@ -64,6 +65,11 @@ export default async function RootLayout({
   const theme = await getThemeColors();
   const { data: isGlobalAdmin } = user ? await supabase.rpc("is_global_admin") : { data: false };
   const unreadCount = user ? await getUnreadChatCount(user.id) : null;
+  const branding = await siteClubBranding();
+  const siteBranding = {
+    appName: branding.appName,
+    iconSrc: branding.iconPath ? `/club-icon/512?v=${branding.iconVersion}` : null,
+  };
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
 
   let photoUrl: string | null = null;
@@ -103,18 +109,23 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ServiceWorkerUpdater />
-        <Header
-          unreadCount={unreadCount}
-          userId={user?.id ?? null}
-          photoUrl={photoUrl}
-          clubBlade={demoClub?.blade ?? null}
-        />
-        <PullToRefresh>
-          <div className="pb-16">{children}</div>
-        </PullToRefresh>
-        <BottomNav userId={user?.id ?? null} />
-        {needsTerms && <TermsGate />}
+        <BrandingProvider value={siteBranding}>
+          <ServiceWorkerUpdater />
+          <Header
+            unreadCount={unreadCount}
+            userId={user?.id ?? null}
+            photoUrl={photoUrl}
+            clubBlade={demoClub?.blade ?? null}
+          />
+          <PullToRefresh>
+            <div className="pb-16">
+              {children}
+              <p className="py-4 text-center text-xs text-gray-400 print:hidden">Powered by BoathouseOS</p>
+            </div>
+          </PullToRefresh>
+          <BottomNav userId={user?.id ?? null} />
+          {needsTerms && <TermsGate />}
+        </BrandingProvider>
       </body>
     </html>
   );

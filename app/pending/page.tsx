@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ClubLogo } from "@/components/ClubBranding";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/login/actions";
 
@@ -18,14 +18,7 @@ export default async function PendingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8">
       <div className="w-full max-w-sm flex flex-col gap-4 text-center">
-        <Image
-          src="/branding/logo-full.png"
-          alt="BoathouseOS"
-          width={789}
-          height={205}
-          priority
-          className="w-64 h-auto mx-auto"
-        />
+        <ClubLogo />
         {removed ? (
           <>
             <h1 className="text-xl font-bold">Your account is inactive</h1>

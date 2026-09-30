@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { siteClubSlug } from "@/lib/clubs";
 
@@ -17,7 +18,8 @@ export type ClubBranding = {
   iconVersion: string;
 };
 
-export async function siteClubBranding(): Promise<ClubBranding> {
+// Cached per request: the layout and its metadata both ask.
+export const siteClubBranding = cache(async (): Promise<ClubBranding> => {
   const fallback: ClubBranding = {
     clubId: null,
     appName: DEFAULT_APP_NAME,
@@ -50,4 +52,4 @@ export async function siteClubBranding(): Promise<ClubBranding> {
   } catch {
     return fallback;
   }
-}
+});

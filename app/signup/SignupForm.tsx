@@ -4,7 +4,7 @@ import { TERMS_REQUIRED } from "@/lib/terms";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import { ClubLogo } from "@/components/ClubBranding";
 import { createClient } from "@/lib/supabase/client";
 import { signUp } from "./actions";
 import { TEAM_LABELS, TEAM_OPTIONS } from "@/lib/teams";
@@ -49,14 +49,7 @@ export function SignupForm({ joinCode, clubName }: { joinCode: string | null; cl
         action={handleSubmit}
         className="w-full max-w-sm flex flex-col gap-4"
       >
-        <Image
-          src="/branding/logo-full.png"
-          alt="BoathouseOS"
-          width={789}
-          height={205}
-          priority
-          className="w-64 h-auto mx-auto"
-        />
+        <ClubLogo />
         <h1 className="text-xl font-bold text-center">Join {clubName ?? "BoathouseOS"}</h1>
         {joinCode && <input type="hidden" name="join" value={joinCode} />}
 

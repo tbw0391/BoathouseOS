@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SELF_SIGNUP_OPEN } from "@/lib/signup";
 import { IS_DEMO_SITE } from "@/lib/site";
-import Image from "next/image";
+import { ClubLogo } from "@/components/ClubBranding";
 import { createClient } from "@/lib/supabase/client";
 import { ClearRuntimeCaches } from "@/components/ClearRuntimeCaches";
 import { TryDemoButton } from "@/components/TryDemoButton";
@@ -41,14 +41,7 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm flex flex-col gap-4"
       >
-        <Image
-          src="/branding/logo-full.png"
-          alt="BoathouseOS"
-          width={789}
-          height={205}
-          priority
-          className="w-64 h-auto mx-auto"
-        />
+        <ClubLogo />
 
         {IS_DEMO_SITE && (
           <>
