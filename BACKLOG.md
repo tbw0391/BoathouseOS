@@ -863,6 +863,20 @@
       - Self-signups and the demo accounts join the demo club
         (SITE_CLUB_SLUG). Invites/QR codes that pick the club come with
         onboarding.
+- [x] Clubs page and club invite links (2026-09-29, 0104_club_setup.sql):
+      /global-admin/clubs lists every club (members, admins, waiting
+      signups, join link) and adds a club with its first admin, whose login
+      gets a temporary password shown once to pass on ("New password" makes
+      another; they pick their own at /reset-password). New clubs come with
+      their team chats, board chat, Launch/Recovery task types and payment
+      settings. Each club has a join code: the roster's "Invite via QR
+      code" links to /signup?join=..., so people land in that club waiting
+      for approval; plain /signup still joins the demo. The /choose-club
+      colors only apply inside the demo club. Tested end to end through the
+      API with a throwaway club (deleted after).
+      - Not yet: a club admin can't make a new join code if theirs leaks
+        (approval still gates who gets in); clubs can't be renamed or
+        deleted from the page.
 - [ ] Phase 2+ (deferred, not yet designed): dynamic branding/theming per
       club, self-serve club signup/onboarding (the QR-code invite can encode
       which club), Stripe billing, a super-admin view to manage clubs. The
