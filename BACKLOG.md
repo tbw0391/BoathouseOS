@@ -807,6 +807,36 @@
       communication), roster/background-check tracking, and photos; don't
       guess at requirements, wait for the actual list.
 
+## Production site (real clubs)
+- [x] Two sites, one code base (2026-09-29). Demo: boathouseos.app, Supabase
+      "BoathouseOS" (iclcqpgxovysmmebsnia), deploys from `main`. Production:
+      <club>.boathouseos.app, Supabase "BoathouseOS Production"
+      (psfdfnhzvhlgpoltwcza), deploys from the `production` branch with
+      NEXT_PUBLIC_SITE_MODE=production (no demo, no /welcome) and
+      SITE_CLUB_SLUG=westerville. Built from all migrations (schema matches
+      the demo); Westerville Crew is its first club.
+- [x] Promote to production (after testing on the demo): merge `main` into
+      `production` and push, then `node scripts/apply-migrations.mjs` (runs
+      only migrations production hasn't had; tracked in
+      ops.applied_migrations). Keys live in the git-ignored
+      .env.production-import.
+- [x] Westerville's W-Crew-app data copied into production
+      (scripts/import-westerville.mjs, 2026-09-29): 37 members, 16 logins with
+      their passwords, lineups/races/chats/food tent/photos/settings; counts
+      checked against the old app. Rerun it at switch-over (needs the
+      temporary export_auth_users_for_move function on W-Crew-app again).
+- [ ] Todd: production Vercel project (import the repo, production branch
+      = `production`, env vars from .env.production-vercel), domain
+      westerville.boathouseos.app + its CNAME at Namecheap, Supabase Auth
+      settings (site URL, redirect URLs, Resend SMTP, leaked-password check).
+- [ ] Switch-over: rerun the import, tell members the new address, then
+      back up and delete W-Crew-app (Supabase + Vercel).
+- [ ] One Twilio number can only send "STOP/START" replies to one site; it
+      points at the demo. Production needs its own number (or the webhook
+      moved) before texting real members.
+- [ ] Concept2: add https://westerville.boathouseos.app/api/concept2/callback to the
+      Concept2 API app's redirect URIs.
+
 ## Multi-tenant SaaS (sell to other rowing clubs)
 - [ ] Do this after everything else is configured/stable. Goal: sell this app
       to 100+ other rowing clubs, each with fully isolated data. Today there
