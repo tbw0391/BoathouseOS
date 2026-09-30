@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { newAdminPassword } from "../actions";
+import { newMemberPassword } from "../actions";
 import { unwrap } from "@/lib/userError";
 import { PasswordNote } from "./CreateClubForm";
 
-export function NewPasswordButton({ profileId, name }: { profileId: string; name: string }) {
+export function NewPasswordButton({ profileId, name, signInAt }: { profileId: string; name: string; signInAt: string }) {
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<{ email: string; password: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -14,7 +14,7 @@ export function NewPasswordButton({ profileId, name }: { profileId: string; name
   if (result) {
     return (
       <div className="w-full">
-        <PasswordNote heading={`New password for ${name}.`} email={result.email} password={result.password} />
+        <PasswordNote heading={`New password for ${name}.`} email={result.email} password={result.password} signInAt={signInAt} />
       </div>
     );
   }
@@ -30,7 +30,7 @@ export function NewPasswordButton({ profileId, name }: { profileId: string; name
           setError(null);
           startTransition(async () => {
             try {
-              setResult(unwrap(await newAdminPassword(profileId)));
+              setResult(unwrap(await newMemberPassword(profileId)));
             } catch (e) {
               setError(e instanceof Error ? e.message : "Something went wrong.");
             }

@@ -3,11 +3,12 @@
 import { useRef, useState, useTransition } from "react";
 import { createClub } from "../actions";
 import { unwrap } from "@/lib/userError";
+import { clubAddress } from "@/lib/site";
 
 export function CreateClubForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [made, setMade] = useState<{ clubName: string; email: string; password: string } | null>(null);
+  const [made, setMade] = useState<{ clubName: string; email: string; password: string; slug: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
@@ -24,7 +25,7 @@ export function CreateClubForm() {
   }
 
   return (
-    <section className="border rounded-lg p-4 flex flex-col gap-3">
+    <section className="border rounded-lg p-4 flex flex-col gap-3 bg-white">
       <h2 className="text-lg font-semibold">Add a club</h2>
       <form ref={formRef} action={handleSubmit} className="flex flex-col gap-2">
         <input name="name" placeholder="Club name" required className="border rounded px-3 py-2" />
@@ -43,16 +44,33 @@ export function CreateClubForm() {
         </button>
         {error && <p className="text-sm text-red-600">{error}</p>}
       </form>
-      {made && <PasswordNote heading={`${made.clubName} is set up.`} email={made.email} password={made.password} />}
+      {made && (
+        <PasswordNote
+          heading={`${made.clubName} is set up.`}
+          email={made.email}
+          password={made.password}
+          signInAt={clubAddress(made.slug)}
+        />
+      )}
     </section>
   );
 }
 
-export function PasswordNote({ heading, email, password }: { heading: string; email: string; password: string }) {
+export function PasswordNote({
+  heading,
+  email,
+  password,
+  signInAt,
+}: {
+  heading: string;
+  email: string;
+  password: string;
+  signInAt: string;
+}) {
   return (
-    <div className="border-2 border-green-600 rounded-lg p-3 text-sm flex flex-col gap-1">
+    <div className="border-2 border-green-600 rounded-lg p-3 text-sm flex flex-col gap-1 bg-white">
       <p className="font-medium">{heading}</p>
-      <p>Send the admin these to sign in (they won&apos;t be shown again):</p>
+      <p>Send them these to sign in (they won&apos;t be shown again):</p>
       <p>
         Email: <span className="font-mono">{email}</span>
       </p>
@@ -60,7 +78,7 @@ export function PasswordNote({ heading, email, password }: { heading: string; em
         Temporary password: <span className="font-mono select-all">{password}</span>
       </p>
       <p className="text-xs text-gray-500">
-        They sign in at boathouseos.app/login, then pick their own password at boathouseos.app/reset-password.
+        They sign in at {signInAt}, then pick their own password from Forgot password? or {signInAt}/reset-password.
       </p>
     </div>
   );

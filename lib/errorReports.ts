@@ -1,4 +1,5 @@
 import "server-only";
+import { CONSOLE_HOST, IS_DEMO_SITE } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emailConfigured, sendEmails } from "@/lib/email";
 import { groupingKey, shortStack, shouldReport } from "@/lib/errorReportRules";
@@ -89,14 +90,14 @@ async function emailGlobalAdmins(
   const { data: ids } = await admin.from("global_admins").select("user_id");
   const userIds = ((ids as { user_id: string }[] | null) ?? []).map((g) => g.user_id);
   if (userIds.length === 0) return;
-  const { data: people } = await admin.from("profiles").select("email").in("id", userIds);
-  const emails = ((people as { email: string | null }[] | null) ?? [])
-    .map((p) => p.email?.trim())
-    .filter((e): e is string => !!e);
+  // From their sign-in accounts: the console's own account has no profile.
+  const found = await Promise.all(userIds.map((id) => admin.auth.admin.getUserById(id)));
+  const emails = found.map((r) => r.data.user?.email?.trim()).filter((e): e is string => !!e);
   if (emails.length === 0) return;
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.boathouseos.app";
-  const link = `${site}/global-admin/errors`;
+  const link = IS_DEMO_SITE
+    ? `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.boathouseos.app"}/console/errors`
+    : `https://${CONSOLE_HOST}/console/errors`;
   const status = r.isNew ? "New error" : r.cameBack ? "Error is back after being marked fixed" : `Still happening (${r.count} times)`;
   const where = `${r.route ?? r.last_path}${r.route_type ? ` (${r.route_type})` : ""}`;
   const subject = `BoathouseOS error: ${r.message.slice(0, 80)}`;

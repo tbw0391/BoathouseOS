@@ -72,8 +72,9 @@ import {
 import { getUnreadScheduleCount } from "@/lib/schedule";
 import { forecastDayFor, getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_ACCESS_KEY, NAV_SECTIONS, resolveNavAccess, type NavRole } from "@/lib/navSections";
-import { QrCodes } from "@/app/global-admin/qr/QrCodes";
-import { IS_DEMO_SITE } from "@/lib/site";
+import { QrCodes } from "@/app/console/qr/QrCodes";
+import { PlatformNotices } from "@/components/PlatformNotices";
+import { CONSOLE_URL, IS_DEMO_SITE } from "@/lib/site";
 import {
   DEMO_CLUB_COOKIE,
   findDemoClub,
@@ -119,7 +120,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/coach": ClipboardList,
   "/todo": ListTodo,
   "/admin": Settings,
-  "/global-admin": ShieldCheck,
+  [CONSOLE_URL]: ShieldCheck,
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -2007,6 +2008,8 @@ export default async function Home() {
         </div>
       )}
 
+      {user && <PlatformNotices />}
+
       {user && <PushToggle isDemo={isDemoEmail(user.email)} />}
       {user && !isDemoEmail(user.email) && emailBackupOn && <EmailAlertsToggle initial={emailAlertsOn} />}
 
@@ -2037,7 +2040,7 @@ export default async function Home() {
           )
           .concat(
             isGlobalAdmin
-              ? [{ href: "/global-admin", label: "Global Admin" }]
+              ? [{ href: CONSOLE_URL, label: "Global Admin Console" }]
               : [],
           )
           .map((s) => {

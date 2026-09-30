@@ -14,6 +14,7 @@ import {
   type NavVisibility,
 } from "@/lib/navSections";
 import { LINEUP_SECTIONS } from "@/lib/lineupSections";
+import { saveClubAppBranding } from "@/lib/clubIcon";
 import { DEFAULT_THEME_COLORS, isHexColor, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES } from "@/lib/alertSettings";
 import { OAR_COLORS_KEY } from "@/lib/oarSheet";
@@ -282,38 +283,7 @@ export async function updateAppIcon(formData: FormData) {
     if (!isAdmin) throw new UserError("Only admins can change the app's name and icon.");
     const { data: clubId } = await supabase.rpc("current_club_id");
     if (!clubId) throw new UserError("Couldn't tell which club you're in.");
-
-    const appName = String(formData.get("app_name") ?? "").trim().slice(0, 40);
-    const shortName = String(formData.get("app_short_name") ?? "").trim().slice(0, 12);
-    const update: Record<string, string | null> = { app_name: appName || null, app_short_name: shortName || null };
-
-    const file = formData.get("icon");
-    if (file instanceof File && file.size > 0) {
-      if (file.size > 4 * 1024 * 1024) throw new UserError("That image is too big (4MB at most).");
-      const { default: sharp } = await import("sharp");
-      let png: Buffer;
-      try {
-        // Square, 512px, on white: phones fill transparent corners with black.
-        png = await sharp(Buffer.from(await file.arrayBuffer()))
-          .rotate()
-          .resize(512, 512, { fit: "contain", background: "#ffffff" })
-          .flatten({ background: "#ffffff" })
-          .png()
-          .toBuffer();
-      } catch {
-        throw new UserError("That file isn't an image we can use. Try a PNG or JPG.");
-      }
-      const path = `${clubId}/icon.png`;
-      const { error } = await createAdminClient()
-        .storage.from("club-icons")
-        .upload(path, png, { contentType: "image/png", upsert: true });
-      if (error) throw new Error(error.message);
-      update.icon_path = path;
-      update.icon_updated_at = new Date().toISOString();
-    }
-
-    const { error } = await createAdminClient().from("clubs").update(update).eq("id", clubId as string);
-    if (error) throw new Error(error.message);
+    await saveClubAppBranding(clubId as string, formData);
     revalidatePath("/", "layout");
   });
 }

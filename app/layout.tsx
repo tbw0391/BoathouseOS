@@ -13,7 +13,8 @@ import { getThemeColors } from "@/lib/theme";
 import { siteClubBranding } from "@/lib/clubBranding";
 import { BrandingProvider } from "@/components/ClubBranding";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { ConsoleHeader } from "@/components/ConsoleHeader";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -58,6 +59,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The global admin console (admin.boathouseos.app, or /console on the
+  // demo) has its own plain header and none of a club's navigation.
+  if ((await headers()).get("x-console") === "1") {
+    return (
+      <html lang="en">
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}>
+          <ConsoleHeader />
+          {children}
+        </body>
+      </html>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
