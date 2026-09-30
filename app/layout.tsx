@@ -64,7 +64,7 @@ export default async function RootLayout({
   if ((await headers()).get("x-console") === "1") {
     return (
       <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}>
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-sky-100`}>
           <ConsoleHeader />
           {children}
         </body>
