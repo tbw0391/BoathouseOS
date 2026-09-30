@@ -836,6 +836,12 @@
       (RESEND_API_KEY and EMAIL_FROM done 2026-09-30.)
 - [x] Final data copy done 2026-09-30 (nothing new in the old app since the
       first copy; temporary export function dropped again).
+- [x] Old app forwards (2026-09-30): every w-crew-app.vercel.app page
+      redirects (307) to the same page on westerville.boathouseos.app
+      (W-Crew-app middleware.ts).
+- [x] Each club's app name and home-screen icon (0106, /admin "App name and
+      icon"); Westerville's is the W with crossed oars, "Westerville Crew" /
+      "W-Crew" (2026-09-30).
 - [ ] Switch-over: tell members the new address, then
       back up and delete W-Crew-app (Supabase + Vercel).
 - [ ] One Twilio number can only send "STOP/START" replies to one site; it
