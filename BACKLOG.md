@@ -834,7 +834,9 @@
       CONCEPT2_CLIENT_ID/SECRET, and TWILIO_* once production has its own
       number. Until then texts and Concept2 sync are off on production.
       (RESEND_API_KEY and EMAIL_FROM done 2026-09-30.)
-- [ ] Switch-over: rerun the import, tell members the new address, then
+- [x] Final data copy done 2026-09-30 (nothing new in the old app since the
+      first copy; temporary export function dropped again).
+- [ ] Switch-over: tell members the new address, then
       back up and delete W-Crew-app (Supabase + Vercel).
 - [ ] One Twilio number can only send "STOP/START" replies to one site; it
       points at the demo. Production needs its own number (or the webhook
