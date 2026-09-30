@@ -26,6 +26,8 @@ import {
   updateLineupSectionVisibility,
   updateThemeColors,
   resetThemeColors,
+  updateAppIcon,
+  removeAppIcon,
 } from "./actions";
 import { updateStoreLink } from "@/app/store/actions";
 import { ActionForm } from "@/components/ActionForm";
@@ -73,10 +75,74 @@ export default async function AdminPage() {
   const alertsEnabled = parseAlertSettings(settingsByKey.get(ALERT_SETTINGS_KEY));
   const oarSettings = parseOarSettings(settingsByKey.get(OAR_COLORS_KEY));
   const storeUrl = settingsByKey.get("team_store_url") ?? null;
+  const { data: clubRow } = await supabase
+    .from("clubs")
+    .select("name, app_name, app_short_name, icon_path, icon_updated_at")
+    .maybeSingle();
+  const club = clubRow as {
+    name: string;
+    app_name: string | null;
+    app_short_name: string | null;
+    icon_path: string | null;
+    icon_updated_at: string | null;
+  } | null;
 
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-2">Admin Settings</h1>
+
+      <h2 className="text-lg font-semibold mt-6 mb-2">App name and icon</h2>
+      <p className="text-sm text-gray-500 mb-4">
+        What members see on their phone&apos;s home screen when they add the app. Use a square
+        logo (PNG or JPG). Members who already added the app may need to remove it and add it
+        again to see a new icon.
+      </p>
+      <ActionForm action={updateAppIcon} altAction={removeAppIcon} className="flex flex-col gap-3 max-w-sm mb-8">
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/club-icon/192?v=${club?.icon_updated_at ? Date.parse(club.icon_updated_at) : "default"}`}
+            alt="Current app icon"
+            width={64}
+            height={64}
+            className="rounded-xl border"
+          />
+          <input type="file" name="icon" accept="image/png,image/jpeg,image/webp" className="text-sm" />
+        </div>
+        <label className="text-sm flex flex-col gap-1">
+          App name
+          <input
+            name="app_name"
+            defaultValue={club?.app_name ?? ""}
+            placeholder={club?.name ?? "BoathouseOS"}
+            maxLength={40}
+            className="border rounded px-3 py-2"
+          />
+        </label>
+        <label className="text-sm flex flex-col gap-1">
+          Name under the icon (12 letters at most)
+          <input
+            name="app_short_name"
+            defaultValue={club?.app_short_name ?? ""}
+            placeholder="e.g. W-Crew"
+            maxLength={12}
+            className="border rounded px-3 py-2"
+          />
+        </label>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="flex-1 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+          >
+            Save name and icon
+          </button>
+          {club?.icon_path && (
+            <button type="submit" data-action="alt" className="text-sm text-gray-500 hover:underline px-2">
+              Use the BoathouseOS icon
+            </button>
+          )}
+        </div>
+      </ActionForm>
 
       <h2 className="text-lg font-semibold mt-6 mb-2">Site colors</h2>
       <p className="text-sm text-gray-500 mb-4">

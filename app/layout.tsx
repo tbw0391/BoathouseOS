@@ -10,6 +10,7 @@ import { isDemoEmail } from "@/lib/demoAccount";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadChatCount } from "@/lib/chat";
 import { getThemeColors } from "@/lib/theme";
+import { siteClubBranding } from "@/lib/clubBranding";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { cookies } from "next/headers";
 import "./globals.css";
@@ -24,16 +25,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "BoathouseOS",
-  description: "Rowing club management — roster, schedule, lineups, volunteers, and messaging.",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "BoathouseOS",
-  },
-};
+// The app's name and home-screen icon are the club's own (see
+// lib/clubBranding.ts), so members' phones show their club.
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await siteClubBranding();
+  return {
+    title: branding.appName,
+    description: "Rowing club management — roster, schedule, lineups, volunteers, and messaging.",
+    manifest: "/manifest.json",
+    icons: { apple: `/club-icon/180?v=${branding.iconVersion}` },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: branding.shortName,
+    },
+  };
+}
 
 export async function generateViewport(): Promise<Viewport> {
   const theme = await getThemeColors();
