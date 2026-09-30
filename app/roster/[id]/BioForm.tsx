@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/database.types";
 import { updateBio } from "./actions";
-import { TEAM_LABELS, TEAM_OPTIONS } from "@/lib/teams";
+import { TEAM_LABELS, TEAM_OPTIONS, hasRowingDetails } from "@/lib/teams";
 import type { Team } from "@/lib/database.types";
 
 const ROLE_OPTIONS: { value: Profile["role"]; label: string }[] = [
@@ -39,6 +39,7 @@ export function BioForm({
   const [uploading, setUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isGuardianRole = profile.role === "parent" || profile.role === "admin" || profile.role === "coach";
+  const showRowing = hasRowingDetails(profile.role, teams);
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -165,7 +166,7 @@ export function BioForm({
         className="border rounded px-3 py-2 text-sm"
       />
 
-      {profile.role !== "parent" && (
+      {showRowing && (
         <>
           <label className="text-sm font-medium">High school</label>
           <input
@@ -200,7 +201,7 @@ export function BioForm({
         className="border rounded px-3 py-2 text-sm"
       />
 
-      {profile.role !== "parent" && (
+      {showRowing && (
         <>
           <label className="text-sm font-medium">Boat side preference</label>
           <select
@@ -287,7 +288,7 @@ export function BioForm({
         ))}
       </div>
 
-      {profile.role !== "parent" && (
+      {showRowing && (
         <>
           <label className="text-sm font-medium">2K erg time</label>
           <input
