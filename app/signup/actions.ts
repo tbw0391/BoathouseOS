@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { clubByJoinCode, siteClubId } from "@/lib/clubs";
+import { SELF_SIGNUP_OPEN } from "@/lib/signup";
 import { getClientIp } from "@/lib/clientIp";
 import type { Team } from "@/lib/database.types";
 import { TERMS_REQUIRED, TERMS_VERSION } from "@/lib/terms";
@@ -19,6 +20,8 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 export async function signUp(formData: FormData) {
   return tryAction(async () => {
+    if (!SELF_SIGNUP_OPEN) throw new UserError("Signing up isn't open right now. Ask your club's admin to add you.");
+
     // Honeypot: a field named to look real but hidden from sighted users via
     // CSS (see app/signup/page.tsx). Bots that fill in every input trip it;
     // real users never see or fill it. Fail quietly rather than revealing why.

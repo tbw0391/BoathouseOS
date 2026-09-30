@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { CreateClubForm } from "./CreateClubForm";
 import { NewPasswordButton } from "./NewPasswordButton";
+import { SELF_SIGNUP_OPEN } from "@/lib/signup";
 
 type ClubRow = { id: string; name: string; slug: string; join_code: string; created_at: string };
 type Person = {
@@ -56,9 +57,17 @@ export default async function ClubsPage() {
           const joinLink = `${origin}/signup?join=${club.join_code}`;
           return (
             <li key={club.id} className="border rounded-lg p-4 flex flex-col gap-2 text-sm">
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-lg font-semibold">{club.name}</h2>
-                <span className="text-xs text-gray-500">{club.slug}</span>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold">{club.name}</h2>
+                  <span className="text-xs text-gray-500">{club.slug}</span>
+                </div>
+                <Link
+                  href={`/global-admin/clubs/${club.id}`}
+                  className="shrink-0 border-2 border-[var(--color-primary)] rounded-lg px-4 py-2 text-sm font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+                >
+                  View
+                </Link>
               </div>
               <p className="text-gray-600">
                 {active.length} member{active.length === 1 ? "" : "s"}
@@ -83,14 +92,16 @@ export default async function ClubsPage() {
                   </ul>
                 )}
               </div>
-              <div>
-                <p className="font-medium">Join link</p>
-                <p className="text-xs text-gray-500">
-                  Whoever signs up with it joins this club and waits for its admins to approve them.
-                  Club admins also have it on the Roster page (Invite via QR code).
-                </p>
-                <p className="break-all text-[var(--color-primary)]">{joinLink}</p>
-              </div>
+              {SELF_SIGNUP_OPEN && (
+                <div>
+                  <p className="font-medium">Join link</p>
+                  <p className="text-xs text-gray-500">
+                    Whoever signs up with it joins this club and waits for its admins to approve them.
+                    Club admins also have it on the Roster page (Invite via QR code).
+                  </p>
+                  <p className="break-all text-[var(--color-primary)]">{joinLink}</p>
+                </div>
+              )}
             </li>
           );
         })}

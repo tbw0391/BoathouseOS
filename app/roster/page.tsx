@@ -3,6 +3,7 @@ import type { ProfileTeam, Team } from "@/lib/database.types";
 import { AddMemberForm } from "./AddMemberForm";
 import { ImportForm } from "./ImportForm";
 import { SignupQrButton } from "./SignupQrButton";
+import { SELF_SIGNUP_OPEN } from "@/lib/signup";
 import { RosterGrid, type RosterProfile } from "./RosterGrid";
 import { PendingApprovals } from "./PendingApprovals";
 
@@ -58,7 +59,7 @@ export default async function RosterPage() {
         <div className="flex flex-wrap items-start gap-2">
           <AddMemberForm />
           <ImportForm />
-          {club && <SignupQrButton joinCode={club.join_code} clubName={club.name} />}
+          {SELF_SIGNUP_OPEN && club && <SignupQrButton joinCode={club.join_code} clubName={club.name} />}
         </div>
       )}
 

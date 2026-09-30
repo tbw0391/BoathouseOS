@@ -874,6 +874,16 @@
       for approval; plain /signup still joins the demo. The /choose-club
       colors only apply inside the demo club. Tested end to end through the
       API with a throwaway club (deleted after).
+      - Joining on your own is OFF for now (lib/signup.ts
+        SELF_SIGNUP_OPEN = false, 2026-09-29) while Todd works out the join
+        process: no "Create an account" link on /login, /signup says to ask
+        the club's admin, the roster QR invite and the Clubs page join links
+        are hidden. Admins add members from the Roster; club admins come
+        from the Clubs page.
+      - Each club on /global-admin/clubs has a View button: a read-only page
+        (service role) with its members, waiting signups, counts (lineups,
+        races, messages, photos, polls, boats), colors, what's coming up and
+        its boats.
       - Not yet: a club admin can't make a new join code if theirs leaks
         (approval still gates who gets in); clubs can't be renamed or
         deleted from the page.

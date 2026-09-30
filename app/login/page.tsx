@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SELF_SIGNUP_OPEN } from "@/lib/signup";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { ClearRuntimeCaches } from "@/components/ClearRuntimeCaches";
@@ -81,9 +82,11 @@ export default function LoginPage() {
         <Link href="/forgot-password" className="text-sm text-gray-500 hover:underline text-center">
           Forgot password?
         </Link>
-        <Link href="/signup" className="text-sm text-gray-500 hover:underline text-center">
-          New here? Create an account
-        </Link>
+        {SELF_SIGNUP_OPEN && (
+          <Link href="/signup" className="text-sm text-gray-500 hover:underline text-center">
+            New here? Create an account
+          </Link>
+        )}
       </form>
     </div>
   );
