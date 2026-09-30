@@ -32,6 +32,13 @@ export default async function GlobalAdminPage() {
       <h1 className="text-2xl font-bold">Global Admin</h1>
 
       <Link
+        href="/global-admin/clubs"
+        className="border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm font-medium text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+      >
+        Clubs
+      </Link>
+
+      <Link
         href="/global-admin/qr"
         className="border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm font-medium text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
       >

@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
-export function SignupQrButton() {
+// The link carries the club's join code, so whoever signs up lands in this
+// club (waiting for approval).
+export function SignupQrButton({ joinCode, clubName }: { joinCode: string; clubName: string }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const signupUrl = typeof window !== "undefined" ? `${window.location.origin}/signup` : "";
+  const signupUrl = typeof window !== "undefined" ? `${window.location.origin}/signup?join=${joinCode}` : "";
 
   async function copyLink() {
     try {
@@ -37,7 +39,7 @@ export function SignupQrButton() {
             className="bg-white rounded-lg p-6 flex flex-col items-center gap-4 max-w-xs w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-medium">Scan to join BoathouseOS</h2>
+            <h2 className="font-medium text-center">Scan to join {clubName}</h2>
             {signupUrl && <QRCodeSVG value={signupUrl} size={220} />}
             <p className="text-xs text-gray-500 break-all text-center">{signupUrl}</p>
             <div className="flex gap-2 w-full">

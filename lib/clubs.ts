@@ -33,3 +33,13 @@ export async function clubIdOf(admin: Admin, profileId: string): Promise<string>
   if (error || !data) throw new Error("That member wasn't found.");
   return (data as { club_id: string }).club_id;
 }
+
+// The club a roster invite link (/signup?join=...) is for, or null.
+export async function clubByJoinCode(
+  code: string,
+  admin: Admin = createAdminClient()
+): Promise<{ id: string; name: string } | null> {
+  if (!/^[a-z0-9]{6,32}$/.test(code)) return null;
+  const { data } = await admin.from("clubs").select("id, name").eq("join_code", code).maybeSingle();
+  return (data as { id: string; name: string } | null) ?? null;
+}

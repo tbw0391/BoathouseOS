@@ -70,7 +70,8 @@ export async function calendarFeedFor(token: string, siteUrl: string): Promise<s
     admin.from("club_settings").select("value").eq("club_id", profile.club_id).eq("key", LAUNCH_MINUTES_KEY).maybeSingle(),
   ]);
   const events = (eventRows as ScheduleEvent[] | null) ?? [];
-  let clubName = "BoathouseOS";
+  const { data: clubRow } = await admin.from("clubs").select("name").eq("id", profile.club_id).maybeSingle();
+  let clubName = (clubRow as { name: string } | null)?.name ?? "BoathouseOS";
   try {
     clubName = JSON.parse((brandingRow as { value: string | null } | null)?.value ?? "{}").clubName || clubName;
   } catch {}

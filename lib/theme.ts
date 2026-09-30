@@ -26,13 +26,20 @@ export async function getThemeColors(): Promise<ThemeColors> {
   // A demo visitor who picked their club on /choose-club sees its colors.
   // Kept in a cookie, not club_settings, since every visitor shares the one
   // demo account.
+  // Only inside the demo club (or signed out): a real club's members keep
+  // their own colors even if this browser once tried the demo.
   const { cookies } = await import("next/headers");
   const { DEMO_CLUB_COOKIE, findDemoClub } = await import("@/lib/demoClubs");
-  const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
-  if (demoClub?.colors) return { ...DEFAULT_THEME_COLORS, ...demoClub.colors };
-
   const { createClient } = await import("@/lib/supabase/server");
+  const { SITE_CLUB_SLUG } = await import("@/lib/clubs");
   const supabase = await createClient();
+  const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
+  if (demoClub?.colors) {
+    const { data: myClub } = await supabase.from("clubs").select("slug").maybeSingle();
+    const slug = (myClub as { slug: string } | null)?.slug;
+    if (!slug || slug === SITE_CLUB_SLUG) return { ...DEFAULT_THEME_COLORS, ...demoClub.colors };
+  }
+
   const { data } = await supabase
     .from("club_settings")
     .select("value")

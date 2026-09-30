@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { siteClubId } from "@/lib/clubs";
+import { clubByJoinCode, siteClubId } from "@/lib/clubs";
 import { getClientIp } from "@/lib/clientIp";
 import type { Team } from "@/lib/database.types";
 import { TERMS_REQUIRED, TERMS_VERSION } from "@/lib/terms";
@@ -49,6 +49,14 @@ export async function signUp(formData: FormData) {
 
     const admin = createAdminClient();
 
+    // A club's invite link says which club; otherwise the site's own.
+    const joinCode = String(formData.get("join") ?? "").trim();
+    const invitedTo = joinCode ? await clubByJoinCode(joinCode, admin) : null;
+    if (joinCode && !invitedTo) {
+      throw new UserError("This invite link isn't valid anymore. Ask your club for a new one.");
+    }
+    const clubId = invitedTo?.id ?? (await siteClubId(admin));
+
     const ip = await getClientIp();
     const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
     const { count } = await admin
@@ -73,8 +81,6 @@ export async function signUp(formData: FormData) {
       throw new Error(createError?.message ?? "Couldn't create an account with that email.");
     }
 
-    // Self-signups join the site's club until invites say which club.
-    const clubId = await siteClubId(admin);
     const { error: profileError } = await admin.from("profiles").insert({
       id: created.user.id,
       club_id: clubId,

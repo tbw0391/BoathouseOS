@@ -20,11 +20,14 @@ export default async function RosterPage() {
     },
     { data, error },
     { data: teamRows },
+    { data: clubRow },
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("profiles").select(ROSTER_COLUMNS).order("display_name", { ascending: true }),
     supabase.from("profile_teams").select("*"),
+    supabase.from("clubs").select("name, join_code").maybeSingle(),
   ]);
+  const club = clubRow as { name: string; join_code: string } | null;
 
   // Pending self-signups only come back for admins (RLS), and are listed
   // separately rather than in the roster itself.
@@ -55,7 +58,7 @@ export default async function RosterPage() {
         <div className="flex flex-wrap items-start gap-2">
           <AddMemberForm />
           <ImportForm />
-          <SignupQrButton />
+          {club && <SignupQrButton joinCode={club.join_code} clubName={club.name} />}
         </div>
       )}
 
