@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { consoleUser } from "@/lib/console";
+import { NotGlobalAdmin } from "../ui";
 import { clearFixedErrors, markErrorFixed } from "../actions";
 import { ActionForm } from "@/components/ActionForm";
 
@@ -20,11 +21,9 @@ type ErrorReport = {
 
 // Unexpected server errors caught by instrumentation.ts (0100), newest first.
 export default async function ErrorReportsPage() {
-  const supabase = await createClient();
-  const { data: isGlobalAdmin } = await supabase.rpc("is_global_admin");
-  if (!isGlobalAdmin) notFound();
+  if (!(await consoleUser())) return <NotGlobalAdmin />;
 
-  const { data } = await supabase
+  const { data } = await createAdminClient()
     .from("error_reports")
     .select("id, message, route, route_type, last_path, last_digest, stack, count, first_seen, last_seen, resolved_at")
     .order("last_seen", { ascending: false })
@@ -34,10 +33,10 @@ export default async function ErrorReportsPage() {
   const fixed = reports.filter((r) => r.resolved_at);
 
   return (
-    <div className="min-h-screen p-8 flex flex-col gap-6 max-w-2xl">
+    <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-6">
       <div>
-        <Link href="/global-admin" className="text-sm text-[var(--color-primary)] hover:underline">
-          ← Global Admin
+        <Link href="/console/health" className="text-sm text-gray-500 hover:underline">
+          ← Site health
         </Link>
         <h1 className="text-2xl font-bold mt-1">Errors</h1>
         <p className="text-sm text-gray-500">
@@ -76,7 +75,7 @@ export default async function ErrorReportsPage() {
 
 function ErrorCard({ report: r }: { report: ErrorReport }) {
   return (
-    <div className={`border-2 rounded-lg p-4 flex flex-col gap-2 ${r.resolved_at ? "border-gray-200 opacity-70" : "border-red-300"}`}>
+    <div className={`bg-white border-2 rounded-lg p-4 flex flex-col gap-2 ${r.resolved_at ? "border-gray-200 opacity-70" : "border-red-300"}`}>
       <p className="font-medium break-words">{r.message}</p>
       <p className="text-sm text-gray-600 break-words">
         {r.route ?? r.last_path}

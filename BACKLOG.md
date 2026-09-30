@@ -850,6 +850,32 @@
 - [ ] Concept2: add https://westerville.boathouseos.app/api/concept2/callback to the
       Concept2 API app's redirect URIs.
 
+## Global admin console
+- [x] Console (2026-09-30, 0107_console.sql): admin.boathouseos.app on
+      production, /console on the demo (/global-admin redirects there). Its
+      own header, no club navigation; reads and writes with the service role
+      after checking is_global_admin(). Sections: Overview (counts, needs
+      attention, interested clubs, demo baseline/reset/QR on the demo),
+      Clubs (add; rename, change address, colors, app name/icon, Stripe
+      status, suspend, delete if empty), Members (search every club; role,
+      approve/remove/restore, temporary password), Site health (deployed
+      commit, migrations, which kind of Stripe key is set, push/email/
+      texts/Concept2, usage by club), Announcements (platform_notices: home
+      page banner for a club's admins or everyone, optional push/email),
+      Global admins (add by email, making a club-less account; remove).
+      - Suspended clubs: is_approved() is false for their members; /pending
+        says the club is paused.
+      - The console's own account belongs to no club. On a club address it
+        gets sent to the console. Error emails go to global admins' login
+        emails (not profiles).
+      - Moving a member between clubs isn't offered (their data belongs to
+        the club).
+- [ ] Production setup: CNAME admin → Vercel at Namecheap, add
+      admin.boathouseos.app to boathouseos-prod, add
+      https://admin.boathouseos.app/** to production Supabase Auth redirect
+      URLs. Then promote, add todd@boathouseos.com under Global admins (it
+      sets its password via Forgot password?), and remove tbw0391@gmail.com.
+
 ## Multi-tenant SaaS (sell to other rowing clubs)
 - [ ] Do this after everything else is configured/stable. Goal: sell this app
       to 100+ other rowing clubs, each with fully isolated data. Today there
@@ -1008,6 +1034,13 @@
       key ("cannot be made with a publishable API key" on Connect Stripe).
       Replace it with the sk_test_ secret key, redeploy, then Connect Stripe
       as admin. Not in .env.local yet either.
+      On hold 2026-09-30: after swapping keys, the demo's Connect Stripe
+      still fails with "Expired API Key provided: rk_live_…", so the live
+      site is still using an old expired live restricted key. Check the
+      Current production deployment postdates the change, team-level shared
+      env vars, and re-add STRIPE_SECRET_KEY fresh (sk_test_ only; never a
+      live key on the demo). Webhook re-made in test mode with the five
+      events below.
 - [ ] 2. In Stripe, add a webhook for "events on connected accounts" pointing
       at https://boathouseos.app/api/stripe/webhook, sending
       checkout.session.completed, invoice.paid, invoice.payment_failed,

@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { CLUB_HOST_SUFFIX, IS_DEMO_SITE, clubSlugFromHost } from '@/lib/site';
+import { CLUB_HOST_SUFFIX, CONSOLE_HOST, IS_DEMO_SITE, clubSlugFromHost, isConsoleHost } from '@/lib/site';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const supabaseHost = supabaseUrl ? new URL(supabaseUrl).host : '';
@@ -28,8 +28,28 @@ export async function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const csp = buildCsp(nonce);
 
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
+  const path = request.nextUrl.pathname;
+  const onConsoleHost = isConsoleHost(host);
+
+  // The old Global Admin pages moved into the console.
+  if (path === '/global-admin' || path.startsWith('/global-admin/')) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/console' + path.slice('/global-admin'.length);
+    return NextResponse.redirect(url);
+  }
+
+  // On production the console only lives at admin.boathouseos.app.
+  if (!IS_DEMO_SITE && !onConsoleHost && (path === '/console' || path.startsWith('/console/'))) {
+    return NextResponse.redirect(new URL(path + request.nextUrl.search, `https://${CONSOLE_HOST}`));
+  }
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
+  // Tells the layout to show the console's own header instead of a club's.
+  if (onConsoleHost || path === '/console' || path.startsWith('/console/')) {
+    requestHeaders.set('x-console', '1');
+  }
   if (process.env.NODE_ENV === 'production') {
     requestHeaders.set('Content-Security-Policy', csp);
   }
@@ -80,6 +100,28 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname === '/privacy' ||
     request.nextUrl.pathname === '/terms';
 
+  // The console's address has only the console and signing in: no club
+  // pages, no approval gate (the global admin belongs to no club).
+  if (onConsoleHost) {
+    const consoleSignIn = ['/login', '/forgot-password', '/reset-password', '/auth'].some(
+      (p) => path === p || path.startsWith(p + '/')
+    );
+    const onConsole = path === '/console' || path.startsWith('/console/');
+    if (!user && !consoleSignIn) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+    if (user && !onConsole && path !== '/reset-password' && !path.startsWith('/auth')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/console';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+    return response;
+  }
+
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();
     // The bare domain gets the landing page; deep links go straight to login.
@@ -101,6 +143,11 @@ export async function middleware(request: NextRequest) {
     if (hostSlug) {
       const { data: myClub } = await supabase.from('clubs').select('slug').maybeSingle();
       const mySlug = (myClub as { slug: string } | null)?.slug;
+      // The global admin's account belongs to no club: off to the console.
+      if (!mySlug) {
+        const { data: isGlobalAdmin } = await supabase.rpc('is_global_admin');
+        if (isGlobalAdmin) return NextResponse.redirect(new URL('/console', `https://${CONSOLE_HOST}`));
+      }
       if (mySlug && mySlug !== hostSlug) {
         const url = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${mySlug}${CLUB_HOST_SUFFIX}`);
         return NextResponse.redirect(url);

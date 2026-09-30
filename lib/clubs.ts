@@ -2,7 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
-import { clubSlugFromHost } from "@/lib/site";
+import { clubSlugFromHost, isConsoleHost } from "@/lib/site";
 
 // Every club's data is walled off in the database (0103_clubs.sql): a
 // signed-in member only ever reads or writes their own club's rows, and new
@@ -17,9 +17,12 @@ export const DEMO_CLUB_SLUG = "demo";
 // The club this address is for: on production the <slug>.boathouseos.app
 // in the address, otherwise SITE_CLUB_SLUG (set per deployment), otherwise
 // the demo. Signed-out pages show its look, and self-signups join it.
+// The console's address (admin.boathouseos.app) is no club's: "" matches none.
 export async function siteClubSlug(): Promise<string> {
   const h = await headers();
-  return clubSlugFromHost(h.get("x-forwarded-host") ?? h.get("host")) ?? process.env.SITE_CLUB_SLUG ?? DEMO_CLUB_SLUG;
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (isConsoleHost(host)) return "";
+  return clubSlugFromHost(host) ?? process.env.SITE_CLUB_SLUG ?? DEMO_CLUB_SLUG;
 }
 
 export async function siteClubId(admin: Admin = createAdminClient()): Promise<string> {
