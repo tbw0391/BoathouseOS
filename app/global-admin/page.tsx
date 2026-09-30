@@ -39,12 +39,14 @@ export default async function GlobalAdminPage() {
         Clubs
       </Link>
 
-      <Link
-        href="/global-admin/qr"
-        className="border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm font-medium text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
-      >
-        QR codes to print or show
-      </Link>
+      {IS_DEMO_SITE && (
+        <Link
+          href="/global-admin/qr"
+          className="border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm font-medium text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+        >
+          QR codes to print or show
+        </Link>
+      )}
 
       <Link
         href="/global-admin/errors"

@@ -73,6 +73,7 @@ import { getUnreadScheduleCount } from "@/lib/schedule";
 import { forecastDayFor, getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_ACCESS_KEY, NAV_SECTIONS, resolveNavAccess, type NavRole } from "@/lib/navSections";
 import { QrCodes } from "@/app/global-admin/qr/QrCodes";
+import { IS_DEMO_SITE } from "@/lib/site";
 import {
   DEMO_CLUB_COOKIE,
   findDemoClub,
@@ -2110,7 +2111,7 @@ export default async function Home() {
         </div>
       )}
 
-      <QrCodes compact />
+      {IS_DEMO_SITE && <QrCodes compact />}
     </div>
   );
 }
