@@ -825,15 +825,15 @@
       their passwords, lineups/races/chats/food tent/photos/settings; counts
       checked against the old app. Rerun it at switch-over (needs the
       temporary export_auth_users_for_move function on W-Crew-app again).
-- [ ] Todd: production Vercel project (import the repo, production branch
-      = `production`, env vars from .env.production-vercel), domain
-      westerville.boathouseos.app + its CNAME at Namecheap, Supabase Auth
-      settings (site URL, redirect URLs, Resend SMTP, leaked-password check).
-- [ ] Todd: fill in production's blank Vercel settings (they can't be read
-      back from the demo, so get them from each service): RESEND_API_KEY (a
-      new key from resend.com), EMAIL_FROM, CONCEPT2_CLIENT_ID/SECRET, and
-      TWILIO_* once production has its own number. Until then alert emails,
-      texts and Concept2 sync are simply off on production.
+- [x] Production site live (2026-09-30): Vercel project boathouseos-prod
+      (Production Branch = `production`), westerville.boathouseos.app
+      (CNAME at Namecheap), Supabase Auth site URL/redirects set, Resend
+      SMTP working (test reset email arrived).
+- [ ] Todd: production's remaining blank Vercel settings (they can't be
+      read back from the demo; get them from each service):
+      CONCEPT2_CLIENT_ID/SECRET, and TWILIO_* once production has its own
+      number. Until then texts and Concept2 sync are off on production.
+      (RESEND_API_KEY and EMAIL_FROM done 2026-09-30.)
 - [ ] Switch-over: rerun the import, tell members the new address, then
       back up and delete W-Crew-app (Supabase + Vercel).
 - [ ] One Twilio number can only send "STOP/START" replies to one site; it
