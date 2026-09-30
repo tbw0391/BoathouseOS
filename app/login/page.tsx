@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SELF_SIGNUP_OPEN } from "@/lib/signup";
+import { IS_DEMO_SITE } from "@/lib/site";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { ClearRuntimeCaches } from "@/components/ClearRuntimeCaches";
@@ -49,8 +50,12 @@ export default function LoginPage() {
           className="w-64 h-auto mx-auto"
         />
 
-        <TryDemoButton />
-        <p className="text-center text-xs text-gray-400">or sign in with an account</p>
+        {IS_DEMO_SITE && (
+          <>
+            <TryDemoButton />
+            <p className="text-center text-xs text-gray-400">or sign in with an account</p>
+          </>
+        )}
 
         <input
           type="email"
