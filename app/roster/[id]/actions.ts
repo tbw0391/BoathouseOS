@@ -37,22 +37,44 @@ export async function updateBio(profileId: string, formData: FormData) {
     const lastName = String(formData.get("last_name") ?? "").trim();
     const address = String(formData.get("address") ?? "").trim() || null;
     const phone = String(formData.get("phone") ?? "").trim() || null;
-    const highSchool = String(formData.get("high_school") ?? "").trim() || null;
-    const gradYearRaw = String(formData.get("grad_year") ?? "").trim();
-    const gradYear = gradYearRaw ? Number(gradYearRaw) : null;
     const funFact = String(formData.get("fun_fact") ?? "").trim() || null;
     const walkUpSong = String(formData.get("walk_up_song") ?? "").trim() || null;
     const birthday = String(formData.get("birthday") ?? "").trim() || null;
-    const boatSideRaw = String(formData.get("boat_side") ?? "");
-    const boatSide = (boatSideRaw || null) as BoatSide | null;
     const teams = formData.getAll("team") as Team[];
     const photoUrl = String(formData.get("photo_url") ?? "").trim() || null;
-    const erg2kTime = tidyErgTime(String(formData.get("erg_2k_time") ?? "").trim()) || null;
-    const erg5kTime = tidyErgTime(String(formData.get("erg_5k_time") ?? "").trim()) || null;
-    const usRowingNumber = String(formData.get("us_rowing_number") ?? "").trim() || null;
 
     if (!firstName || !lastName) {
       throw new UserError("First and last name are required.");
+    }
+
+    // The rowing details are only on the form for rowers, coxswains and
+    // masters, so only touch each column when the form included it.
+    const rowingUpdate: {
+      high_school?: string | null;
+      grad_year?: number | null;
+      boat_side?: BoatSide | null;
+      erg_2k_time?: string | null;
+      erg_5k_time?: string | null;
+      us_rowing_number?: string | null;
+    } = {};
+    if (formData.has("high_school")) {
+      rowingUpdate.high_school = String(formData.get("high_school") ?? "").trim() || null;
+    }
+    if (formData.has("grad_year")) {
+      const gradYearRaw = String(formData.get("grad_year") ?? "").trim();
+      rowingUpdate.grad_year = gradYearRaw ? Number(gradYearRaw) : null;
+    }
+    if (formData.has("boat_side")) {
+      rowingUpdate.boat_side = (String(formData.get("boat_side") ?? "") || null) as BoatSide | null;
+    }
+    if (formData.has("erg_2k_time")) {
+      rowingUpdate.erg_2k_time = tidyErgTime(String(formData.get("erg_2k_time") ?? "").trim()) || null;
+    }
+    if (formData.has("erg_5k_time")) {
+      rowingUpdate.erg_5k_time = tidyErgTime(String(formData.get("erg_5k_time") ?? "").trim()) || null;
+    }
+    if (formData.has("us_rowing_number")) {
+      rowingUpdate.us_rowing_number = String(formData.get("us_rowing_number") ?? "").trim() || null;
     }
 
     // The spouse field is only rendered for parent profiles, so only touch the
@@ -89,16 +111,11 @@ export async function updateBio(profileId: string, formData: FormData) {
         display_name: `${firstName} ${lastName}`.trim(),
         address,
         phone,
-        high_school: highSchool,
-        grad_year: gradYear,
         fun_fact: funFact,
         walk_up_song: walkUpSong,
         birthday,
-        boat_side: boatSide,
         photo_url: photoUrl,
-        erg_2k_time: erg2kTime,
-        erg_5k_time: erg5kTime,
-        us_rowing_number: usRowingNumber,
+        ...rowingUpdate,
         ...spouseUpdate,
         ...roleUpdate,
       })

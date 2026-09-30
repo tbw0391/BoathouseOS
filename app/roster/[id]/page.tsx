@@ -17,7 +17,7 @@ import {
   permanentlyDeleteProfile,
   resetMemberPassword,
 } from "./actions";
-import { TEAM_LABELS } from "@/lib/teams";
+import { TEAM_LABELS, hasRowingDetails } from "@/lib/teams";
 import { getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
 import { getMedalsForProfile } from "@/lib/medals";
@@ -375,7 +375,7 @@ export default async function BioPage({
         <dt className="text-gray-500">Birthday</dt>
         <dd>{profile.birthday ?? "—"}</dd>
 
-        {profile.role !== "parent" && (
+        {hasRowingDetails(profile.role, teams) && (
           <>
             <dt className="text-gray-500">High school</dt>
             <dd>{profile.high_school ?? "—"}</dd>
