@@ -1,8 +1,11 @@
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
+import { IS_DEMO_SITE } from "@/lib/site";
 import { DEMO_CLUBS, DEMO_CLUB_COOKIE } from "@/lib/demoClubs";
 import { ClubPicker } from "./ClubPicker";
 
 export default async function ChooseClubPage() {
+  if (!IS_DEMO_SITE) notFound();
   const current = (await cookies()).get(DEMO_CLUB_COOKIE)?.value ?? null;
 
   return (

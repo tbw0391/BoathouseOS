@@ -31,13 +31,33 @@ export async function getThemeColors(): Promise<ThemeColors> {
   const { cookies } = await import("next/headers");
   const { DEMO_CLUB_COOKIE, findDemoClub } = await import("@/lib/demoClubs");
   const { createClient } = await import("@/lib/supabase/server");
-  const { SITE_CLUB_SLUG } = await import("@/lib/clubs");
+  const { DEMO_CLUB_SLUG, siteClubId } = await import("@/lib/clubs");
   const supabase = await createClient();
   const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
   if (demoClub?.colors) {
     const { data: myClub } = await supabase.from("clubs").select("slug").maybeSingle();
     const slug = (myClub as { slug: string } | null)?.slug;
-    if (!slug || slug === SITE_CLUB_SLUG) return { ...DEFAULT_THEME_COLORS, ...demoClub.colors };
+    if (!slug || slug === DEMO_CLUB_SLUG) return { ...DEFAULT_THEME_COLORS, ...demoClub.colors };
+  }
+
+  // Signed out: the colors of the club this address is for.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    try {
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      const admin = createAdminClient();
+      const { data } = await admin
+        .from("club_settings")
+        .select("value")
+        .eq("club_id", await siteClubId(admin))
+        .eq("key", "theme_colors")
+        .maybeSingle();
+      return parseThemeColors((data as { value: string | null } | null)?.value ?? null);
+    } catch {
+      return { ...DEFAULT_THEME_COLORS };
+    }
   }
 
   const { data } = await supabase

@@ -2,21 +2,24 @@
 
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { siteClubId } from "@/lib/clubs";
+import { DEMO_CLUB_SLUG } from "@/lib/clubs";
 import { createClient } from "@/lib/supabase/server";
 import { findDemoProfile, isDemoEmail, type DemoProfile } from "@/lib/demoAccount";
+import { IS_DEMO_SITE } from "@/lib/site";
 import { forgetThisDevicesPush } from "@/lib/push";
 import { UserError, tryAction } from "@/lib/userError";
 
 // "Try the demo" signs in as the admin, then /choose-club and
 // /choose-profile let the visitor switch to another type of user.
 export async function signInAsDemo() {
+  if (!IS_DEMO_SITE) throw new UserError("There's no demo on this site.");
   await signInToDemoAccount(findDemoProfile("admin")!);
   redirect("/choose-club");
 }
 
 export async function switchDemoProfile(role: string) {
   return tryAction(async () => {
+    if (!IS_DEMO_SITE) throw new UserError("There's no demo on this site.");
     const profile = findDemoProfile(role);
     if (!profile) throw new UserError("Unknown demo profile.");
     // Only from inside the demo, so a real member can't be swapped out of
@@ -42,7 +45,7 @@ async function signInToDemoAccount(profile: DemoProfile) {
     const rowerId = await ensureDemoAccount(admin, findDemoProfile("rower")!);
     await admin
       .from("family_links")
-      .upsert({ guardian_id: userId, rower_id: rowerId, club_id: await siteClubId(admin) }, { ignoreDuplicates: true });
+      .upsert({ guardian_id: userId, rower_id: rowerId, club_id: await demoClubId(admin) }, { ignoreDuplicates: true });
   }
 
   // Mint a one-time magic-link token server-side and redeem it right away,
@@ -97,7 +100,7 @@ async function ensureDemoAccount(
 
   const lastName = profile.role === "admin" ? "User" : profile.label;
   // The demo accounts live in the demo club.
-  const clubId = await siteClubId(admin);
+  const clubId = await demoClubId(admin);
   const { error: profileError } = await admin.from("profiles").insert({
     id: created.user.id,
     club_id: clubId,
@@ -123,4 +126,10 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+async function demoClubId(admin: ReturnType<typeof createAdminClient>): Promise<string> {
+  const { data, error } = await admin.from("clubs").select("id").eq("slug", DEMO_CLUB_SLUG).single();
+  if (error || !data) throw new Error("The demo club is missing.");
+  return (data as { id: string }).id;
 }

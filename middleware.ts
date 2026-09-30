@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { CLUB_HOST_SUFFIX, IS_DEMO_SITE, clubSlugFromHost } from '@/lib/site';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const supabaseHost = supabaseUrl ? new URL(supabaseUrl).host : '';
@@ -82,7 +83,8 @@ export async function middleware(request: NextRequest) {
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();
     // The bare domain gets the landing page; deep links go straight to login.
-    url.pathname = request.nextUrl.pathname === '/' ? '/welcome' : '/login';
+    // (Production has no landing page.)
+    url.pathname = request.nextUrl.pathname === '/' && IS_DEMO_SITE ? '/welcome' : '/login';
     return NextResponse.redirect(url);
   }
 
@@ -90,6 +92,20 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
+  }
+
+  // Production: each club has its own address (<slug>.boathouseos.app). A
+  // member who lands on another club's address goes to their own.
+  if (user && !IS_DEMO_SITE) {
+    const hostSlug = clubSlugFromHost(request.headers.get('x-forwarded-host') ?? request.headers.get('host'));
+    if (hostSlug) {
+      const { data: myClub } = await supabase.from('clubs').select('slug').maybeSingle();
+      const mySlug = (myClub as { slug: string } | null)?.slug;
+      if (mySlug && mySlug !== hostSlug) {
+        const url = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${mySlug}${CLUB_HOST_SUFFIX}`);
+        return NextResponse.redirect(url);
+      }
+    }
   }
 
   // New self-signups wait on an admin, and removed members are locked out.

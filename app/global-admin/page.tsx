@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { saveDemoBaseline, resetDemo } from "./actions";
 import { ActionForm } from "@/components/ActionForm";
+import { IS_DEMO_SITE } from "@/lib/site";
 
 type InterestSignup = {
   id: string;
@@ -52,49 +53,53 @@ export default async function GlobalAdminPage() {
         Errors on the live site
       </Link>
 
-      <section className="border rounded-lg p-4">
-        <h2 className="text-lg font-semibold mb-1">Set a new default</h2>
-        <p className="text-sm text-gray-500 mb-3">
-          Saves everything as it is right now (settings, members, schedule, lineups, messages) as
-          the default the demo resets back to. Replaces the previous default.
-        </p>
-        <p className="text-xs text-gray-500 mb-3">
-          Current default saved:{" "}
-          {baselineSavedAt ? new Date(baselineSavedAt as string).toLocaleString() : "never"}
-        </p>
-        <form action={saveDemoBaseline}>
-          <button
-            type="submit"
-            className="w-full bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)]"
-          >
-            Set current data as new default
-          </button>
-        </form>
-      </section>
+      {IS_DEMO_SITE && (
+        <>
+          <section className="border rounded-lg p-4">
+            <h2 className="text-lg font-semibold mb-1">Set a new default</h2>
+            <p className="text-sm text-gray-500 mb-3">
+              Saves everything as it is right now (settings, members, schedule, lineups, messages) as
+              the default the demo resets back to. Replaces the previous default.
+            </p>
+            <p className="text-xs text-gray-500 mb-3">
+              Current default saved:{" "}
+              {baselineSavedAt ? new Date(baselineSavedAt as string).toLocaleString() : "never"}
+            </p>
+            <form action={saveDemoBaseline}>
+              <button
+                type="submit"
+                className="w-full bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)]"
+              >
+                Set current data as new default
+              </button>
+            </form>
+          </section>
 
-      <section className="border-2 border-red-300 rounded-lg p-4">
-        <h2 className="text-lg font-semibold mb-1">Reset to default</h2>
-        <p className="text-sm text-gray-500 mb-3">
-          Undoes every change people have made since the default was saved, and deletes accounts
-          created since. Interested-club signups are kept.
-        </p>
-        <ActionForm action={resetDemo} className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="confirm" required />
-            I want to undo everyone&apos;s changes
-          </label>
-          <button
-            type="submit"
-            disabled={!baselineSavedAt}
-            className="bg-red-600 text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-          >
-            Reset to default
-          </button>
-          {!baselineSavedAt && (
-            <p className="text-xs text-gray-500">Set a default first.</p>
-          )}
-        </ActionForm>
-      </section>
+          <section className="border-2 border-red-300 rounded-lg p-4">
+            <h2 className="text-lg font-semibold mb-1">Reset to default</h2>
+            <p className="text-sm text-gray-500 mb-3">
+              Undoes every change people have made since the default was saved, and deletes accounts
+              created since. Interested-club signups are kept.
+            </p>
+            <ActionForm action={resetDemo} className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="confirm" required />
+                I want to undo everyone&apos;s changes
+              </label>
+              <button
+                type="submit"
+                disabled={!baselineSavedAt}
+                className="bg-red-600 text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                Reset to default
+              </button>
+              {!baselineSavedAt && (
+                <p className="text-xs text-gray-500">Set a default first.</p>
+              )}
+            </ActionForm>
+          </section>
+        </>
+      )}
 
       <section>
         <h2 className="text-lg font-semibold mb-2">Interested clubs ({interestSignups.length})</h2>

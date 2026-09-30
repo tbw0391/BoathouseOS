@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { IS_DEMO_SITE } from "@/lib/site";
 import {
   Users,
   Calendar,
@@ -82,7 +84,9 @@ const HIGHLIGHTS: { icon: LucideIcon; text: string }[] = [
   { icon: ShieldCheck, text: "Admin-approved members only" },
 ];
 
+// The demo's landing page; production sends signed-out visitors to /login.
 export default function WelcomePage() {
+  if (!IS_DEMO_SITE) redirect("/login");
   return (
     <div className="min-h-screen px-6 py-10 max-w-3xl mx-auto flex flex-col gap-12">
       <ClearRuntimeCaches />

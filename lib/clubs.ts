@@ -1,6 +1,8 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
+import { clubSlugFromHost } from "@/lib/site";
 
 // Every club's data is walled off in the database (0103_clubs.sql): a
 // signed-in member only ever reads or writes their own club's rows, and new
@@ -9,13 +11,21 @@ import { createClient } from "@/lib/supabase/server";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-// The club whose look signed-out pages show and that self-signups join
-// (until invites say which club). On boathouseos.app that's the demo.
-export const SITE_CLUB_SLUG = "demo";
+// The demo club, on the demo site.
+export const DEMO_CLUB_SLUG = "demo";
+
+// The club this address is for: on production the <slug>.boathouseos.app
+// in the address, otherwise SITE_CLUB_SLUG (set per deployment), otherwise
+// the demo. Signed-out pages show its look, and self-signups join it.
+export async function siteClubSlug(): Promise<string> {
+  const h = await headers();
+  return clubSlugFromHost(h.get("x-forwarded-host") ?? h.get("host")) ?? process.env.SITE_CLUB_SLUG ?? DEMO_CLUB_SLUG;
+}
 
 export async function siteClubId(admin: Admin = createAdminClient()): Promise<string> {
-  const { data, error } = await admin.from("clubs").select("id").eq("slug", SITE_CLUB_SLUG).single();
-  if (error || !data) throw new Error(`No club with slug "${SITE_CLUB_SLUG}".`);
+  const slug = await siteClubSlug();
+  const { data, error } = await admin.from("clubs").select("id").eq("slug", slug).single();
+  if (error || !data) throw new Error(`No club with slug "${slug}".`);
   return (data as { id: string }).id;
 }
 

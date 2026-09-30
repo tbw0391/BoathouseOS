@@ -4,10 +4,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { isDemoEmail } from "@/lib/demoAccount";
+import { IS_DEMO_SITE } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
 // Per-browser, so each demo visitor sees their own club.
 export async function chooseDemoClub(slug: string | null) {
+  if (!IS_DEMO_SITE) redirect("/");
   const cookieStore = await cookies();
   const club = findDemoClub(slug);
   if (club) {

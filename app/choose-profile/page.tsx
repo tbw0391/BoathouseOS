@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
+import { IS_DEMO_SITE } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_PROFILES, isDemoEmail } from "@/lib/demoAccount";
 import { ProfilePicker } from "./ProfilePicker";
 
 export default async function ChooseProfilePage() {
+  if (!IS_DEMO_SITE) redirect("/");
   const supabase = await createClient();
   const {
     data: { user },

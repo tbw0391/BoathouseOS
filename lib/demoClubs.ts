@@ -1,3 +1,5 @@
+import { IS_DEMO_SITE } from "@/lib/site";
+
 // Clubs from the 2026 Head of the Cuyahoga and Head of the Ohio entry lists
 // (RegattaCentral), so demo visitors can see BoathouseOS in their own club's
 // colors. Colors were
@@ -683,8 +685,9 @@ export const DEMO_CLUBS: DemoClub[] = [
 
 export const DEMO_CLUB_COOKIE = "demo_club";
 
+// Always null on production, which switches off every demo-club look.
 export function findDemoClub(slug: string | null | undefined): DemoClub | null {
-  if (!slug) return null;
+  if (!slug || !IS_DEMO_SITE) return null;
   return DEMO_CLUBS.find((c) => c.slug === slug) ?? null;
 }
 

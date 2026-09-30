@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { UserError, tryAction } from "@/lib/userError";
+import { IS_DEMO_SITE } from "@/lib/site";
 
 // The database functions check global-admin status themselves (see
 // migration 0058), so these just call through.
 export async function saveDemoBaseline() {
+  if (!IS_DEMO_SITE) throw new UserError("There's no demo on this site.");
   const supabase = await createClient();
   const { error } = await supabase.rpc("demo_save_baseline");
   if (error) throw new Error(error.message);
@@ -16,6 +18,7 @@ export async function saveDemoBaseline() {
 
 export async function resetDemo(formData: FormData) {
   return tryAction(async () => {
+    if (!IS_DEMO_SITE) throw new UserError("There's no demo on this site.");
     if (formData.get("confirm") !== "on") {
       throw new UserError("Tick the confirmation box to reset the demo.");
     }
