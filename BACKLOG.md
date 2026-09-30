@@ -829,6 +829,11 @@
       = `production`, env vars from .env.production-vercel), domain
       westerville.boathouseos.app + its CNAME at Namecheap, Supabase Auth
       settings (site URL, redirect URLs, Resend SMTP, leaked-password check).
+- [ ] Todd: fill in production's blank Vercel settings (they can't be read
+      back from the demo, so get them from each service): RESEND_API_KEY (a
+      new key from resend.com), EMAIL_FROM, CONCEPT2_CLIENT_ID/SECRET, and
+      TWILIO_* once production has its own number. Until then alert emails,
+      texts and Concept2 sync are simply off on production.
 - [ ] Switch-over: rerun the import, tell members the new address, then
       back up and delete W-Crew-app (Supabase + Vercel).
 - [ ] One Twilio number can only send "STOP/START" replies to one site; it
