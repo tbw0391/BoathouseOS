@@ -870,11 +870,18 @@
         emails (not profiles).
       - Moving a member between clubs isn't offered (their data belongs to
         the club).
-- [ ] Production setup: CNAME admin → Vercel at Namecheap, add
-      admin.boathouseos.app to boathouseos-prod, add
-      https://admin.boathouseos.app/** to production Supabase Auth redirect
-      URLs. Then promote, add todd@boathouseos.com under Global admins (it
-      sets its password via Forgot password?), and remove tbw0391@gmail.com.
+- [x] Promoted to production 2026-09-30 (0107 applied there).
+- [ ] Decide how club addresses get set up automatically (on hold until
+      2026-10-01). A: Namecheap wildcard CNAME `*` → the prod Vercel target,
+      and the app adds `<slug>.boathouseos.app` to boathouseos-prod through
+      the Vercel API on club create/address change (keeps Namecheap email
+      forwarding). B: move nameservers to Vercel + `*.boathouseos.app`
+      (loses Namecheap email forwarding; copy the Resend records). Either
+      way add https://*.boathouseos.app/** to production Supabase Auth
+      redirect URLs.
+- [ ] Then: admin.boathouseos.app live, sign in there as tbw0391@gmail.com,
+      add todd@boathouseos.com under Global admins (password via Forgot
+      password?), remove tbw0391@gmail.com.
 
 ## Multi-tenant SaaS (sell to other rowing clubs)
 - [ ] Do this after everything else is configured/stable. Goal: sell this app

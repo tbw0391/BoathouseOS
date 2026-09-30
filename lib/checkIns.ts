@@ -2,6 +2,21 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { CoachCheckIn } from "@/lib/database.types";
 
+// Who gets the coach check-in: coaches, and admins who also coach (on the
+// Coach team). Admins who are board members or parents don't check in.
+export async function canCoachCheckIn(profileId: string, role: string | null | undefined): Promise<boolean> {
+  if (role === "coach") return true;
+  if (role !== "admin") return false;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profile_teams")
+    .select("team")
+    .eq("profile_id", profileId)
+    .eq("team", "coach")
+    .maybeSingle();
+  return Boolean(data);
+}
+
 const easternDate = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
 // When this coach/admin checked in today (Eastern calendar day), already

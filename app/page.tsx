@@ -87,7 +87,7 @@ import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
 import { clubDateKey, clubTimeLabel, delayedRaceTime, pickRaceDayEvent, raceIsOver } from "@/lib/raceDay";
 import { PRACTICE_CALL_LABELS, lightningMinutesLeft } from "@/lib/waterConditions";
 import { formatMoney } from "@/lib/payments";
-import { getTodaysCheckInLabel } from "@/lib/checkIns";
+import { canCoachCheckIn, getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
 import { PracticeCheckIn } from "@/components/PracticeCheckIn";
 import {
@@ -1011,6 +1011,7 @@ export default async function Home() {
   let isGlobalAdmin = false;
   let pendingApprovalCount = 0;
   let checkInLabel = null as string | null;
+  let showCoachCheckIn = false;
   let myAttendance = null as PracticeAttendance | null;
   let onWaterBanner = null as { label: string; color: string | null } | null;
   let paymentsBanner = null as {
@@ -1110,7 +1111,8 @@ export default async function Home() {
     // (one round trip each instead of one after another).
     await Promise.all([
       (async () => {
-        if (isCoachOrAdmin) checkInLabel = await getTodaysCheckInLabel(user.id);
+        showCoachCheckIn = await canCoachCheckIn(user.id, callerRole);
+        if (showCoachCheckIn) checkInLabel = await getTodaysCheckInLabel(user.id);
       })(),
       (async () => {
         if (isRowerOrCoxswain) myAttendance = await getMyAttendanceToday(user.id);
@@ -1440,7 +1442,7 @@ export default async function Home() {
         </p>
       )}
 
-      {user && isCoachOrAdmin && <CheckInButton checkedInAt={checkInLabel} />}
+      {user && showCoachCheckIn && <CheckInButton checkedInAt={checkInLabel} />}
       {user && isRowerOrCoxswain && (
         <PracticeCheckIn
           status={myAttendance?.status ?? null}

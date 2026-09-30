@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { AttendanceStatus, Profile } from "@/lib/database.types";
 import { ABSENCE_REASONS, todaysPracticeDate } from "@/lib/practiceAttendance";
 import { UserError, tryAction } from "@/lib/userError";
+import { canCoachCheckIn } from "@/lib/checkIns";
 
 export async function checkIn() {
   return tryAction(async () => {
@@ -20,8 +21,8 @@ export async function checkIn() {
       .eq("id", user.id)
       .single();
     const callerRole = (callerProfile as Pick<Profile, "role"> | null)?.role;
-    if (callerRole !== "coach" && callerRole !== "admin") {
-      throw new UserError("Only coaches and admins can check in.");
+    if (!(await canCoachCheckIn(user.id, callerRole))) {
+      throw new UserError("Only coaches can check in.");
     }
 
     const { error } = await supabase.from("coach_check_ins").insert({ profile_id: user.id });
