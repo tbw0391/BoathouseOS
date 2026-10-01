@@ -59,6 +59,9 @@ export interface ProgramRegistration {
   waiver_accepted_at: string | null;
   paid_at: string | null;
   notes: string | null;
+  // The member registered, when signed up in the app (0120).
+  profile_id: string | null;
+  registered_by: string | null;
   created_at: string;
 }
 

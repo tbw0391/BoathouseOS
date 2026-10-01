@@ -77,7 +77,13 @@ export default async function CoachProgramsPage() {
                 {registered.map((r) => (
                   <li key={r.id} className="px-4 py-3 text-sm flex flex-col gap-0.5">
                     <p className="font-medium">
-                      {r.participant_name}
+                      {r.profile_id ? (
+                        <Link href={`/roster/${r.profile_id}`} className="hover:underline">
+                          {r.participant_name}
+                        </Link>
+                      ) : (
+                        r.participant_name
+                      )}
                       {age(r.participant_birthdate) && <span className="text-xs text-gray-500 font-normal"> · {age(r.participant_birthdate)}</span>}
                     </p>
                     {r.medical_notes && <p className="text-red-800 whitespace-pre-line">⚠ {r.medical_notes}</p>}

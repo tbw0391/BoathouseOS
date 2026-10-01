@@ -1,10 +1,11 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Bill, Charge, Lineup } from "@/lib/database.types";
+import type { Bill, Charge, Form, Lineup } from "@/lib/database.types";
 import { billBalance } from "@/lib/billing";
 import { formatMoney } from "@/lib/payments";
 import { activeMemberIds, guardianIdsFor, householdIdsForRower, sendPush } from "@/lib/push";
 import { EXPIRING_DAYS, PAPERWORK } from "@/lib/paperwork";
+import { formPending, sendFormReminder } from "@/lib/formAlerts";
 import { LAUNCH_MINUTES_KEY, clubTimeLabel, delayedRaceTime, launchTime, parseLaunchMinutes } from "@/lib/raceDay";
 
 // Alerts that depend on the clock rather than on someone doing something.
@@ -37,11 +38,14 @@ async function claim(admin: Admin, kind: string, refs: string[]): Promise<Set<st
 async function foodDraftAlerts(admin: Admin) {
   const { data } = await admin
     .from("food_tent_status")
-    .select("event_id, club_id, schedule_events(title)")
+    .select("event_id, club_id, schedule_events(title, has_food_tent)")
     .eq("status", "pending_confirmation")
     .gte("draft_generated_at", new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString());
   const drafts =
-    (data as unknown as { event_id: string; club_id: string; schedule_events: { title: string } | null }[] | null) ?? [];
+    ((data as unknown as
+      | { event_id: string; club_id: string; schedule_events: { title: string; has_food_tent: boolean } | null }[]
+      | null) ?? []
+    ).filter((d) => d.schedule_events?.has_food_tent !== false);
   const claimed = await claim(admin, "food_draft", drafts.map((d) => d.event_id));
   const ready = drafts.filter((d) => claimed.has(d.event_id));
   if (ready.length === 0) return;
@@ -249,6 +253,26 @@ async function raceStartAlerts(admin: Admin) {
   }
 }
 
+// Forms and elections closing within a day: one reminder to everyone who
+// hasn't answered or voted (0119). Skips ones posted less than 12 hours ago,
+// so a form that's only open for a day doesn't get a reminder straight away.
+async function formClosingAlerts(admin: Admin) {
+  const now = Date.now();
+  const { data } = await admin
+    .from("forms")
+    .select("*")
+    .is("closed_at", null)
+    .gt("closes_at", new Date(now).toISOString())
+    .lte("closes_at", new Date(now + 24 * 60 * 60 * 1000).toISOString())
+    .lte("created_at", new Date(now - 12 * 60 * 60 * 1000).toISOString());
+  const forms = (data as Form[] | null) ?? [];
+  const claimed = await claim(admin, "form_closing", forms.map((f) => f.id));
+  for (const form of forms.filter((f) => claimed.has(f.id))) {
+    const { pending } = await formPending(admin, form);
+    if (pending.length) await sendFormReminder(form, pending, true);
+  }
+}
+
 export async function runScheduledAlerts() {
   const admin = createAdminClient();
   const results = await Promise.allSettled([
@@ -257,6 +281,7 @@ export async function runScheduledAlerts() {
     launchSoonAlerts(admin),
     paperworkAlerts(admin),
     raceStartAlerts(admin),
+    formClosingAlerts(admin),
   ]);
   const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
   for (const f of failures) console.error("Scheduled alert failed", f.reason);

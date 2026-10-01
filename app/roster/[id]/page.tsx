@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatProgramDates } from "@/lib/programs";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { FamilyLink, Photo, PhotoTag, Profile, ProfileTeam } from "@/lib/database.types";
@@ -37,6 +38,9 @@ import { ProfileShortcuts } from "./ProfileShortcuts";
 import { TextAlertsCard } from "./TextAlertsCard";
 import { ProfilePhotoButton } from "./ProfilePhotoButton";
 import { canOptInToTexts } from "@/lib/smsRules";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { RECRUITING_KEY, type RecruitListing } from "@/lib/recruiting";
+import { RecruitingCard } from "./RecruitingCard";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -143,6 +147,27 @@ export default async function BioPage({
   const { data: emergencyRow } = canSeeEmergency
     ? await supabase.from("emergency_info").select("*").eq("profile_id", profile.id).maybeSingle()
     : { data: null };
+  // Programs they're signed up for (0120): family, coaches and admins.
+  const { data: programRegRows } = canSeeEmergency
+    ? await supabase
+        .from("program_registrations")
+        .select("id, status, program_id")
+        .eq("profile_id", profile.id)
+        .neq("status", "cancelled")
+    : { data: [] };
+  const regRowsTyped = (programRegRows as { id: string; status: string; program_id: string }[] | null) ?? [];
+  const { data: regProgramRows } = regRowsTyped.length
+    ? await supabase
+        .from("programs")
+        .select("id, title, starts_on, ends_on")
+        .in("id", regRowsTyped.map((r) => r.program_id))
+    : { data: [] };
+  const regProgramById = new Map(
+    ((regProgramRows as { id: string; title: string; starts_on: string | null; ends_on: string | null }[] | null) ?? []).map(
+      (p) => [p.id, p]
+    )
+  );
+  const programRegs = regRowsTyped.map((r) => ({ ...r, programs: regProgramById.get(r.program_id) ?? null }));
 
   const { data: tagRows } = await supabase
     .from("photo_tags")
@@ -219,6 +244,54 @@ export default async function BioPage({
     familyNames = familyValue.map(
       (id) => familyOptions.find((p) => p.id === id)?.display_name ?? "Unknown"
     );
+  }
+
+  // College recruiting (0121), when the club has it on: the athlete and
+  // their parents can edit; coaches and admins see where it stands.
+  let recruiting: {
+    listing: RecruitListing | null;
+    contacts: { id: string; message: string; created_at: string; school: string; name: string }[];
+  } | null = null;
+  const isAthlete = profile.role === "rower" || profile.role === "coxswain";
+  const isParentOfProfile = isAthlete && !!user && familyValue.includes(user.id);
+  if (isAthlete && canSeeEmergency) {
+    const { data: recruitingSetting } = await supabase
+      .from("club_settings")
+      .select("value")
+      .eq("key", RECRUITING_KEY)
+      .maybeSingle();
+    if ((recruitingSetting as { value: string | null } | null)?.value === "on") {
+      const [{ data: listingRow }, { data: contactRows }] = await Promise.all([
+        supabase.from("recruit_listings").select("*").eq("profile_id", profile.id).maybeSingle(),
+        supabase
+          .from("recruit_contacts")
+          .select("id, message, created_at, recruiter_id")
+          .eq("profile_id", profile.id)
+          .order("created_at", { ascending: false }),
+      ]);
+      const contacts = (contactRows as { id: string; message: string; created_at: string; recruiter_id: string }[] | null) ?? [];
+      // College coaches aren't club members, so their names come from the
+      // service role (only for messages this member can already see).
+      const { data: recruiterRows } = contacts.length
+        ? await createAdminClient()
+            .from("recruiters")
+            .select("user_id, name, school")
+            .in("user_id", [...new Set(contacts.map((c) => c.recruiter_id))])
+        : { data: [] };
+      const recruiters = new Map(
+        ((recruiterRows as { user_id: string; name: string; school: string }[] | null) ?? []).map((r) => [r.user_id, r])
+      );
+      recruiting = {
+        listing: (listingRow as RecruitListing | null) ?? null,
+        contacts: contacts.map((c) => ({
+          id: c.id,
+          message: c.message,
+          created_at: c.created_at,
+          name: recruiters.get(c.recruiter_id)?.name ?? "A college coach",
+          school: recruiters.get(c.recruiter_id)?.school ?? "",
+        })),
+      };
+    }
   }
 
   if (edit === "1" && canEdit) {
@@ -344,6 +417,17 @@ export default async function BioPage({
 
       {isSelf && <TextAlertsCard phone={textPhone} canOptIn={canOptInToTexts(profile.role, profile.birthday)} />}
 
+      {recruiting && (
+        <RecruitingCard
+          profile={profile}
+          listing={recruiting.listing}
+          canEdit={isSelf || isParentOfProfile}
+          isParent={isParentOfProfile}
+          hasParent={familyValue.length > 0}
+          contacts={recruiting.contacts}
+        />
+      )}
+
       {profile.disabled_at && (
         <p className="mt-4 text-sm text-red-600">
           This person was removed from the roster on{" "}
@@ -450,6 +534,28 @@ export default async function BioPage({
       )}
 
       {canSeeEmergency && <EmergencyInfoCard profileId={profile.id} info={emergencyRow as EmergencyInfo | null} />}
+
+      {programRegs.length > 0 && (
+        <div className="mt-6 max-w-lg rounded-lg border-2 border-gray-200 p-4">
+          <h2 className="font-semibold mb-2">Programs</h2>
+          <ul className="text-sm flex flex-col gap-1">
+            {programRegs.map((r) => (
+              <li key={r.id}>
+                {r.programs?.title ?? "Program"}
+                <span className="text-gray-500">
+                  {[formatProgramDates(r.programs?.starts_on ?? null, r.programs?.ends_on ?? null), r.status === "waitlist" ? "Waitlist" : "Registered"]
+                    .filter(Boolean)
+                    .map((t) => ` · ${t}`)
+                    .join("")}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Link href="/programs" className="text-sm text-[var(--color-primary)] hover:underline">
+            All programs →
+          </Link>
+        </div>
+      )}
 
       {taggedPhotos.length > 0 && (
         <div className="mt-6 max-w-lg">

@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formAudienceIds } from "@/lib/formAlerts";
+import { formPending } from "@/lib/formAlerts";
 import type { Form, FormQuestion, FormResponse } from "@/lib/database.types";
-import { answerText, fileNameFromPath, formIsOpen, kindHasOptions, tally } from "@/lib/forms";
+import { answerText, fileNameFromPath, formIsOpen, formatClosing, kindHasOptions, tally } from "@/lib/forms";
 import { ElectionResults } from "../ElectionResults";
+import { RemindButton } from "../RemindButton";
 
 // For whoever manages the form: every response (forms), or turnout and,
 // once closed, the count (elections; ballots stay secret).
@@ -37,12 +38,34 @@ export default async function FormResultsPage({ params }: { params: Promise<{ id
   ]);
   const responses = (responseRows as FormResponse[] | null) ?? [];
   const voters = (voterRows as { voter_id: string; voted_at: string }[] | null) ?? [];
-  const peopleIds = [...responses.map((r) => r.respondent_id), ...voters.map((v) => v.voter_id)];
+  // Who it's for and hasn't answered (for elections, only people who can
+  // still vote).
+  const { audience, pending } = await formPending(createAdminClient(), form);
+  const peopleIds = [...responses.map((r) => r.respondent_id), ...voters.map((v) => v.voter_id), ...pending];
   const { data: nameRows } = peopleIds.length
     ? await supabase.from("profiles").select("id, display_name").in("id", peopleIds)
     : { data: [] };
   const nameById = new Map(((nameRows as { id: string; display_name: string }[] | null) ?? []).map((p) => [p.id, p.display_name]));
-  const audienceSize = election ? (await formAudienceIds(form.club_id, form.audience)).length : 0;
+  const audienceSize = audience.length;
+  const pendingNames = pending
+    .map((id) => nameById.get(id))
+    .filter((n): n is string => !!n)
+    .sort((a, b) => a.localeCompare(b));
+  const notAnswered = (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-lg font-semibold">
+        {election ? "Haven't voted" : "Not answered yet"} ({pending.length})
+      </h2>
+      {pending.length === 0 ? (
+        <p className="text-sm text-gray-500">Everyone it&apos;s for has {election ? "voted (or can't vote)" : "answered"}.</p>
+      ) : (
+        <p className="text-sm">{pendingNames.join(", ")}</p>
+      )}
+      {open && pending.length > 0 && (
+        <RemindButton formId={id} count={pending.length} remindedLabel={form.reminded_at ? formatClosing(form.reminded_at) : null} />
+      )}
+    </section>
+  );
 
   // Links to uploaded files, good for an hour.
   const filePaths = responses.flatMap((r) =>
@@ -78,6 +101,7 @@ export default async function FormResultsPage({ params }: { params: Promise<{ id
               <p className="text-sm mt-2">{voters.map((v) => nameById.get(v.voter_id) ?? "Someone").join(", ")}</p>
             )}
           </section>
+          {notAnswered}
           <section className="flex flex-col gap-2">
             <h2 className="text-lg font-semibold">Results</h2>
             {open ? (
@@ -103,6 +127,8 @@ export default async function FormResultsPage({ params }: { params: Promise<{ id
               </a>
             )}
           </div>
+
+          {notAnswered}
 
           <section className="flex flex-col gap-3">
             <h2 className="text-lg font-semibold">Summary</h2>

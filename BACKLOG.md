@@ -520,6 +520,16 @@
 - [x] Push alert to parents/guardians when the tent leader publishes the
       food list (2026-09-27). The tent leader's "draft ready" alert still
       needs a scheduled job — see "Scheduled alerts" under Infra.
+- [x] Food tent banner messages (2026-10-01, 0118): tent leaders, coaches
+      and admins post a message from the top of Food Tent ("Post a banner
+      message") to parents & guardians or everyone. It shows as a home
+      banner for a week, or until after a chosen regatta, plus at the top
+      of Food Tent; optional phone alert ("Food tent messages" switch).
+- [x] "No food tent at this regatta" (2026-10-01, 0118): a switch on each
+      regatta in Food Tent (schedule_events.has_food_tent). Off: no 7-day
+      draft list or "draft ready" alert, can't publish (so no "signups are
+      open" alert), and no food banners, regatta-week reminder, "Sign up
+      for the food tent" button or "2 gal of water" line for it.
 
 ## Photos
 - [x] Anyone can post a photo (top-left camera icon on every page, plus a
@@ -569,8 +579,15 @@
         see turnout while it's open.
       - Phone alert to the audience when one is posted ("New forms and
         elections" switch).
-      - Later ideas: a parent filling in a form for their rower;
-        closing-soon reminders; who hasn't answered yet.
+      - Reminders (2026-10-01, 0119): the Responses / Turnout page lists who
+        it's for and hasn't answered or voted (elections leave out people
+        who can't vote: under-18 rowers/coxes in an adults-only one, and
+        families that already used their one vote), with "Remind them", a
+        phone alert to just those people, at most every 12 hours. The
+        alerts job also sends one reminder the day before it closes
+        (skipped for forms posted under 12 hours earlier). "Form and
+        election reminders" alert switch.
+      - Later idea: a parent filling in a form for their rower.
 - [x] Group chat list, with a "New message" flow to start a chat/DM with any
       combination of people on the roster
 - [x] Send/receive messages in a group, live via Supabase Realtime
@@ -794,6 +811,20 @@
       from its GPS track (bad fixes skipped); Boats page shows outings, km,
       hours per boat over 12 months and km since service with a service
       interval and "Serviced today".
+
+- [x] College recruiting portal (2026-10-01, 0121): college coaches sign
+      up at /recruit (recruit.boathouseos.app on production, which needs a
+      DNS record like admin) with a .edu email, set their password from an
+      emailed link, and a global admin approves them in Console > College
+      coaches. Each club turns it on in Admin Settings > College recruiting.
+      Rowers and coxswains opt in from their profile and pick which fields
+      show (photo, grad year, high school, side, height, weight, 2K/5K,
+      GPA, major, about, video); under-18s (or no birthday) need a linked
+      parent to approve, and the athlete changing what's shown asks again.
+      Never shown: contact details, address, birthday, medical. Contact
+      emails the club's coaches (admins if none), parents, and the athlete
+      if 18+, with reply-to the college coach; 20 messages a day each.
+      Messages show on the athlete's profile for them, parents and coaches.
 
 ## Regatta management (separate product, later)
 - [ ] A regatta management tool for hosting regattas (entries, heat sheets,
@@ -1043,8 +1074,20 @@
         club's admins. Admins see everyone, give waitlisted people a spot,
         cancel, mark paid, add notes, download a CSV. Coaches can read
         registrations in the database but have no page for them yet.
-        Later: card payment (after the Stripe decision), a coach view,
-        turning a registration into a member account.
+        Later: card payment (after the Stripe decision).
+      - Coach > Program Sign-ups (2026-10-01): who's coming to each program,
+        tap-to-call parent and emergency contact, medical notes.
+      - Members sign up in the app (2026-10-01, 0120): a "Programs" home
+        button (/programs). Each program lists the parent's rowers (and
+        themselves) with a Register button; only the program's own questions
+        and the waiver are asked. Birthday, contact details, emergency
+        contact and medical notes come from the profile (no emergency
+        contact = a link to add one first). Linked to the rower
+        (program_registrations.profile_id; one per rower per program),
+        shown on their profile, tagged "Member" for admins and coaches;
+        families can cancel. Signed-in members on the website's program
+        page get a "Sign up in the app" link; the website form stays for
+        new families.
       - Next: "replication", a one-time import of a club's existing site
         (pages, text, images) as a starting point; custom domains (e.g.
         westervillecrew.org) added to Vercel automatically, which depends
@@ -1159,10 +1202,16 @@
       picker needed
 
 ## Terms and Conditions
-- [ ] Terms are PAUSED for testing (2026-09-27): `TERMS_REQUIRED = false` in
-      lib/terms.ts turns off the agree pop-up and the signup checkbox (the
-      /terms page stays up). Set it back to true before real clubs sign up;
-      anyone who joined while paused gets the pop-up then.
+- [x] Self-signup reopened (2026-10-01, Todd): "Create an account" on the
+      sign-in page, /signup and the roster's QR invite are back
+      (SELF_SIGNUP_OPEN in lib/signup.ts). Signups wait for admin approval.
+- [x] Terms back on (2026-10-01): `TERMS_REQUIRED = true`, TERMS_VERSION
+      2026-10-01, so everyone gets the agree pop-up on their next visit.
+      Published the suggested wording from the redlined drafts: staff
+      (global admin) access, club pause, clubs own their waivers, Ohio law
+      and Franklin County courts; Privacy adds Concept2, Resend's wider use,
+      club website forms, program registration, forms and elections.
+      Still wants a lawyer's review before public launch.
 - [x] Terms of Service draft (2026-09-27): public /terms — clubs and
       members, accounts, under-18s, acceptable use, content, payments and
       refunds, On the Water isn't a safety system, the demo, liability,
@@ -1170,7 +1219,7 @@
 - [ ] Decide the refund rule for the 1% convenience fee. The Terms say it
       isn't refunded unless the club or BoathouseOS chooses to, which matches
       Stripe's default (a club refunding from its dashboard keeps the fee
-      with BoathouseOS). Also no governing-law/venue clause yet — lawyer.
+      with BoathouseOS).
 - [x] Linked from the landing page, signup, the interest form, and /privacy.
       Privacy policy updated the same day: payments/Stripe, erg history,
       check-ins; removed "schedule RSVPs" (not built).

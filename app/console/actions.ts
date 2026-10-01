@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { UserError, tryAction } from "@/lib/userError";
-import { CLUB_HOST_SUFFIX, IS_DEMO_SITE, RESERVED_SLUGS } from "@/lib/site";
+import { CLUB_HOST_SUFFIX, IS_DEMO_SITE, RECRUIT_URL, RESERVED_SLUGS } from "@/lib/site";
 import { ROLES, allAuthUsers, requireGlobalAdmin, temporaryPassword } from "@/lib/console";
 import { saveClubAppBranding } from "@/lib/clubIcon";
 import { DEFAULT_THEME_COLORS, isHexColor, type ThemeColorKey } from "@/lib/theme";
@@ -485,6 +485,36 @@ export async function removeGlobalAdmin(formData: FormData) {
     if ((count ?? 0) <= 1) throw new UserError("There has to be at least one global admin.");
     const { error } = await admin.from("global_admins").delete().eq("user_id", userId);
     if (error) throw new Error(error.message);
+    revalidatePath("/console", "layout");
+  });
+}
+
+// --- College coaches (0121) ---
+
+// Approve or turn down a college coach. Approving emails them.
+export async function setRecruiterStatus(formData: FormData) {
+  return tryAction(async () => {
+    await requireGlobalAdmin();
+    const admin = createAdminClient();
+    const userId = String(formData.get("user_id") ?? "");
+    const status = String(formData.get("status") ?? "");
+    if (!["approved", "rejected", "pending"].includes(status)) throw new UserError("Unknown status.");
+    const { data, error } = await admin
+      .from("recruiters")
+      .update({ status, decided_at: status === "pending" ? null : new Date().toISOString() })
+      .eq("user_id", userId)
+      .select("email, name")
+      .single();
+    if (error) throw new Error(error.message);
+    const r = data as { email: string; name: string };
+    if (status === "approved" && emailConfigured()) {
+      await sendEmails(
+        [r.email],
+        "You can now see athletes on BoathouseOS",
+        `<p>Hi ${escapeHtml(r.name)},</p><p>Your college coach account is approved. Sign in to see the rowers and coxswains listed for college coaches.</p><p><a href="${escapeHtml(RECRUIT_URL)}">${escapeHtml(RECRUIT_URL)}</a></p>`,
+        `Hi ${r.name},\n\nYour college coach account is approved. Sign in to see the rowers and coxswains listed for college coaches:\n\n${RECRUIT_URL}`
+      );
+    }
     revalidatePath("/console", "layout");
   });
 }

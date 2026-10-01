@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { publicPrograms } from "@/lib/website";
 import { formatPrice, formatProgramDates, formatWhenEastern, programState, spotsLeft } from "@/lib/programs";
@@ -43,6 +44,15 @@ export default async function SiteProgram({ params }: { params: Promise<{ slug: 
 
       <section className="max-w-lg">
         <h2 className="text-2xl font-bold mb-3">{left === 0 ? "Join the waitlist" : "Register"}</h2>
+        {member && state !== "closed" && (
+          <p className="mb-4 rounded-lg bg-gray-50 border p-3 text-sm">
+            Already a member?{" "}
+            <Link href="/programs" className="text-[var(--color-primary)] font-semibold underline">
+              Sign up in the app
+            </Link>{" "}
+            and your rower&apos;s details fill in for you. The form below is for new families.
+          </p>
+        )}
         {state === "open" ? (
           <RegisterForm
             programId={program.id}

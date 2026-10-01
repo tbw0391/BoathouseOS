@@ -22,6 +22,7 @@ import {
   Navigation,
   ClipboardList,
   ClipboardCheck,
+  CalendarCheck,
   Settings,
   Vote,
   Megaphone,
@@ -52,6 +53,7 @@ import type {
   EventForecast,
   FamilyLink,
   FoodTentItem,
+  FoodTentMessage,
   FoodTentSignup,
   FoodTentStatus,
   Lineup,
@@ -79,6 +81,7 @@ import { QrCodes } from "@/app/console/qr/QrCodes";
 import { PlatformNotices } from "@/components/PlatformNotices";
 import { HomeContactsCard } from "@/components/HomeContactsCard";
 import { CONSOLE_URL, IS_DEMO_SITE } from "@/lib/site";
+import { foodMessageIsActive } from "@/lib/foodTentMessages";
 import {
   DEMO_CLUB_COOKIE,
   findDemoClub,
@@ -128,6 +131,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/contacts": Contact,
   "/site": Globe,
   "/forms": ClipboardCheck,
+  "/programs": CalendarCheck,
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -198,6 +202,8 @@ type AnnouncementBanner = {
   senderName: string;
   createdAt: string;
 };
+
+type FoodMessageBanner = AnnouncementBanner & { audience: "families" | "everyone" };
 
 type FoodPrepBanner = {
   eventId: string;
@@ -301,6 +307,7 @@ async function loadFoodTentBanners(
     .from("schedule_events")
     .select("*")
     .in("id", eventIds)
+    .eq("has_food_tent", true)
     .gte("starts_at", startOfToday());
   const events = (eventsData as ScheduleEvent[] | null) ?? [];
   const eventById = new Map(events.map((e) => [e.id, e]));
@@ -568,7 +575,8 @@ async function loadFoodPrepBanners(
   const { data: eventRows } = await supabase
     .from("schedule_events")
     .select("*")
-    .in("id", eventIds);
+    .in("id", eventIds)
+    .eq("has_food_tent", true);
   const events = (eventRows as ScheduleEvent[] | null) ?? [];
 
   return events.map((event) => ({
@@ -598,6 +606,7 @@ async function loadSignupCallBanners(
         .from("schedule_events")
         .select("*")
         .in("id", eventIds)
+        .eq("has_food_tent", true)
         .gte("starts_at", startOfToday()),
       supabase
         .from("volunteer_needs")
@@ -888,6 +897,41 @@ async function loadAnnouncementBanners(
   }));
 }
 
+// Food tent banner messages (0118) still showing: a week, or until the
+// regatta they're about is over. Filtered by audience by the caller.
+async function loadFoodMessageBanners(
+  supabase: SupabaseServerClient,
+): Promise<FoodMessageBanner[]> {
+  const { data } = await supabase
+    .from("food_tent_messages")
+    .select("*")
+    .gte("created_at", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
+    .order("created_at", { ascending: false });
+  const messages = (data as FoodTentMessage[] | null) ?? [];
+  if (messages.length === 0) return [];
+  const eventIds = [...new Set(messages.map((m) => m.event_id).filter((id): id is string => !!id))];
+  const senderIds = [...new Set(messages.map((m) => m.sender_id).filter((id): id is string => !!id))];
+  const [{ data: eventRows }, { data: senderRows }] = await Promise.all([
+    supabase.from("schedule_events").select("id, starts_at, ends_at").in("id", eventIds.length ? eventIds : [""]),
+    supabase.from("profiles").select("id, display_name").in("id", senderIds.length ? senderIds : [""]),
+  ]);
+  const eventById = new Map(
+    ((eventRows as Pick<ScheduleEvent, "id" | "starts_at" | "ends_at">[] | null) ?? []).map((e) => [e.id, e]),
+  );
+  const nameById = new Map(
+    ((senderRows as Pick<Profile, "id" | "display_name">[] | null) ?? []).map((p) => [p.id, p.display_name]),
+  );
+  return messages
+    .filter((m) => foodMessageIsActive(m, m.event_id ? eventById.get(m.event_id) : undefined))
+    .map((m) => ({
+      id: m.id,
+      message: m.message,
+      audience: m.audience,
+      senderName: (m.sender_id && nameById.get(m.sender_id)) || "Food tent",
+      createdAt: new Date(m.created_at).toLocaleDateString(),
+    }));
+}
+
 // The once-a-day "regatta week" pop-up: what this person should check before
 // the next regatta, as tap buttons.
 function regattaWeekReminder(
@@ -919,7 +963,9 @@ function regattaWeekReminder(
           : `is in ${days} days`;
 
   const links: RegattaWeekLink[] = [];
-  if (who.isFoodTentManager && who.hasFoodDraft) {
+  if (!event.has_food_tent) {
+    // No food tent at this regatta (0118): nothing to remind about.
+  } else if (who.isFoodTentManager && who.hasFoodDraft) {
     links.push({
       href: "/food-tent",
       icon: "food",
@@ -1002,6 +1048,7 @@ export default async function Home() {
   let foodPrepBanners: FoodPrepBanner[] = [];
   let signupCallBanners: SignupCallBanner[] = [];
   let announcementBanners: AnnouncementBanner[] = [];
+  let foodMessageBanners: FoodMessageBanner[] = [];
   let oarSheetBanners: OarSheetBanner[] = [];
   let racingBanners: RacingBanner[] = [];
   let birthdaysToday: BirthdayPerson[] = [];
@@ -1271,7 +1318,7 @@ export default async function Home() {
                   .gt("created_at", lastRead)
               : { count: 0 };
           getReady = {
-            foodTent: !seen.has("food_tent"),
+            foodTent: upcomingRegatta.has_food_tent && !seen.has("food_tent"),
             volunteer: !seen.has("volunteer"),
             lineups: (crewedLineups ?? []).length > 0 && !seen.has("lineups"),
             coachMessages: (coachUnread ?? 0) > 0,
@@ -1318,6 +1365,7 @@ export default async function Home() {
       sentLineupNoticeResults,
       birthdayResults,
       prResults,
+      foodMessageResults,
     ] = await Promise.all([
       loadFoodTentBanners(supabase, householdUserIds),
       loadLineupBanners(supabase, {
@@ -1350,6 +1398,7 @@ export default async function Home() {
         : Promise.resolve([]),
       loadBirthdaysToday(supabase),
       loadMyRecentPrs(supabase, user.id),
+      loadFoodMessageBanners(supabase),
     ]);
     sentLineupNotices = sentLineupNoticeResults;
     banners = foodBanners;
@@ -1365,12 +1414,14 @@ export default async function Home() {
     myPrs = prResults;
     const isGuardian = (familyLinkRows.data ?? []).length > 0;
     isFamily = isParent || isGuardian;
+    foodMessageBanners = foodMessageResults.filter((m) => m.audience === "everyone" || isFamily);
     signupCallBanners = isParent || isGuardian ? signupCallBannerResults : [];
 
     // Every family is asked to bring 2 gal of water per regatta, regardless
     // of what else they signed up for — fold it in as its own line on each
     // food tent banner, and give parents a water-only banner for an
     // upcoming regatta even if they haven't signed up for any items yet.
+    // Not for a regatta with no food tent (0118); those have no banner here.
     if (isParent || isGuardian) {
       banners = banners.map((b) => ({
         ...b,
@@ -1378,6 +1429,7 @@ export default async function Home() {
       }));
       if (
         upcomingRegatta &&
+        upcomingRegatta.has_food_tent &&
         !banners.some((b) => b.eventId === upcomingRegatta!.id)
       ) {
         banners.push({
@@ -1668,6 +1720,23 @@ export default async function Home() {
               <Megaphone className="w-5 h-5 shrink-0 mt-0.5" />
               <span>
                 <strong>{b.senderName}</strong> ({b.createdAt}): {b.message}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {foodMessageBanners.length > 0 && (
+        <div className="w-full flex flex-col gap-2">
+          {foodMessageBanners.map((b) => (
+            <Link
+              key={b.id}
+              href="/food-tent"
+              className="flex items-start gap-3 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm hover:bg-[var(--color-accent)] transition-colors"
+            >
+              <Tent className="w-5 h-5 shrink-0 mt-0.5" />
+              <span>
+                <strong>Food tent</strong> ({b.senderName}, {b.createdAt}): {b.message}
               </span>
             </Link>
           ))}

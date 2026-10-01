@@ -25,6 +25,7 @@ export const PROFILE_BUTTONS: NavSectionDef[] = [
   { href: "/photos", label: "Photos" },
   { href: "/polls", label: "Polls" },
   { href: "/forms", label: "Forms & Elections" },
+  { href: "/programs", label: "Programs" },
   { href: "/announcements", label: "Announcements" },
   { href: "/suggestions", label: "Suggestions" },
   { href: "/coach/attendance", label: "Attendance" },
