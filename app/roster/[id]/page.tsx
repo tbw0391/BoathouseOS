@@ -24,7 +24,7 @@ import { getMedalsForProfile } from "@/lib/medals";
 import { MedalBadge } from "@/components/MedalBadge";
 import { EmergencyInfoCard } from "./EmergencyInfoCard";
 import { PaperworkChip } from "@/components/PaperworkEditor";
-import { requiredFor, type PaperworkRecord } from "@/lib/paperwork";
+import { PAPERWORK_SETTINGS_KEY, parsePaperworkSettings, requiredFor, type PaperworkRecord } from "@/lib/paperwork";
 import { clubDateKey } from "@/lib/raceDay";
 import type { EmergencyInfo } from "@/lib/database.types";
 import {
@@ -128,7 +128,18 @@ export default async function BioPage({
   const { data: paperworkRows } = canSeeEmergency
     ? await supabase.from("member_paperwork").select("kind, completed_on, expires_on, checked_by").eq("profile_id", profile.id)
     : { data: null };
-  const paperworkNeeded = requiredFor(profile.role);
+  const { data: paperworkSetting } = await supabase
+    .from("club_settings")
+    .select("value")
+    .eq("key", PAPERWORK_SETTINGS_KEY)
+    .maybeSingle();
+  const paperworkSettings = parsePaperworkSettings((paperworkSetting as { value: string | null } | null)?.value);
+  const paperworkNeeded = requiredFor(profile.role, paperworkSettings, teams);
+  // Parents (guardians) see their child's paperwork only if the club allows it.
+  const showPaperwork =
+    !!canSeeEmergency &&
+    paperworkNeeded.length > 0 &&
+    (isSelf || callerRole === "coach" || callerRole === "admin" || paperworkSettings.parentsSeeChild);
   const { data: emergencyRow } = canSeeEmergency
     ? await supabase.from("emergency_info").select("*").eq("profile_id", profile.id).maybeSingle()
     : { data: null };
@@ -418,7 +429,7 @@ export default async function BioPage({
         <dd>{profile.fun_fact ?? "—"}</dd>
       </dl>
 
-      {canSeeEmergency && paperworkNeeded.length > 0 && (
+      {showPaperwork && (
         <div className="mt-6 max-w-lg rounded-lg border-2 border-gray-200 p-4">
           <h2 className="font-semibold mb-2">Paperwork</h2>
           <div className="flex flex-col gap-2">

@@ -17,9 +17,11 @@ import { RoleButtonsForm } from "./RoleButtonsForm";
 import { LINEUP_SECTIONS, resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { THEME_COLOR_LABELS, parseThemeColors, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES, parseAlertSettings } from "@/lib/alertSettings";
+import { PAPERWORK, PAPERWORK_ROLES, PAPERWORK_SETTINGS_KEY, parsePaperworkSettings } from "@/lib/paperwork";
 import { OAR_COLORS_KEY, parseOarSettings } from "@/lib/oarSheet";
 import {
   updateAlertSettings,
+  updatePaperworkSettings,
   updateNavAccess,
   updateOarSettings,
   updateProfileButtons,
@@ -66,6 +68,7 @@ export default async function AdminPage() {
       ALERT_SETTINGS_KEY,
       OAR_COLORS_KEY,
       "team_store_url",
+      PAPERWORK_SETTINGS_KEY,
     ]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
@@ -75,6 +78,7 @@ export default async function AdminPage() {
   const alertsEnabled = parseAlertSettings(settingsByKey.get(ALERT_SETTINGS_KEY));
   const oarSettings = parseOarSettings(settingsByKey.get(OAR_COLORS_KEY));
   const storeUrl = settingsByKey.get("team_store_url") ?? null;
+  const paperworkSettings = parsePaperworkSettings(settingsByKey.get(PAPERWORK_SETTINGS_KEY));
   const { data: clubRow } = await supabase
     .from("clubs")
     .select("name, app_name, app_short_name, icon_path, icon_updated_at")
@@ -259,6 +263,52 @@ export default async function AdminPage() {
             </div>
           </div>
         ))}
+        <button
+          type="submit"
+          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          Save
+        </button>
+      </ActionForm>
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">Paperwork</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        Who needs each item (shown on their profile and on Coach &gt; Paperwork), and whether parents can see
+        their child&apos;s paperwork.
+      </p>
+
+      <ActionForm action={updatePaperworkSettings} className="flex flex-col gap-3 max-w-sm">
+        {PAPERWORK.map((p) => (
+          <div key={p.kind} className="border rounded-lg px-4 py-3 text-sm flex flex-col gap-2">
+            <span className="font-medium">{p.label}</span>
+            <div className="flex flex-col gap-1">
+              {PAPERWORK_ROLES.map(({ role, label }) => (
+                <label key={role} className="flex items-center gap-2 text-xs text-gray-600">
+                  <input
+                    type="checkbox"
+                    name={`paperwork:${p.kind}`}
+                    value={role}
+                    defaultChecked={paperworkSettings.required[p.kind].includes(role)}
+                    className="w-4 h-4"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+        <label className="border rounded-lg px-4 py-3 text-sm flex items-start gap-2">
+          <input
+            type="checkbox"
+            name="parents_see_child"
+            defaultChecked={paperworkSettings.parentsSeeChild}
+            className="w-4 h-4 mt-0.5"
+          />
+          <span>
+            <span className="font-medium">Parents see their child&apos;s paperwork</span>
+            <span className="block text-xs text-gray-500">What&apos;s done, running out or missing, on their child&apos;s profile.</span>
+          </span>
+        </label>
         <button
           type="submit"
           className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"

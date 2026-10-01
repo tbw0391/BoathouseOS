@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { PAPERWORK, paperworkStatus, requiredFor, type PaperworkRecord } from "@/lib/paperwork";
+import { PAPERWORK, PAPERWORK_SETTINGS_KEY, paperworkStatus, parsePaperworkSettings, requiredFor, type PaperworkRecord } from "@/lib/paperwork";
 import { clubDateKey } from "@/lib/raceDay";
 import { PaperworkChip } from "@/components/PaperworkEditor";
 
@@ -20,7 +20,7 @@ export default async function CoachPaperworkPage({ searchParams }: { searchParam
   const role = (me as { role: string } | null)?.role;
   if (role !== "coach" && role !== "admin") redirect("/coach");
 
-  const [{ data: people }, { data: rows }] = await Promise.all([
+  const [{ data: people }, { data: rows }, { data: settingRow }, { data: coachTeamRows }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, display_name, role")
@@ -29,7 +29,11 @@ export default async function CoachPaperworkPage({ searchParams }: { searchParam
       .not("approved_at", "is", null)
       .order("display_name"),
     supabase.from("member_paperwork").select("profile_id, kind, completed_on, expires_on, checked_by"),
+    supabase.from("club_settings").select("value").eq("key", PAPERWORK_SETTINGS_KEY).maybeSingle(),
+    supabase.from("profile_teams").select("profile_id").eq("team", "coach"),
   ]);
+  const settings = parsePaperworkSettings((settingRow as { value: string | null } | null)?.value);
+  const onCoachTeam = new Set(((coachTeamRows as { profile_id: string }[] | null) ?? []).map((r) => r.profile_id));
   const today = clubDateKey(new Date());
   const byPerson = new Map<string, Map<string, PaperworkRecord>>();
   for (const r of (rows as (PaperworkRecord & { profile_id: string })[] | null) ?? []) {
@@ -38,11 +42,11 @@ export default async function CoachPaperworkPage({ searchParams }: { searchParam
   }
 
   const list = ((people as { id: string; display_name: string; role: string }[] | null) ?? []).map((p) => {
-    const needs = requiredFor(p.role);
+    const needs = requiredFor(p.role, settings, onCoachTeam.has(p.id) ? ["coach"] : []);
     const records = byPerson.get(p.id) ?? new Map<string, PaperworkRecord>();
     const problems = needs.filter((n) => paperworkStatus(records.get(n.kind), today) !== "ok").length;
     return { ...p, needs, records, problems };
-  });
+  }).filter((p) => p.needs.length > 0);
   const problemCount = list.filter((p) => p.problems > 0).length;
   const shown = show === "all" ? list : list.filter((p) => p.problems > 0);
 
