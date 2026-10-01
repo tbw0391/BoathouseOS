@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 // collects: new profile fields, tables, cookies, or outside services that
 // receive data should be reflected here.
 const CONTACT_EMAIL = "privacy@boathouseos.app";
-const LAST_UPDATED = "September 28, 2026";
+const LAST_UPDATED = "October 1, 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -82,6 +82,11 @@ export default function PrivacyPage() {
             phone&apos;s calendar, which you can replace at any time.
           </li>
           <li>
+            <strong>Concept2 Logbook (only if you connect it):</strong> read-only access to a
+            rower&apos;s Concept2 Logbook and the erg pieces it sends. You can disconnect it at any
+            time.
+          </li>
+          <li>
             <strong>Payments:</strong> what your club has billed you, what you&apos;ve paid and
             how (cash, check, or card), and apparel orders. Card numbers go straight to Stripe;
             BoathouseOS never sees or stores them.
@@ -101,8 +106,31 @@ export default function PrivacyPage() {
             you choose to leave.
           </li>
           <li>
-            <strong>Network address:</strong> the IP address of signup and &quot;interested&quot;
-            form submissions, used only to block spam and abuse.
+            <strong>Club website forms:</strong> when someone uses a club&apos;s public website to
+            send a message or ask to join, the name, email, phone number and message they enter.
+          </li>
+          <li>
+            <strong>Program registration:</strong> when a family registers for a camp, Learn to Row
+            or other program on a club&apos;s website, the participant&apos;s name and birth date; a
+            parent or guardian&apos;s name, email and phone number; an emergency contact; any
+            allergies, medications or medical notes they choose to give; their answers to the
+            club&apos;s questions; whether they agreed to the club&apos;s waiver and when; and
+            whether the club has marked it paid. The person registering doesn&apos;t need an
+            account.
+          </li>
+          <li>
+            <strong>Forms and surveys:</strong> answers members give to their club&apos;s forms,
+            including any files they upload.
+          </li>
+          <li>
+            <strong>Elections:</strong> whether a member voted in a club election, and the votes
+            cast. Ballots are stored without the voter&apos;s name or the time, so no one,
+            including the club and BoathouseOS, can see how a person voted.
+          </li>
+          <li>
+            <strong>Network address:</strong> the IP address of signup, &quot;interested&quot;
+            form, club website form and program registration submissions, used only to block spam
+            and abuse.
           </li>
         </ul>
         <p>
@@ -121,7 +149,20 @@ export default function PrivacyPage() {
           payments only to the family involved and the club&apos;s treasurer and admins; erg time
           history and attendance only to the member and their coaches; emergency and medical
           information only to the member, their parents or guardians, coaches, and admins; and &quot;interested&quot;
-          form submissions only to the BoathouseOS team.
+          form submissions only to the BoathouseOS team. BoathouseOS&apos;s own staff can see and
+          change any club&apos;s information, but only to run the service, help a club that asks,
+          fix problems, or keep it secure.
+        </p>
+        <p>
+          A club&apos;s public website only shows what the club chooses to publish there, such as
+          regatta dates, results by boat (never rowers&apos; names), and coaches&apos; and board
+          members&apos; names, titles and photos. It never shows members&apos; contact details or
+          anything about minors. Messages and program registrations sent through a club&apos;s
+          website are visible only to that club&apos;s admins; the club&apos;s coaches can also see
+          registrations, including emergency contacts and medical notes. Answers to a club form are
+          visible to the person who answered and to whoever made the form, plus the club&apos;s
+          admins and board members. In an election, they can see who has voted but not how; the
+          vote totals are shown to the members the election is for after voting closes.
         </p>
       </Section>
 
@@ -132,6 +173,12 @@ export default function PrivacyPage() {
           children under 13 to sign up for themselves; a club with younger members should have a
           parent or guardian set up and manage that member&apos;s profile. A parent or guardian can
           ask us to see, correct, or delete their child&apos;s information at any time.
+        </p>
+        <p>
+          Program registrations on a club&apos;s website are usually made by a parent or guardian
+          for their child. The club uses that information only to run the program and keep
+          participants safe, and a parent or guardian can ask the club, or us, to correct or delete
+          it.
         </p>
       </Section>
 
@@ -145,8 +192,10 @@ export default function PrivacyPage() {
             <strong>Vercel</strong> hosts the app and keeps short-lived server logs.
           </li>
           <li>
-            <strong>Resend</strong> delivers alert emails (to members who haven&apos;t turned on
-            phone alerts) and receives the email address and the alert&apos;s text.
+            <strong>Resend</strong> delivers the app&apos;s emails: password resets, alerts (to
+            members who haven&apos;t turned on phone alerts), program registration confirmations,
+            messages from club website forms to the club&apos;s admins, and announcements from
+            BoathouseOS. It receives the email address and the message&apos;s text.
           </li>
           <li>
             <strong>Twilio</strong> sends text alerts to members who turned them on and receives
@@ -159,6 +208,11 @@ export default function PrivacyPage() {
             Stripe receives your card details and the payment amount, and your club&apos;s Stripe
             account records the payment. Stripe&apos;s own privacy policy covers what it does
             with them.
+          </li>
+          <li>
+            <strong>Concept2</strong> sends the erg pieces from a Logbook a member connects.
+            BoathouseOS keeps the read-only access Concept2 grants until it&apos;s disconnected, and
+            sends Concept2 nothing about anyone.
           </li>
           <li>
             To show race-day weather and water conditions, the{" "}
@@ -195,6 +249,11 @@ export default function PrivacyPage() {
           </a>{" "}
           and we&apos;ll take care of it. You can also ask for a copy of what&apos;s stored about
           you, or edit most of your profile yourself in the app.
+        </p>
+        <p>
+          Program registrations and website messages are kept until the club deletes them or asks
+          us to. When a club deletes a form or program, its answers, uploaded files and
+          registrations are deleted too.
         </p>
       </Section>
 

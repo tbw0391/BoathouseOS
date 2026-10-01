@@ -48,6 +48,15 @@ export default function TermsPage() {
           admins and coaches do in the app, and for having any permissions it needs (for example,
           from parents) for the information and photos it keeps about its members.
         </p>
+        <p>
+          A club&apos;s waivers, program rules, and other forms are the club&apos;s own.
+          BoathouseOS only records that someone agreed to them and when.
+        </p>
+        <p>
+          BoathouseOS can pause a club&apos;s access if the club breaks these terms. While
+          it&apos;s paused, the club&apos;s members can&apos;t use the app, but nothing is deleted,
+          and everything comes back when the pause is lifted.
+        </p>
       </Section>
 
       <Section title="Your account">
@@ -97,7 +106,9 @@ export default function TermsPage() {
       <Section title="What you post">
         <p>
           Messages, photos, and anything else you add stay yours. You let BoathouseOS store it and
-          show it to your club as the app is designed to, and nothing more. Your club&apos;s admins
+          show it to your club as the app is designed to, and nothing more. BoathouseOS staff can
+          also see it when needed to support your club, fix problems, or keep the app secure.
+          Your club&apos;s admins
           and coaches can remove content from their club. We can remove content, or suspend an
           account, that breaks these terms.
         </p>
@@ -180,6 +191,13 @@ export default function TermsPage() {
           privacy policy describes. Your club can remove you from its roster. We can suspend or
           close an account that breaks these terms, and a club&apos;s access ends if it stops
           using BoathouseOS.
+        </p>
+      </Section>
+
+      <Section title="Governing law">
+        <p>
+          These terms are governed by the laws of the State of Ohio. Any dispute about them goes
+          to the state or federal courts in Franklin County, Ohio.
         </p>
       </Section>
 

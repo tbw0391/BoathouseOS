@@ -1188,10 +1188,13 @@
       picker needed
 
 ## Terms and Conditions
-- [ ] Terms are PAUSED for testing (2026-09-27): `TERMS_REQUIRED = false` in
-      lib/terms.ts turns off the agree pop-up and the signup checkbox (the
-      /terms page stays up). Set it back to true before real clubs sign up;
-      anyone who joined while paused gets the pop-up then.
+- [x] Terms back on (2026-10-01): `TERMS_REQUIRED = true`, TERMS_VERSION
+      2026-10-01, so everyone gets the agree pop-up on their next visit.
+      Published the suggested wording from the redlined drafts: staff
+      (global admin) access, club pause, clubs own their waivers, Ohio law
+      and Franklin County courts; Privacy adds Concept2, Resend's wider use,
+      club website forms, program registration, forms and elections.
+      Still wants a lawyer's review before public launch.
 - [x] Terms of Service draft (2026-09-27): public /terms — clubs and
       members, accounts, under-18s, acceptable use, content, payments and
       refunds, On the Water isn't a safety system, the demo, liability,
@@ -1199,7 +1202,7 @@
 - [ ] Decide the refund rule for the 1% convenience fee. The Terms say it
       isn't refunded unless the club or BoathouseOS chooses to, which matches
       Stripe's default (a club refunding from its dashboard keeps the fee
-      with BoathouseOS). Also no governing-law/venue clause yet — lawyer.
+      with BoathouseOS).
 - [x] Linked from the landing page, signup, the interest form, and /privacy.
       Privacy policy updated the same day: payments/Stripe, erg history,
       check-ins; removed "schedule RSVPs" (not built).
