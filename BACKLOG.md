@@ -1033,10 +1033,22 @@
         rewritten. It's switched off until Todd reviews it. Still on
         SportsEngine: registration forms (e.g. Youth Summer Camps), the
         calendar and the "Dibs" volunteer sign-ups.
+      - Program registration (2026-10-01, 0117): Admin Settings > Website >
+        Programs. Each program has dates, days/times, who it's for, cost
+        (shown only), spots, when registration opens/closes, an optional
+        waiver and extra questions. The site's Programs page (menu link
+        and a home-page button once one is published) takes registrations
+        with no account: participant, parent/guardian contact, emergency
+        contact, medical notes. Full = waitlist. Emails the family and the
+        club's admins. Admins see everyone, give waitlisted people a spot,
+        cancel, mark paid, add notes, download a CSV. Coaches can read
+        registrations in the database but have no page for them yet.
+        Later: card payment (after the Stripe decision), a coach view,
+        turning a registration into a member account.
       - Next: "replication", a one-time import of a club's existing site
         (pages, text, images) as a starting point; custom domains (e.g.
         westervillecrew.org) added to Vercel automatically, which depends
-        on the DNS decision with Jeff; program registration and payments.
+        on the DNS decision with Jeff; payment for program registration.
 - [ ] Do this after everything else is configured/stable. Goal: sell this app
       to 100+ other rowing clubs, each with fully isolated data. Today there
       is zero tenant isolation (almost every RLS policy is "readable by any

@@ -102,6 +102,14 @@ export default async function AdminWebsitePage() {
         </button>
       </ActionForm>
 
+      <Link
+        href="/admin/website/programs"
+        className="border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 text-sm hover:bg-gray-50"
+      >
+        <span className="font-medium">Programs and registration →</span>
+        <span className="block text-xs text-gray-500">Camps, Learn to Row and seasons people sign up for on the site.</span>
+      </Link>
+
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Pages and news</h2>
         {pages.length === 0 && <p className="text-sm text-gray-500">None yet. Pages show in the site&apos;s menu; news on the home page.</p>}
