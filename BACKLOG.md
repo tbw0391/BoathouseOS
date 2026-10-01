@@ -763,6 +763,21 @@
       timing, results, referee tools like penalty locations and marshaling)
       — Todd is a certified USRowing referee. Build separately from
       BoathouseOS, not inside it.
+      - Decided 2026-10-01: a separate app (e.g. regatta.boathouseos.app),
+        not inside the club app, so hosting and visiting clubs that don't use
+        BoathouseOS can enter. It can share code and sign-in, and reuse the
+        course map/GPS, live boat tracking, race delays and alerts, Stripe,
+        and the water/weather card.
+      - Pieces, roughly in the order a host needs them: setup (events,
+        schedule, course, fees); entries (visiting clubs enter and pay,
+        USRowing membership/waiver checks, scratches); draw and heat sheets
+        (lanes or start order, bow numbers); race day (marshaling, launch
+        status, running late); timing (start/finish on phones, live sync,
+        elapsed times for head races, order and margins for sprints);
+        referee tools (penalties, exclusions, protests, equipment checks,
+        log); results (live, progression, medals/points, export).
+      - First version not picked yet: head race timing and results, or
+        referee tools first.
 
 ## Suggestions
 - [x] Suggestion box: anyone can submit an idea from a "Suggestions" tile on
