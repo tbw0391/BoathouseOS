@@ -276,6 +276,18 @@ export default async function AdminPage() {
         </button>
       </ActionForm>
 
+      <h2 className="text-lg font-semibold mt-8 mb-2">Website</h2>
+      <p className="text-sm text-gray-500 mb-3">
+        Your club&apos;s public site: about, upcoming regattas, results, coaches, news, pages, and contact and join
+        forms.
+      </p>
+      <Link
+        href="/admin/website"
+        className="inline-block border-2 border-[var(--color-primary)] rounded-lg px-4 py-2 text-sm font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+      >
+        Edit website →
+      </Link>
+
       <h2 className="text-lg font-semibold mt-8 mb-2">Board and committees</h2>
       <p className="text-sm text-gray-500 mb-3">
         Who&apos;s on the board and their titles, club jobs (treasurer, apparel, food tent), committees, and the

@@ -73,6 +73,32 @@ export default async function RootLayout({
     );
   }
 
+  // The club's public website (/site) draws its own header; no app chrome.
+  if ((await headers()).get("x-site") === "1") {
+    const siteTheme = await getThemeColors();
+    return (
+      <html
+        lang="en"
+        style={
+          {
+            "--color-primary": siteTheme.primary,
+            "--color-secondary": siteTheme.secondary,
+            "--color-accent": siteTheme.accent,
+            "--background": "#ffffff",
+          } as React.CSSProperties
+        }
+      >
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+          {children}
+          <div className="py-6 flex items-center justify-center gap-2 text-xs text-gray-400 print:hidden">
+            <span>Powered by</span>
+            <Image src="/branding/logo-full.png" alt="BoathouseOS" width={789} height={205} className="h-8 w-auto" />
+          </div>
+        </body>
+      </html>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
