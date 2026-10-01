@@ -15,6 +15,21 @@
       - The alternative (option A): keep Namecheap with one wildcard `*`
         CNAME, and have the app add each club's address to Vercel through
         its API (needs a Vercel token). This keeps email forwarding.
+- [ ] Stripe card payments (on hold since 2026-09-30):
+      - The demo's Vercel STRIPE_SECRET_KEY still sends an expired live
+        restricted key (rk_live_) to Stripe. The demo must only ever have the
+        test-mode secret key (sk_test_). Re-add it fresh in the boathouseos
+        project and redeploy, then run the test: connect Stripe with test
+        data, a $1 payment, a payment plan, and a refund.
+      - Production gets the live key (sk_live_) only after that test passes.
+      - Decide the fees: payers cover the card fee plus a 1% convenience fee
+        to BoathouseOS. Card networks and some states restrict surcharges
+        and percentage fees (and surcharging debit cards isn't allowed), so
+        check with Stripe or an advisor. Also decide whether the
+        convenience fee is refunded when a club refunds a payment.
+      - Each club's treasurer has to connect the club's own Stripe account
+        (about 10 minutes: legal name, tax ID, bank, ID check). Could add a
+        prompt on their first charge and a reminder for admins.
 
 
 ## Roster
