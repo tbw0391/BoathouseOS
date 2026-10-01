@@ -668,7 +668,10 @@
         text" was Undelivered, and Twilio's STOP/START replies never went
         out. Needs A2P 10DLC registration (brand + campaign, on the
         Messaging Service's A2P & Compliance page), or a toll-free number
-        with toll-free verification instead. Earlier plan was to submit
+        with toll-free verification instead. Todd submitted the 10DLC
+        registration 2026-09-30; waiting for approval. After approval: send
+        a test text from the profile's Text alerts card on production.
+        Earlier plan was to submit
         toll-free (or 10DLC) verification pointing at the profile opt-in,
         /terms and /privacy; until approved, only Verified Caller IDs
         get texts.
