@@ -16,6 +16,23 @@
         CNAME, and have the app add each club's address to Vercel through
         its API (needs a Vercel token). This keeps email forwarding.
 - [ ] Stripe card payments (on hold since 2026-09-30):
+      - DIRECTION (Todd, 2026-09-30): every charge goes through BoathouseOS,
+        with no cash or check payments, except purchases on a club's own
+        team store. Plan: BoathouseOS is the seller on every charge
+        (destination charges, "BOATHOUSEOS" on card statements), and Stripe
+        sends each club its share automatically, minus the fee. Clubs still
+        get verified once, but through a BoathouseOS-branded page ("Custom"
+        connected accounts) with no Stripe sign-up or dashboard. App
+        changes: remove cash/check recording (keep waive, discounts and
+        adjustments), add a per-club team-store setting, a payout-details
+        page, and dispute handling. Questions for Jeff and an accountant:
+        a business entity (LLC) for BoathouseOS; the 1099-K reporting the
+        full volume, not just fees; who absorbs chargebacks and refunds;
+        whether to offer bank (ACH) payments, which cost much less than
+        cards; families who can't pay by card (hardship waive?); Terms
+        wording ("BoathouseOS collects on the club's behalf"). Open:
+        does "team store" exempt only apparel, or all of that club's
+        payments?
       - The demo's Vercel STRIPE_SECRET_KEY still sends an expired live
         restricted key (rk_live_) to Stripe. The demo must only ever have the
         test-mode secret key (sk_test_). Re-add it fresh in the boathouseos
