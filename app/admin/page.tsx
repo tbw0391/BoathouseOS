@@ -18,10 +18,12 @@ import { LINEUP_SECTIONS, resolveLineupSectionVisibility } from "@/lib/lineupSec
 import { THEME_COLOR_LABELS, parseThemeColors, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES, parseAlertSettings } from "@/lib/alertSettings";
 import { PAPERWORK, PAPERWORK_ROLES, PAPERWORK_SETTINGS_KEY, parsePaperworkSettings } from "@/lib/paperwork";
+import { CHECK_IN_GROUPS, CHECK_IN_SETTINGS_KEY, parseCheckInGroups } from "@/lib/checkIns";
 import { OAR_COLORS_KEY, parseOarSettings } from "@/lib/oarSheet";
 import {
   updateAlertSettings,
   updatePaperworkSettings,
+  updateCheckInSettings,
   updateNavAccess,
   updateOarSettings,
   updateProfileButtons,
@@ -69,6 +71,7 @@ export default async function AdminPage() {
       OAR_COLORS_KEY,
       "team_store_url",
       PAPERWORK_SETTINGS_KEY,
+      CHECK_IN_SETTINGS_KEY,
     ]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
@@ -79,6 +82,7 @@ export default async function AdminPage() {
   const oarSettings = parseOarSettings(settingsByKey.get(OAR_COLORS_KEY));
   const storeUrl = settingsByKey.get("team_store_url") ?? null;
   const paperworkSettings = parsePaperworkSettings(settingsByKey.get(PAPERWORK_SETTINGS_KEY));
+  const checkInGroups = parseCheckInGroups(settingsByKey.get(CHECK_IN_SETTINGS_KEY));
   const { data: clubRow } = await supabase
     .from("clubs")
     .select("name, app_name, app_short_name, icon_path, icon_updated_at")
@@ -263,6 +267,35 @@ export default async function AdminPage() {
             </div>
           </div>
         ))}
+        <button
+          type="submit"
+          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          Save
+        </button>
+      </ActionForm>
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">Coach check-in</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        Who gets the green Check in button on the home page and their profile, to record when they arrived.
+        Rowers and coxswains have their own practice check-in.
+      </p>
+
+      <ActionForm action={updateCheckInSettings} className="flex flex-col gap-3 max-w-sm">
+        <div className="border rounded-lg px-4 py-3 text-sm flex flex-col gap-1">
+          {CHECK_IN_GROUPS.map(({ group, label }) => (
+            <label key={group} className="flex items-center gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                name="check_in_group"
+                value={group}
+                defaultChecked={checkInGroups.includes(group)}
+                className="w-4 h-4"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
         <button
           type="submit"
           className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"

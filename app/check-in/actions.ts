@@ -22,7 +22,7 @@ export async function checkIn() {
       .single();
     const callerRole = (callerProfile as Pick<Profile, "role"> | null)?.role;
     if (!(await canCoachCheckIn(user.id, callerRole))) {
-      throw new UserError("Only coaches can check in.");
+      throw new UserError("Check-in isn't turned on for you. Your club's admins choose who checks in.");
     }
 
     const { error } = await supabase.from("coach_check_ins").insert({ profile_id: user.id });
