@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
@@ -134,7 +135,10 @@ export default async function RootLayout({
           <PullToRefresh>
             <div className="pb-16">
               {children}
-              <p className="py-4 text-center text-xs text-gray-400 print:hidden">Powered by BoathouseOS</p>
+              <div className="py-4 flex items-center justify-center gap-2 text-xs text-gray-400 print:hidden">
+                <span>Powered by</span>
+                <Image src="/branding/logo-full.png" alt="BoathouseOS" width={789} height={205} className="h-8 w-auto" />
+              </div>
             </div>
           </PullToRefresh>
           <BottomNav userId={user?.id ?? null} />
