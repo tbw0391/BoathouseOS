@@ -35,6 +35,11 @@ export default async function ConsoleHome() {
       allAuthUsers(admin),
       IS_DEMO_SITE ? supabase.rpc("demo_baseline_saved_at") : Promise.resolve({ data: null }),
     ]);
+  const { count: newSuggestions } = await admin
+    .from("suggestions")
+    .select("id", { count: "exact", head: true })
+    .eq("category", "app")
+    .neq("status", "reviewed");
   const clubs = (clubData as { id: string; name: string; slug: string; suspended_at: string | null }[] | null) ?? [];
   const people =
     (peopleData as { id: string; club_id: string; approved_at: string | null; disabled_at: string | null }[] | null) ?? [];
@@ -53,13 +58,14 @@ export default async function ConsoleHome() {
 
   return (
     <ConsolePage title="Overview" subtitle={`Signed in as ${me.email ?? "global admin"}`}>
-      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
         <Stat label={suspended.length ? `Clubs (${suspended.length} suspended)` : "Clubs"} value={clubs.length} href="/console/clubs" />
         <Stat label="Members" value={active.length} href="/console/members" />
         <Stat label="Signed in this week" value={signedInThisWeek.length} href="/console/health" />
         <Stat label="Waiting for approval" value={waiting.length} href="/console/members?status=waiting" />
         <Stat label="Open errors" value={errors.length} href="/console/errors" />
         <Stat label="Interested clubs" value={interest.length} />
+        <Stat label="New app suggestions" value={newSuggestions ?? 0} href="/console/suggestions" />
       </section>
 
       <div className="grid gap-6 md:grid-cols-2">

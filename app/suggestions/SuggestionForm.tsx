@@ -32,15 +32,15 @@ export function SuggestionForm() {
     >
       <label className="text-sm font-medium">Got an idea for the app or the club?</label>
 
-      <fieldset className="flex gap-4">
+      <fieldset className="flex flex-col gap-2">
         <legend className="text-xs text-gray-500 mb-1">Is this about...</legend>
         <label className="flex items-center gap-1.5 text-sm">
           <input type="radio" name="category" value="club" required className="w-4 h-4" />
-          The club (practices, events, gear, etc.)
+          The club (practices, events, gear, etc.): goes to the club&apos;s admins
         </label>
         <label className="flex items-center gap-1.5 text-sm">
           <input type="radio" name="category" value="app" required className="w-4 h-4" />
-          This app (a feature, a bug, etc.)
+          This app (a feature, a bug, etc.): goes to the BoathouseOS team
         </label>
       </fieldset>
 

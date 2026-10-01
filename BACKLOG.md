@@ -832,11 +832,14 @@
 - [x] Submitter picks a category: Club (about club operations) or App
       (about the software) — required at submission, shown as a badge on
       each suggestion
-- [ ] Route by category once Club admin / Global admin roles exist (depends
-      on the Multi-tenant SaaS work below): "app" suggestions go to Global
-      admins, "club" suggestions go to that club's own admins. For now both
-      categories are just captured and shown to the single admin role, since
-      there's only one club and no global-admin concept yet.
+- [x] Suggestions go to the right people (2026-10-01, 0116):
+      - "The club" suggestions: one shared list on Suggestions for the
+        club's admins, coaches and board members (Todd's ask). Any of them
+        can mark one reviewed; only admins delete.
+      - "This app" suggestions: Console > Suggestions (every club's, with
+        who and which club), an email to global admins for each new one,
+        and a "New app suggestions" count on the console overview. Club
+        admins no longer see them. Senders still see their own.
 
 ## Error messages
 - [x] Friendly error messages are hidden on the live site (found
