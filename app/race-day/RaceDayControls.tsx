@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { DELAY_MINUTE_OPTIONS, LAUNCH_MINUTE_OPTIONS, RACE_SOON_MINUTES } from "@/lib/raceDay";
-import { saveBowNumber, saveLaunchMinutes, saveRaceDelay, sendRaceSoon } from "./actions";
+import { saveBowNumber, saveLaunchMinutes, saveRaceDelay, saveRegattaGauge, sendRaceSoon } from "./actions";
 import { unwrap } from "@/lib/userError";
 
 export function BowNumberEditor({ lineupId, current }: { lineupId: string; current: string | null }) {
@@ -154,5 +154,53 @@ export function RaceSoonButton({ lineupId, sentAt }: { lineupId: string; sentAt:
       </button>
       {error && <span className="text-xs text-red-600">{error}</span>}
     </>
+  );
+}
+
+// Coaches and admins: which USGS gauge the "Water at the course" card reads.
+export function GaugePicker({
+  eventId,
+  current,
+  options,
+}: {
+  eventId: string;
+  current: string | null;
+  options: { site: string; label: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, startSave] = useTransition();
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-1 text-xs underline text-[var(--color-primary)]">
+        Wrong river? Pick the gauge
+      </button>
+    );
+  }
+  return (
+    <div className="mt-2 flex flex-col gap-1">
+      <select
+        defaultValue={current ?? ""}
+        disabled={saving}
+        onChange={(e) => {
+          const site = e.target.value || null;
+          setError(null);
+          startSave(async () => {
+            const result = await saveRegattaGauge(eventId, site);
+            if (!result.ok) setError(result.error);
+            else setOpen(false);
+          });
+        }}
+        className="border rounded px-2 py-1.5 text-xs"
+      >
+        <option value="">Let the app pick (biggest river nearby)</option>
+        {options.map((o) => (
+          <option key={o.site} value={o.site}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
   );
 }

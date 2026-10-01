@@ -17,6 +17,7 @@ import {
 } from "@/lib/raceDay";
 import type { Lineup, LineupSeat, Profile, ScheduleEvent } from "@/lib/database.types";
 import { BowNumberEditor, LaunchMinutesPicker, RaceDelayPicker, RaceSoonButton } from "./RaceDayControls";
+import { RegattaWater } from "./RegattaWater";
 
 // Everything a crew needs on race day: each race with its launch time, bow
 // number and crew, soonest first. Rowers and coxswains see their own races,
@@ -112,6 +113,16 @@ export default async function RaceDayPage() {
 
   const isToday = clubDateKey(new Date()) >= clubDateKey(event.starts_at);
   const hasCourse = event.start_lat != null || event.finish_lat != null;
+  // Water at the course shows from the day before the regatta starts.
+  const dayBefore = clubDateKey(new Date(new Date(event.starts_at).getTime() - 24 * 60 * 60 * 1000));
+  const showCourseWater = clubDateKey(new Date()) >= dayBefore;
+  const courseWaterPoint = !showCourseWater
+    ? null
+    : event.finish_lat != null && event.finish_lng != null
+      ? { lat: event.finish_lat, lng: event.finish_lng }
+      : event.start_lat != null && event.start_lng != null
+        ? { lat: event.start_lat, lng: event.start_lng }
+        : null;
   const delayMinutes = event.race_delay_minutes ?? 0;
   const now = new Date();
   const upcoming = lineups.filter((l) => !raceIsOver(l, now, delayMinutes));
@@ -145,6 +156,21 @@ export default async function RaceDayPage() {
           </Link>
         </div>
       </div>
+
+      {courseWaterPoint && (
+        <RegattaWater
+          eventId={event.id}
+          lat={courseWaterPoint.lat}
+          lng={courseWaterPoint.lng}
+          chosenSite={event.water_gauge_site ?? null}
+          canPick={isManager}
+        />
+      )}
+      {!courseWaterPoint && showCourseWater && isManager && (
+        <p className="mb-4 text-xs text-gray-500">
+          Add the course&apos;s start or finish GPS (Course map) to see water conditions here.
+        </p>
+      )}
 
       {delayMinutes > 0 && (
         <p className="mb-4 rounded-lg bg-amber-100 text-amber-900 px-3 py-2 text-sm font-medium">

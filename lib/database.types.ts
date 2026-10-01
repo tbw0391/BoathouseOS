@@ -83,6 +83,8 @@ export interface ScheduleEvent {
   start_lng: number | null;
   finish_lat: number | null;
   finish_lng: number | null;
+  // USGS gauge for Race Day's "Water at the course" (0110); null = guessed.
+  water_gauge_site: string | null;
   // Regatta running late: pushes back its race and launch times (0102).
   race_delay_minutes: number;
   created_by: string | null;
