@@ -1202,6 +1202,9 @@
       picker needed
 
 ## Terms and Conditions
+- [x] Self-signup reopened (2026-10-01, Todd): "Create an account" on the
+      sign-in page, /signup and the roster's QR invite are back
+      (SELF_SIGNUP_OPEN in lib/signup.ts). Signups wait for admin approval.
 - [x] Terms back on (2026-10-01): `TERMS_REQUIRED = true`, TERMS_VERSION
       2026-10-01, so everyone gets the agree pop-up on their next visit.
       Published the suggested wording from the redlined drafts: staff
