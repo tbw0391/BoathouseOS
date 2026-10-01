@@ -657,9 +657,13 @@
         for marketing) updated.
       - Todd: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER in
         Vercel (done 2026-09-28); 0099 applied; first test text to Todd's
-        verified cell worked 2026-09-28 (practice call). Still to do: set the number's
-        "A message comes in" webhook to
-        https://www.boathouseos.app/api/twilio/inbound (HTTP POST); submit
+        verified cell worked 2026-09-28 (practice call). Incoming webhook set
+        2026-09-30 on the number's Messaging Service (Integration → Send a
+        webhook) to https://westerville.boathouseos.app/api/twilio/inbound
+        (POST): one number for every site; STOP/START are recorded on
+        production. Still to do: copy the TWILIO_* settings into
+        boathouseos-prod and redeploy (production refuses the webhook
+        until then); submit
         toll-free (or 10DLC) verification pointing at the profile opt-in,
         /terms and /privacy; until approved, only Verified Caller IDs
         get texts.
