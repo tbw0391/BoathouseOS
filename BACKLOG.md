@@ -1205,8 +1205,9 @@
 - [x] Self-signup reopened (2026-10-01, Todd): "Create an account" on the
       sign-in page, /signup and the roster's QR invite are back
       (SELF_SIGNUP_OPEN in lib/signup.ts). Signups wait for admin approval.
-- [x] Terms back on (2026-10-01): `TERMS_REQUIRED = true`, TERMS_VERSION
-      2026-10-01, so everyone gets the agree pop-up on their next visit.
+- [ ] Terms wording published (2026-10-01, TERMS_VERSION 2026-10-01) but
+      the agree pop-up is OFF again (`TERMS_REQUIRED = false`) until Todd
+      reads the new /terms and /privacy. Then set it to true.
       Published the suggested wording from the redlined drafts: staff
       (global admin) access, club pause, clubs own their waivers, Ohio law
       and Franklin County courts; Privacy adds Concept2, Resend's wider use,
