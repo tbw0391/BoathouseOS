@@ -122,6 +122,18 @@ export const getSiteClub = cache(async (): Promise<SiteClub | null> => {
   };
 });
 
+// Titles imported from other sites can carry HTML entities ("&mdash;").
+export function decodeEntities(text: string): string {
+  const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", mdash: "—", ndash: "–", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", hellip: "…" };
+  return text.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (m, code: string) => {
+    if (code[0] === "#") {
+      const n = code[1] === "x" || code[1] === "X" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+      return Number.isFinite(n) ? String.fromCodePoint(n) : m;
+    }
+    return named[code.toLowerCase()] ?? m;
+  });
+}
+
 export async function upcomingRegattas(clubId: string, limit = 20) {
   const { data } = await createAdminClient()
     .from("schedule_events")
@@ -131,7 +143,9 @@ export async function upcomingRegattas(clubId: string, limit = 20) {
     .gte("starts_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
     .order("starts_at")
     .limit(limit);
-  return (data as { id: string; title: string; location: string | null; starts_at: string; ends_at: string | null }[] | null) ?? [];
+  return ((data as { id: string; title: string; location: string | null; starts_at: string; ends_at: string | null }[] | null) ?? []).map(
+    (r) => ({ ...r, title: decodeEntities(r.title), location: r.location ? decodeEntities(r.location) : null })
+  );
 }
 
 // Places by boat at recent regattas; never who rowed.
@@ -158,6 +172,7 @@ export async function recentResults(clubId: string, regattas = 6) {
   return events
     .map((e) => ({
       ...e,
+      title: decodeEntities(e.title),
       races: lineups
         .filter((l) => l.event_id === e.id)
         .sort((a, b) => a.place - b.place)

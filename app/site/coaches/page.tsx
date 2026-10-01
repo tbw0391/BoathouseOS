@@ -8,10 +8,10 @@ type Person = { id: string; display_name: string; club_title: string | null; pho
 
 // Coaches and the board: names, titles and photos, never contact details.
 export default async function SiteCoaches() {
-  const { club, preview } = await loadSite("coaches");
+  const { club, preview, member } = await loadSite("coaches");
   const { coaches, board } = await publicPeople(club.id);
   return (
-    <SiteShell club={club} preview={preview}>
+    <SiteShell club={club} preview={preview} member={member}>
       <h1 className="text-3xl font-bold mb-6">Coaches &amp; board</h1>
       {coaches.length === 0 && board.length === 0 && <p className="text-gray-500">Coming soon.</p>}
       {coaches.length > 0 && <People title="Coaches" people={coaches} fallback="Coach" />}
