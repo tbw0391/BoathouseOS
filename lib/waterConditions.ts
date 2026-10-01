@@ -63,6 +63,8 @@ export type WaterReadings = {
   airTempF: number | null;
   windMph: number | null;
   gustMph: number | null;
+  // Where the wind is coming from, in compass points (N, NE...).
+  windDir: WindDirection | null;
 };
 
 export type Verdict = "go" | "caution" | "no-go" | "unknown";
@@ -111,6 +113,31 @@ export function lightningMinutesLeft(lastStrikeAt: string, now: Date = new Date(
 
 export const cToF = (c: number) => (c * 9) / 5 + 32;
 export const kmhToMph = (k: number) => k / 1.609344;
+
+export const WIND_DIRECTIONS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+export type WindDirection = (typeof WIND_DIRECTIONS)[number];
+
+// Degrees (where the wind comes from) to the nearest of 8 compass points.
+export function compassPoint(deg: number): WindDirection {
+  return WIND_DIRECTIONS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+}
+
+// What a coach saw when they made the practice call (0111), on one line:
+// "Water 62°F · Air 70°F · Wind 8 mph NW". Empty when nothing was entered.
+export function callConditionsLine(c: {
+  water_temp_f?: number | string | null;
+  air_temp_f?: number | string | null;
+  wind_mph?: number | string | null;
+  wind_dir?: string | null;
+}): string {
+  const n = (v: number | string | null | undefined) => (v == null || v === "" ? null : Math.round(Number(v)));
+  const parts: string[] = [];
+  if (n(c.water_temp_f) != null) parts.push(`Water ${n(c.water_temp_f)}°F`);
+  if (n(c.air_temp_f) != null) parts.push(`Air ${n(c.air_temp_f)}°F`);
+  if (n(c.wind_mph) != null) parts.push(`Wind ${n(c.wind_mph)} mph${c.wind_dir ? ` ${c.wind_dir}` : ""}`);
+  else if (c.wind_dir) parts.push(`Wind from the ${c.wind_dir}`);
+  return parts.join(" · ");
+}
 
 export const PRACTICE_CALL_LABELS: Record<string, string> = {
   go: "On the water",

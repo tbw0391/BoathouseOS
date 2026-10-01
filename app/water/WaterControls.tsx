@@ -2,7 +2,7 @@
 
 import { unwrapIfResult } from "@/lib/userError";
 import { useState, useTransition } from "react";
-import { PRACTICE_CALL_LABELS, type WaterSettings } from "@/lib/waterConditions";
+import { PRACTICE_CALL_LABELS, WIND_DIRECTIONS, type WaterSettings } from "@/lib/waterConditions";
 import { clearLightningHold, makePracticeCall, saveWaterSettings, startLightningHold, strikeAgain } from "./actions";
 
 const chip = (active: boolean) =>
@@ -60,22 +60,36 @@ export function LightningControls({ active }: { active: boolean }) {
   );
 }
 
+export type CallDefaults = {
+  waterTempF: number | null;
+  airTempF: number | null;
+  windMph: number | null;
+  windDir: string | null;
+};
+
+// Today's go/no-go and the conditions the coach saw (0111). Prefilled from
+// today's call if there is one, else the live readings; coaches adjust.
 export function PracticeCallForm({
   current,
   currentNote,
-  needsWaterTemp,
-  currentWaterTemp,
+  defaults,
+  startOpen = false,
 }: {
   current: string | null;
   currentNote: string;
-  needsWaterTemp: boolean;
-  currentWaterTemp: number | null;
+  defaults: CallDefaults;
+  startOpen?: boolean;
 }) {
   const { error, pending, run } = useRunner();
   const [status, setStatus] = useState(current ?? "go");
   const [note, setNote] = useState(currentNote);
-  const [waterTemp, setWaterTemp] = useState(currentWaterTemp != null ? String(currentWaterTemp) : "");
-  const [open, setOpen] = useState(false);
+  const str = (v: number | null) => (v != null ? String(Math.round(v)) : "");
+  const [waterTemp, setWaterTemp] = useState(str(defaults.waterTempF));
+  const [airTemp, setAirTemp] = useState(str(defaults.airTempF));
+  const [wind, setWind] = useState(str(defaults.windMph));
+  const [windDir, setWindDir] = useState<string | null>(defaults.windDir);
+  const [open, setOpen] = useState(startOpen);
+  const num = (v: string) => (v.trim() ? Number(v) : null);
 
   if (!open) {
     return (
@@ -85,13 +99,35 @@ export function PracticeCallForm({
     );
   }
 
+  const numberField = (label: string, value: string, set: (v: string) => void, unit: string) => (
+    <label className="flex items-center justify-between gap-2 text-sm">
+      {label}
+      <span className="flex items-center gap-1">
+        <input
+          value={value}
+          onChange={(e) => set(e.target.value)}
+          inputMode="decimal"
+          className="w-20 border rounded px-2 py-1 text-right"
+        />
+        <span className="w-8 text-gray-500">{unit}</span>
+      </span>
+    </label>
+  );
+
   return (
     <form
-      className="flex flex-col gap-2 rounded-lg border-2 border-gray-200 p-3"
+      id="call"
+      className="flex flex-col gap-3 rounded-lg border-2 border-gray-200 p-3"
       onSubmit={(e) => {
         e.preventDefault();
         run(
-          () => makePracticeCall(status, note, waterTemp.trim() ? Number(waterTemp) : null),
+          () =>
+            makePracticeCall(status, note, {
+              waterTempF: num(waterTemp),
+              airTempF: num(airTemp),
+              windMph: num(wind),
+              windDir,
+            }),
           () => setOpen(false)
         );
       }}
@@ -103,6 +139,28 @@ export function PracticeCallForm({
           </button>
         ))}
       </div>
+
+      <div className="flex flex-col gap-2 max-w-xs">
+        {numberField("Water temp", waterTemp, setWaterTemp, "°F")}
+        {numberField("Air temp", airTemp, setAirTemp, "°F")}
+        {numberField("Wind speed", wind, setWind, "mph")}
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-sm">Wind from</span>
+        <div className="flex flex-wrap gap-1">
+          {WIND_DIRECTIONS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setWindDir(windDir === d ? null : d)}
+              className={`${chip(windDir === d)} w-12 px-0`}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
@@ -111,19 +169,6 @@ export function PracticeCallForm({
         placeholder="Optional note: meet at the erg room at 4:15, launch shadows every crew…"
         className="border rounded px-3 py-2 text-sm"
       />
-      {needsWaterTemp && (
-        <label className="flex items-center gap-2 text-sm">
-          Water temp measured at the dock
-          <input
-            value={waterTemp}
-            onChange={(e) => setWaterTemp(e.target.value)}
-            inputMode="decimal"
-            placeholder="°F"
-            className="w-20 border rounded px-2 py-1"
-          />
-          °F
-        </label>
-      )}
       <div className="flex gap-2 items-center">
         <button type="submit" disabled={pending} className="bg-[var(--color-primary)] text-white rounded px-4 py-2 font-medium disabled:opacity-50">
           {pending ? "Sending…" : "Send to everyone"}
