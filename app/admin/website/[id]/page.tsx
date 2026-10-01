@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ActionForm } from "@/components/ActionForm";
 import { deleteWebsitePage, saveWebsitePage } from "../actions";
+import { FileUploader } from "../FileUploader";
 
 const input = "border rounded px-3 py-2 text-sm w-full";
 
@@ -21,6 +22,7 @@ export default async function EditWebsitePage({ params }: { params: Promise<{ id
     body: string;
     published: boolean;
     sort_order: number;
+    menu_group: string | null;
   } | null;
   if (!page) notFound();
 
@@ -48,9 +50,17 @@ export default async function EditWebsitePage({ params }: { params: Promise<{ id
           Text
           <textarea name="body" defaultValue={page.body} rows={16} className={`${input} font-mono`} />
           <span className="text-xs text-gray-500">
-            Blank line = new paragraph. &quot;## &quot; starts a heading, &quot;- &quot; a bullet. Web addresses become links.
+            Blank line = new paragraph. &quot;## &quot; starts a heading, &quot;- &quot; a bullet, ![](photo address) a
+            photo. Web addresses become links.
           </span>
         </label>
+        {page.kind === "page" && (
+          <label className="text-sm flex flex-col gap-1">
+            Menu drop-down (optional)
+            <input name="menu_group" defaultValue={page.menu_group ?? ""} maxLength={40} placeholder="e.g. About Us, Programs" className={input} />
+            <span className="text-xs text-gray-500">Pages with the same name here share one drop-down in the site&apos;s menu.</span>
+          </label>
+        )}
         {page.kind === "page" && (
           <label className="text-sm flex items-center gap-2">
             Menu order
@@ -69,6 +79,8 @@ export default async function EditWebsitePage({ params }: { params: Promise<{ id
           Save
         </button>
       </ActionForm>
+
+      <FileUploader />
 
       <ActionForm action={deleteWebsitePage} className="border-t pt-4">
         <input type="hidden" name="id" value={page.id} />

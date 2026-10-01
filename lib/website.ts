@@ -67,7 +67,7 @@ export type SiteClub = {
   iconUrl: string | null;
   heroUrl: string | null;
   storeUrl: string | null;
-  pages: { slug: string; title: string }[];
+  pages: { slug: string; title: string; menu_group: string | null }[];
 };
 
 // The club this address is for, with its website settings; null if there's
@@ -93,7 +93,7 @@ export const getSiteClub = cache(async (): Promise<SiteClub | null> => {
     admin.from("club_settings").select("key, value").eq("club_id", club.id).in("key", [WEBSITE_KEY, "theme_colors", "team_store_url"]),
     admin
       .from("website_pages")
-      .select("slug, title")
+      .select("slug, title, menu_group")
       .eq("club_id", club.id)
       .eq("kind", "page")
       .eq("published", true)
@@ -118,7 +118,7 @@ export const getSiteClub = cache(async (): Promise<SiteClub | null> => {
     iconUrl: club.icon_path ? `/club-icon/512?v=${club.icon_updated_at ? Date.parse(club.icon_updated_at) : "1"}` : null,
     heroUrl,
     storeUrl: byKey.get("team_store_url") || null,
-    pages: (pageRows as { slug: string; title: string }[] | null) ?? [],
+    pages: (pageRows as { slug: string; title: string; menu_group: string | null }[] | null) ?? [],
   };
 });
 

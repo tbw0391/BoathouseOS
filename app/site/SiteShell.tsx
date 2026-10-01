@@ -52,11 +52,24 @@ export function SiteShell({ club, preview, children }: { club: SiteClub; preview
                 {n.label}
               </Link>
             ))}
-            {club.pages.map((p) => (
-              <Link key={p.slug} href={`/site/p/${p.slug}`} className="hover:underline">
-                {p.title}
-              </Link>
-            ))}
+            {menuItems(club.pages).map((item) =>
+              item.kind === "page" ? (
+                <Link key={item.slug} href={`/site/p/${item.slug}`} className="hover:underline">
+                  {item.title}
+                </Link>
+              ) : (
+                <details key={item.group} className="relative group">
+                  <summary className="cursor-pointer list-none hover:underline">{item.group} ▾</summary>
+                  <div className="absolute z-20 mt-2 min-w-48 rounded-lg border bg-white shadow-lg py-1 flex flex-col">
+                    {item.pages.map((p) => (
+                      <Link key={p.slug} href={`/site/p/${p.slug}`} className="px-3 py-1.5 hover:bg-gray-50 whitespace-nowrap">
+                        {p.title}
+                      </Link>
+                    ))}
+                  </div>
+                </details>
+              )
+            )}
             {club.storeUrl && (
               <a href={club.storeUrl} target="_blank" rel="noreferrer" className="hover:underline">
                 Store
@@ -76,6 +89,25 @@ export function SiteShell({ club, preview, children }: { club: SiteClub; preview
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8">{children}</main>
     </div>
   );
+}
+
+type MenuPage = SiteClub["pages"][number];
+type MenuItem = ({ kind: "page" } & MenuPage) | { kind: "group"; group: string; pages: MenuPage[] };
+
+// Pages in their order, with pages that share a menu group gathered under one
+// drop-down where the group's first page would be.
+function menuItems(pages: MenuPage[]): MenuItem[] {
+  const items: MenuItem[] = [];
+  for (const p of pages) {
+    if (!p.menu_group) {
+      items.push({ kind: "page", ...p });
+      continue;
+    }
+    const existing = items.find((i) => i.kind === "group" && i.group === p.menu_group);
+    if (existing && existing.kind === "group") existing.pages.push(p);
+    else items.push({ kind: "group", group: p.menu_group, pages: [p] });
+  }
+  return items;
 }
 
 export function when(iso: string, ends?: string | null) {

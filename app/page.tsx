@@ -26,6 +26,7 @@ import {
   Megaphone,
   ShieldCheck,
   Contact,
+  Globe,
   Trophy,
   CreditCard,
   Shirt,
@@ -124,6 +125,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/admin": Settings,
   [CONSOLE_URL]: ShieldCheck,
   "/contacts": Contact,
+  "/site": Globe,
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
