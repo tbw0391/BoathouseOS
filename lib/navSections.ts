@@ -61,6 +61,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   // New buttons go last; Todd reorders them later.
   { href: "/contacts", label: "Who to Ask" },
   { href: "/site", label: "Club Website" },
+  { href: "/forms", label: "Forms & Elections" },
 ];
 
 // Per-role home-screen buttons, set from /admin: pick a type of user, then

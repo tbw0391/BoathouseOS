@@ -82,6 +82,11 @@ export const ALERT_TYPES = [
     label: "Regatta-week pop-up",
     detail: "Once-a-day reminder on the home page the week before a regatta.",
   },
+  {
+    kind: "form_new",
+    label: "New forms and elections",
+    detail: "Phone alert to a form's or election's audience when it's posted.",
+  },
 ] as const;
 
 export type AlertKind = (typeof ALERT_TYPES)[number]["kind"];

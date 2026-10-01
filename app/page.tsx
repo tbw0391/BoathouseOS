@@ -21,6 +21,7 @@ import {
   Hammer,
   Navigation,
   ClipboardList,
+  ClipboardCheck,
   Settings,
   Vote,
   Megaphone,
@@ -126,6 +127,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   [CONSOLE_URL]: ShieldCheck,
   "/contacts": Contact,
   "/site": Globe,
+  "/forms": ClipboardCheck,
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;

@@ -554,12 +554,23 @@
       prices or mark anything paid.
 
 ## Messaging
-- [ ] Forms, surveys and elections (2026-10-01, from the iCrew comparison),
-      building on polls: forms with several questions (text, choices,
-      dates, file upload) for things like registration or a season survey,
-      with results and CSV export; board elections with candidates,
-      eligible voters (e.g. members 18+ or one per family), secret ballots
-      and a set closing time.
+- [x] Forms, surveys and elections (2026-10-01, from the iCrew comparison,
+      0115): a "Forms & Elections" home button (/forms).
+      - Forms: admins, coaches and board members make them, for everyone,
+        rowers, parents, coaches or the board. Question types: short
+        answer, paragraph, pick one, pick any, yes/no, date, number, file
+        upload (private "form-files" bucket, 10 MB). People can change or
+        take back their answers until it closes. Responses page with a
+        summary, everyone's answers, file links and a CSV download.
+      - Elections: admins and board members. Offices with candidates and
+        seats; who can vote: everyone, 18 and over, or one per family.
+        Ballots are secret (who voted is kept apart from how) and can't be
+        changed. The count shows to everyone once voting closes; organizers
+        see turnout while it's open.
+      - Phone alert to the audience when one is posted ("New forms and
+        elections" switch).
+      - Later ideas: a parent filling in a form for their rower;
+        closing-soon reminders; who hasn't answered yet.
 - [x] Group chat list, with a "New message" flow to start a chat/DM with any
       combination of people on the roster
 - [x] Send/receive messages in a group, live via Supabase Realtime
