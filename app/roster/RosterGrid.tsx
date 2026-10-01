@@ -128,12 +128,12 @@ export function RosterGrid({
       {filtered.length === 0 ? (
         <p className="text-sm text-gray-500 mt-4">No matching members.</p>
       ) : (
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="mt-4 -mx-4 px-4 py-4 bg-gray-50 rounded-xl grid grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map((p) => (
             <Link
               key={p.id}
               href={`/roster/${p.id}`}
-              className={`flex flex-col items-center gap-2 rounded-lg border-2 border-[var(--color-primary)] px-2 py-4 text-sm text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors min-w-0 ${
+              className={`flex flex-col items-center gap-2 rounded-2xl bg-white border border-gray-200 shadow-sm px-2 pt-4 pb-3 text-center hover:shadow-md active:scale-[0.98] transition min-w-0 ${
                 p.disabled_at ? "opacity-50" : ""
               }`}
             >
@@ -141,20 +141,23 @@ export function RosterGrid({
                 <StorageImage
                   src={p.photo_url}
                   alt=""
-                  width={96}
-                  height={96}
+                  width={160}
+                  height={160}
                   className="w-20 h-20 shrink-0 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-20 h-20 shrink-0 rounded-full border flex items-center justify-center text-2xl text-gray-400">
+                <div className="w-20 h-20 shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-3xl font-semibold text-[var(--color-primary)]">
                   {(p.first_name || p.display_name).slice(0, 1).toUpperCase()}
                 </div>
               )}
-              <span className="font-medium leading-tight break-words">{p.display_name}</span>
+              <span className="text-sm font-semibold leading-tight text-gray-900 break-words">{p.display_name}</span>
               {(badgesByProfile[p.id] ?? []).length > 0 && (
                 <span className="flex flex-wrap justify-center gap-1">
                   {badgesByProfile[p.id].map((b) => (
-                    <span key={b} className="text-[10px] leading-tight rounded bg-[var(--color-primary)] text-white px-1.5 py-0.5">
+                    <span
+                      key={b}
+                      className="text-[10px] leading-tight rounded-full border border-[var(--color-primary)] text-[var(--color-primary)] px-1.5 py-0.5"
+                    >
                       {b}
                     </span>
                   ))}

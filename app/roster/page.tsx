@@ -58,7 +58,7 @@ export default async function RosterPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 sm:p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Roster</h1>
         <span className="text-sm text-gray-500">
