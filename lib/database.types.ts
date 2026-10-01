@@ -87,6 +87,8 @@ export interface ScheduleEvent {
   water_gauge_site: string | null;
   // Regatta running late: pushes back its race and launch times (0102).
   race_delay_minutes: number;
+  // Off for a regatta with no food tent: no food alerts or reminders (0118).
+  has_food_tent: boolean;
   created_by: string | null;
   created_at: string;
 }
@@ -730,4 +732,16 @@ export interface FormResponse {
   answers: Record<string, string | string[]>;
   submitted_at: string;
   updated_at: string;
+}
+
+// Food tent banner messages (0118).
+export interface FoodTentMessage {
+  id: string;
+  club_id: string;
+  sender_id: string | null;
+  // Optional: about one regatta; the banner goes away after it.
+  event_id: string | null;
+  audience: 'families' | 'everyone';
+  message: string;
+  created_at: string;
 }

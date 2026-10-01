@@ -520,6 +520,16 @@
 - [x] Push alert to parents/guardians when the tent leader publishes the
       food list (2026-09-27). The tent leader's "draft ready" alert still
       needs a scheduled job — see "Scheduled alerts" under Infra.
+- [x] Food tent banner messages (2026-10-01, 0118): tent leaders, coaches
+      and admins post a message from the top of Food Tent ("Post a banner
+      message") to parents & guardians or everyone. It shows as a home
+      banner for a week, or until after a chosen regatta, plus at the top
+      of Food Tent; optional phone alert ("Food tent messages" switch).
+- [x] "No food tent at this regatta" (2026-10-01, 0118): a switch on each
+      regatta in Food Tent (schedule_events.has_food_tent). Off: no 7-day
+      draft list or "draft ready" alert, can't publish (so no "signups are
+      open" alert), and no food banners, regatta-week reminder, "Sign up
+      for the food tent" button or "2 gal of water" line for it.
 
 ## Photos
 - [x] Anyone can post a photo (top-left camera icon on every page, plus a

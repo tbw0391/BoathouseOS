@@ -37,11 +37,14 @@ async function claim(admin: Admin, kind: string, refs: string[]): Promise<Set<st
 async function foodDraftAlerts(admin: Admin) {
   const { data } = await admin
     .from("food_tent_status")
-    .select("event_id, club_id, schedule_events(title)")
+    .select("event_id, club_id, schedule_events(title, has_food_tent)")
     .eq("status", "pending_confirmation")
     .gte("draft_generated_at", new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString());
   const drafts =
-    (data as unknown as { event_id: string; club_id: string; schedule_events: { title: string } | null }[] | null) ?? [];
+    ((data as unknown as
+      | { event_id: string; club_id: string; schedule_events: { title: string; has_food_tent: boolean } | null }[]
+      | null) ?? []
+    ).filter((d) => d.schedule_events?.has_food_tent !== false);
   const claimed = await claim(admin, "food_draft", drafts.map((d) => d.event_id));
   const ready = drafts.filter((d) => claimed.has(d.event_id));
   if (ready.length === 0) return;

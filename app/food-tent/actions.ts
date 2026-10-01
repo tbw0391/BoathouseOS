@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { familyMemberIds, sendPush } from "@/lib/push";
+import { activeMemberIds, familyMemberIds, sendPush } from "@/lib/push";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { myClubId } from "@/lib/clubs";
 import { UserError, tryAction } from "@/lib/userError";
 
@@ -64,6 +65,11 @@ export async function publishFoodList(eventId: string) {
     const { user } = await requireManager(supabase);
 
     if (!eventId) throw new UserError("Missing event.");
+
+    const { data: eventRow } = await supabase.from("schedule_events").select("has_food_tent").eq("id", eventId).single();
+    if ((eventRow as { has_food_tent: boolean } | null)?.has_food_tent === false) {
+      throw new UserError("This regatta is set to no food tent. Turn the food tent back on first.");
+    }
 
     const { error: itemsError } = await supabase
       .from("food_tent_items")
@@ -403,5 +409,74 @@ export async function cancelWishlistSignup(formData: FormData) {
     if (error) throw new Error(error.message);
 
     revalidatePath("/food-tent");
+  });
+}
+
+// "No food tent at this regatta" (0118): no draft list, food alerts,
+// banners or reminders for it. Tent leaders can't edit the schedule, so
+// this one column is changed with the service role after the check above.
+export async function setHasFoodTent(eventId: string, hasFoodTent: boolean) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
+    const clubId = await myClubId();
+    const { error } = await createAdminClient()
+      .from("schedule_events")
+      .update({ has_food_tent: hasFoodTent })
+      .eq("id", eventId)
+      .eq("club_id", clubId)
+      .eq("event_type", "regatta");
+    if (error) throw new Error(error.message);
+    revalidatePath("/food-tent");
+    revalidatePath("/");
+  });
+}
+
+// A banner message from the food tent (0118), to families or everyone,
+// optionally about one regatta (it then disappears after that regatta).
+export async function postFoodTentMessage(formData: FormData) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { user } = await requireManager(supabase);
+    const message = String(formData.get("message") ?? "").trim().slice(0, 1000);
+    if (!message) throw new UserError("Write a message first.");
+    const audience = formData.get("audience") === "everyone" ? "everyone" : "families";
+    const eventId = String(formData.get("event_id") ?? "") || null;
+    const alert = formData.get("alert") === "on";
+
+    const { error } = await supabase
+      .from("food_tent_messages")
+      .insert({ sender_id: user.id, message, audience, event_id: eventId });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/food-tent");
+    revalidatePath("/");
+
+    if (alert) {
+      after(async () => {
+        const clubId = await myClubId();
+        const ids = audience === "everyone" ? await activeMemberIds(clubId) : await familyMemberIds(clubId);
+        await sendPush(
+          ids.filter((id) => id !== user.id),
+          {
+            kind: "food_message",
+            title: "Food tent",
+            body: message.length > 140 ? `${message.slice(0, 139)}…` : message,
+            url: "/",
+          }
+        );
+      });
+    }
+  });
+}
+
+export async function deleteFoodTentMessage(messageId: string) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
+    const { error } = await supabase.from("food_tent_messages").delete().eq("id", messageId);
+    if (error) throw new Error(error.message);
+    revalidatePath("/food-tent");
+    revalidatePath("/");
   });
 }

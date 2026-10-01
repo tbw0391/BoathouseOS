@@ -11,6 +11,11 @@ export const ALERT_TYPES = [
   },
   { kind: "announcement", label: "Coach announcements", detail: "Phone alert to the announcement's audience." },
   { kind: "food_published", label: "Food list published", detail: "Phone alert to parents and guardians." },
+  {
+    kind: "food_message",
+    label: "Food tent messages",
+    detail: "Phone alert to families (or everyone) when the tent leader posts a message with \"Also send a phone alert\" ticked.",
+  },
   { kind: "photo_comment", label: "Photo comments", detail: "Phone alert to whoever posted the photo." },
   {
     kind: "boat_on_water",
