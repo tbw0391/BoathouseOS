@@ -40,6 +40,8 @@ export interface Profile {
   is_treasurer: boolean;
   // Runs the apparel store (0097).
   is_apparel_chair: boolean;
+  // Shown next to their name, e.g. "President" (0109); admins set it.
+  club_title: string | null;
   us_rowing_number: string | null;
   spouse_id: string | null;
   walk_up_song: string | null;

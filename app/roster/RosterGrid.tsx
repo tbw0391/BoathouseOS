@@ -6,7 +6,7 @@ import { StorageImage } from "@/components/StorageImage";
 import type { Profile, Team } from "@/lib/database.types";
 import { TEAM_LABELS } from "@/lib/teams";
 
-type GroupFilter = Team | "board";
+type GroupFilter = Team | "board" | "jobs" | `committee:${string}`;
 
 const FILTER_BUTTONS: { value: GroupFilter; label: string }[] = [
   { value: "mens", label: TEAM_LABELS.mens },
@@ -36,9 +36,14 @@ export type RosterProfile = Pick<
 export function RosterGrid({
   profiles,
   teamsByProfile,
+  badgesByProfile = {},
+  committees = [],
 }: {
   profiles: RosterProfile[];
   teamsByProfile: Record<string, Team[]>;
+  // Board title, club jobs and committees (lib/contacts.ts badgesFor).
+  badgesByProfile?: Record<string, string[]>;
+  committees?: { id: string; name: string; memberIds: string[] }[];
 }) {
   const [search, setSearch] = useState("");
   const [selectedGroups, setSelectedGroups] = useState<GroupFilter[]>([]);
@@ -56,7 +61,13 @@ export function RosterGrid({
       const inSelectedGroup =
         selectedGroups.length === 0 ||
         selectedGroups.some((g) =>
-          g === "board" ? p.is_board_member : (teamsByProfile[p.id] ?? []).includes(g)
+          g === "board"
+            ? p.is_board_member
+            : g === "jobs"
+              ? (badgesByProfile[p.id] ?? []).length > 0
+              : g.startsWith("committee:")
+                ? (committees.find((c) => `committee:${c.id}` === g)?.memberIds ?? []).includes(p.id)
+                : (teamsByProfile[p.id] ?? []).includes(g as Team)
         );
       if (!inSelectedGroup) return false;
       if (!q) return true;
@@ -70,7 +81,7 @@ export function RosterGrid({
     return matching.sort((a, b) =>
       (a.first_name || a.display_name).localeCompare(b.first_name || b.display_name)
     );
-  }, [profiles, teamsByProfile, search, selectedGroups]);
+  }, [profiles, teamsByProfile, badgesByProfile, committees, search, selectedGroups]);
 
   return (
     <>
@@ -86,7 +97,11 @@ export function RosterGrid({
         >
           All
         </button>
-        {FILTER_BUTTONS.map((f) => (
+        {[
+          ...FILTER_BUTTONS,
+          { value: "jobs" as GroupFilter, label: "Club jobs" },
+          ...committees.map((c) => ({ value: `committee:${c.id}` as GroupFilter, label: c.name })),
+        ].map((f) => (
           <button
             key={f.value}
             type="button"
@@ -113,12 +128,12 @@ export function RosterGrid({
       {filtered.length === 0 ? (
         <p className="text-sm text-gray-500 mt-4">No matching members.</p>
       ) : (
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map((p) => (
             <Link
               key={p.id}
               href={`/roster/${p.id}`}
-              className={`flex items-center justify-center gap-2 rounded-lg border-2 border-[var(--color-primary)] px-3 py-3 text-sm text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors min-w-0 ${
+              className={`flex flex-col items-center gap-2 rounded-lg border-2 border-[var(--color-primary)] px-2 py-4 text-sm text-center hover:bg-[var(--color-secondary)] hover:text-white transition-colors min-w-0 ${
                 p.disabled_at ? "opacity-50" : ""
               }`}
             >
@@ -126,16 +141,25 @@ export function RosterGrid({
                 <StorageImage
                   src={p.photo_url}
                   alt=""
-                  width={32}
-                  height={32}
-                  className="w-8 h-8 shrink-0 rounded-full object-cover"
+                  width={96}
+                  height={96}
+                  className="w-20 h-20 shrink-0 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-8 h-8 shrink-0 rounded-full border flex items-center justify-center text-[10px] text-gray-400">
-                  —
+                <div className="w-20 h-20 shrink-0 rounded-full border flex items-center justify-center text-2xl text-gray-400">
+                  {(p.first_name || p.display_name).slice(0, 1).toUpperCase()}
                 </div>
               )}
-              <span className="truncate">{p.display_name}</span>
+              <span className="font-medium leading-tight break-words">{p.display_name}</span>
+              {(badgesByProfile[p.id] ?? []).length > 0 && (
+                <span className="flex flex-wrap justify-center gap-1">
+                  {badgesByProfile[p.id].map((b) => (
+                    <span key={b} className="text-[10px] leading-tight rounded bg-[var(--color-primary)] text-white px-1.5 py-0.5">
+                      {b}
+                    </span>
+                  ))}
+                </span>
+              )}
               {p.disabled_at && <span className="text-[10px] text-red-600 shrink-0">(Removed)</span>}
             </Link>
           ))}

@@ -6,9 +6,10 @@ import { SignupQrButton } from "./SignupQrButton";
 import { SELF_SIGNUP_OPEN } from "@/lib/signup";
 import { RosterGrid, type RosterProfile } from "./RosterGrid";
 import { PendingApprovals } from "./PendingApprovals";
+import { badgesFor, getClubContacts } from "@/lib/contacts";
 
 const ROSTER_COLUMNS =
-  "id, email, display_name, role, phone, boat_side, disabled_at, first_name, last_name, photo_url, is_board_member, approved_at";
+  "id, email, display_name, role, phone, boat_side, disabled_at, first_name, last_name, photo_url, is_board_member, approved_at, club_title, is_treasurer, is_apparel_chair, is_tent_leader";
 
 export default async function RosterPage() {
   const supabase = await createClient();
@@ -28,11 +29,21 @@ export default async function RosterPage() {
     supabase.from("profile_teams").select("*"),
     supabase.from("clubs").select("name, join_code").maybeSingle(),
   ]);
+  const { committees } = await getClubContacts();
   const club = clubRow as { name: string; join_code: string } | null;
 
   // Pending self-signups only come back for admins (RLS), and are listed
   // separately rather than in the roster itself.
-  const fetched = (data as (RosterProfile & { approved_at: string | null })[] | null) ?? [];
+  const fetched =
+    (data as
+      | (RosterProfile & {
+          approved_at: string | null;
+          club_title: string | null;
+          is_treasurer: boolean;
+          is_apparel_chair: boolean;
+          is_tent_leader: boolean;
+        })[]
+      | null) ?? [];
   const pendingMembers = fetched.filter((p) => !p.approved_at && p.id !== user?.id);
   const allProfiles = fetched.filter((p) => p.approved_at);
   const currentProfile = allProfiles.find((p) => p.id === user?.id);
@@ -75,7 +86,14 @@ export default async function RosterPage() {
         <p className="text-sm text-gray-500 mt-4">No members yet.</p>
       )}
 
-      {profiles.length > 0 && <RosterGrid profiles={profiles} teamsByProfile={teamsByProfile} />}
+      {profiles.length > 0 && (
+        <RosterGrid
+          profiles={profiles}
+          teamsByProfile={teamsByProfile}
+          badgesByProfile={Object.fromEntries(profiles.map((p) => [p.id, badgesFor(p, committees)]))}
+          committees={committees.map((c) => ({ id: c.id, name: c.name, memberIds: c.members.map((m) => m.id) }))}
+        />
+      )}
     </div>
   );
 }

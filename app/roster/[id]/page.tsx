@@ -268,7 +268,8 @@ export default async function BioPage({
           <p className="text-sm text-gray-500">
             {ROLE_LABELS[profile.role]}
             {teams.length > 0 && ` · ${teams.map((t) => TEAM_LABELS[t]).join(", ")}`}
-            {profile.is_board_member && " · Board Member"}
+            {profile.is_board_member && (profile.club_title ? ` · Board · ${profile.club_title}` : " · Board Member")}
+            {!profile.is_board_member && profile.club_title && ` · ${profile.club_title}`}
             {profile.is_tent_leader && " · Tent Leader"}
             {profile.is_treasurer && " · Treasurer"}
             {profile.is_apparel_chair && " · Apparel Chair"}
