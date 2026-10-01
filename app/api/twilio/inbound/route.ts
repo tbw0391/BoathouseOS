@@ -17,8 +17,11 @@ export async function POST(request: Request) {
     params[k] = String(v);
   });
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.boathouseos.app";
-  if (!validTwilioSignature(`${site}/api/twilio/inbound`, params, request.headers.get("x-twilio-signature") ?? "")) {
+  // Twilio signs the exact address it called, which can be any club's
+  // address on production (or the demo's), so check against that.
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "www.boathouseos.app";
+  const calledUrl = `https://${host}${new URL(request.url).pathname}`;
+  if (!validTwilioSignature(calledUrl, params, request.headers.get("x-twilio-signature") ?? "")) {
     return new Response("Unauthorized.", { status: 401 });
   }
 
