@@ -5,10 +5,10 @@ export const dynamic = "force-dynamic";
 
 // Upcoming regattas only: practice times and places stay private.
 export default async function SiteSchedule() {
-  const { club, preview } = await loadSite("schedule");
+  const { club, preview, member } = await loadSite("schedule");
   const regattas = await upcomingRegattas(club.id);
   return (
-    <SiteShell club={club} preview={preview}>
+    <SiteShell club={club} preview={preview} member={member}>
       <h1 className="text-3xl font-bold mb-6">Schedule</h1>
       {regattas.length === 0 ? (
         <p className="text-gray-500">No regattas on the schedule right now.</p>

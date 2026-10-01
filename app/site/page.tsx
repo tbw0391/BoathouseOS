@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 // The club website's front page (0112).
 export default async function SiteHome() {
-  const { club, preview } = await loadSite();
+  const { club, preview, member } = await loadSite();
   const s = club.settings;
   const [regattas, results, news] = await Promise.all([
     s.sections.schedule ? upcomingRegattas(club.id, 3) : Promise.resolve([]),
@@ -17,7 +17,7 @@ export default async function SiteHome() {
   ]);
 
   return (
-    <SiteShell club={club} preview={preview}>
+    <SiteShell club={club} preview={preview} member={member} back={false}>
       <section
         className="relative rounded-2xl overflow-hidden mb-8 bg-[var(--color-primary)] text-white"
         style={club.heroUrl ? { backgroundImage: `url(${club.heroUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
@@ -33,8 +33,8 @@ export default async function SiteHome() {
         </div>
       </section>
 
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="md:col-span-2 flex flex-col gap-8">
+      <div className="grid gap-8 md:grid-cols-3 grid-cols-1">
+        <div className="md:col-span-2 flex flex-col gap-8 min-w-0">
           {s.about && (
             <section>
               <h2 className="text-2xl font-bold mb-3">About us</h2>
@@ -59,7 +59,7 @@ export default async function SiteHome() {
           )}
         </div>
 
-        <aside className="flex flex-col gap-6">
+        <aside className="flex flex-col gap-6 min-w-0">
           {regattas.length > 0 && (
             <section className="rounded-xl border p-4">
               <h2 className="font-bold mb-2">Coming up</h2>

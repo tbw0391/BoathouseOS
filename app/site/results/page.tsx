@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 
 // Places by boat at recent regattas, never who rowed.
 export default async function SiteResults() {
-  const { club, preview } = await loadSite("results");
+  const { club, preview, member } = await loadSite("results");
   const results = await recentResults(club.id, 10);
   return (
-    <SiteShell club={club} preview={preview}>
+    <SiteShell club={club} preview={preview} member={member}>
       <h1 className="text-3xl font-bold mb-6">Results</h1>
       {results.length === 0 ? (
         <p className="text-gray-500">No results posted yet.</p>

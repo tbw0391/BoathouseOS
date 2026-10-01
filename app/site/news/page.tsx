@@ -5,10 +5,10 @@ import { SiteShell, loadSite, when } from "../SiteShell";
 export const dynamic = "force-dynamic";
 
 export default async function SiteNews() {
-  const { club, preview } = await loadSite("news");
+  const { club, preview, member } = await loadSite("news");
   const posts = await newsPosts(club.id, 50);
   return (
-    <SiteShell club={club} preview={preview}>
+    <SiteShell club={club} preview={preview} member={member}>
       <h1 className="text-3xl font-bold mb-6">News</h1>
       {posts.length === 0 ? (
         <p className="text-gray-500">No news yet.</p>

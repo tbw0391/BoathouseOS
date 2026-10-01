@@ -2,22 +2,32 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSiteClub, type SiteClub, type WebsiteSection } from "@/lib/website";
+import { BackLink } from "./BackLink";
 
 // The club website's frame: the club's name and icon, its sections and
 // pages, and "Member sign in". A site that isn't turned on sends visitors to
 // sign in; the club's admins can still preview it.
-export async function loadSite(section?: WebsiteSection): Promise<{ club: SiteClub; preview: boolean }> {
+export async function loadSite(section?: WebsiteSection): Promise<{ club: SiteClub; preview: boolean; member: boolean }> {
   const club = await getSiteClub();
   if (!club) redirect("/login");
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const member = !!user;
   let preview = false;
+  // Local development only: SITE_PREVIEW=1 shows a switched-off site without
+  // signing in, for checking layouts.
+  if (!club.settings.enabled && process.env.NODE_ENV === "development" && process.env.SITE_PREVIEW === "1") {
+    return { club, preview: true, member };
+  }
   if (!club.settings.enabled) {
-    const supabase = await createClient();
-    const { data: isAdmin } = await supabase.rpc("is_club_admin");
+    const { data: isAdmin } = user ? await supabase.rpc("is_club_admin") : { data: false };
     if (!isAdmin) redirect("/login");
     preview = true;
   }
   if (section && !club.settings.sections[section]) redirect("/site");
-  return { club, preview };
+  return { club, preview, member };
 }
 
 const NAV: { key: WebsiteSection; href: string; label: string }[] = [
@@ -28,8 +38,47 @@ const NAV: { key: WebsiteSection; href: string; label: string }[] = [
   { key: "contact", href: "/site/contact", label: "Contact" },
 ];
 
-export function SiteShell({ club, preview, children }: { club: SiteClub; preview: boolean; children: React.ReactNode }) {
+export function SiteShell({
+  club,
+  preview,
+  member,
+  back = true,
+  children,
+}: {
+  club: SiteClub;
+  preview: boolean;
+  // Signed in: "Back to the app" instead of "Member sign in".
+  member: boolean;
+  // A "← Back" link above the page (every page but the home page).
+  back?: boolean;
+  children: React.ReactNode;
+}) {
   const s = club.settings.sections;
+  const links: { href: string; label: string }[] = NAV.filter((n) => s[n.key]).map((n) => ({ href: n.href, label: n.label }));
+  const items = menuItems(club.pages);
+  const buttons = (
+    <>
+      {club.storeUrl && (
+        <a href={club.storeUrl} target="_blank" rel="noreferrer" className="rounded-lg border px-3 py-1.5">
+          Store
+        </a>
+      )}
+      {s.join && (
+        <Link href="/site/join" className="rounded-lg bg-[var(--color-primary)] text-white px-3 py-1.5 font-medium">
+          Join us
+        </Link>
+      )}
+      {member ? (
+        <Link href="/" className="rounded-lg border-2 border-[var(--color-primary)] text-[var(--color-primary)] px-3 py-1 font-medium">
+          ← Back to the app
+        </Link>
+      ) : (
+        <Link href="/login" className="rounded-lg border-2 border-[var(--color-primary)] text-[var(--color-primary)] px-3 py-1 font-medium">
+          Member sign in
+        </Link>
+      )}
+    </>
+  );
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {preview && (
@@ -37,30 +86,32 @@ export function SiteShell({ club, preview, children }: { club: SiteClub; preview
           Preview: only your club&apos;s admins can see this until the website is turned on (Admin Settings &gt; Website).
         </p>
       )}
-      <header className="border-b">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <header className="border-b relative">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <Link href="/site" className="flex items-center gap-2 min-w-0">
             {club.iconUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={club.iconUrl} alt="" width={40} height={40} className="w-10 h-10 rounded-lg" />
+              <img src={club.iconUrl} alt="" width={40} height={40} className="w-10 h-10 rounded-lg shrink-0" />
             )}
             <span className="font-bold text-lg text-[var(--color-primary)] truncate">{club.name}</span>
           </Link>
-          <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            {NAV.filter((n) => s[n.key]).map((n) => (
-              <Link key={n.href} href={n.href} className="hover:underline">
-                {n.label}
+
+          {/* Computers: the menu across the top, sections as drop-downs. */}
+          <nav className="hidden lg:flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm">
+            {links.map((l) => (
+              <Link key={l.href} href={l.href} className="hover:underline">
+                {l.label}
               </Link>
             ))}
-            {menuItems(club.pages).map((item) =>
+            {items.map((item) =>
               item.kind === "page" ? (
                 <Link key={item.slug} href={`/site/p/${item.slug}`} className="hover:underline">
                   {item.title}
                 </Link>
               ) : (
-                <details key={item.group} className="relative group">
+                <details key={item.group} className="relative">
                   <summary className="cursor-pointer list-none hover:underline">{item.group} ▾</summary>
-                  <div className="absolute z-20 mt-2 min-w-48 rounded-lg border bg-white shadow-lg py-1 flex flex-col">
+                  <div className="absolute right-0 z-20 mt-2 min-w-48 rounded-lg border bg-white shadow-lg py-1 flex flex-col">
                     {item.pages.map((p) => (
                       <Link key={p.slug} href={`/site/p/${p.slug}`} className="px-3 py-1.5 hover:bg-gray-50 whitespace-nowrap">
                         {p.title}
@@ -70,23 +121,49 @@ export function SiteShell({ club, preview, children }: { club: SiteClub; preview
                 </details>
               )
             )}
-            {club.storeUrl && (
-              <a href={club.storeUrl} target="_blank" rel="noreferrer" className="hover:underline">
-                Store
-              </a>
-            )}
-            {s.join && (
-              <Link href="/site/join" className="rounded-lg bg-[var(--color-primary)] text-white px-3 py-1.5 font-medium">
-                Join us
-              </Link>
-            )}
-            <Link href="/login" className="rounded-lg border-2 border-[var(--color-primary)] text-[var(--color-primary)] px-3 py-1 font-medium">
-              Member sign in
-            </Link>
+            {buttons}
           </nav>
+
+          {/* Phones and tablets: one Menu button with everything in a list. */}
+          <details className="lg:hidden">
+            <summary className="list-none cursor-pointer rounded-lg border-2 border-[var(--color-primary)] text-[var(--color-primary)] px-3 py-1.5 text-sm font-semibold">
+              Menu
+            </summary>
+            <div className="absolute left-0 right-0 top-full z-30 bg-white border-b shadow-lg max-h-[75vh] overflow-y-auto">
+              <nav className="max-w-5xl mx-auto px-4 py-3 flex flex-col text-base">
+                {links.map((l) => (
+                  <Link key={l.href} href={l.href} className="py-2 border-b border-gray-100">
+                    {l.label}
+                  </Link>
+                ))}
+                {items.map((item) =>
+                  item.kind === "page" ? (
+                    <Link key={item.slug} href={`/site/p/${item.slug}`} className="py-2 border-b border-gray-100">
+                      {item.title}
+                    </Link>
+                  ) : (
+                    <div key={item.group} className="py-2 border-b border-gray-100">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{item.group}</p>
+                      <div className="flex flex-col">
+                        {item.pages.map((p) => (
+                          <Link key={p.slug} href={`/site/p/${p.slug}`} className="py-1.5 pl-3">
+                            {p.title}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                )}
+                <div className="flex flex-wrap gap-2 pt-3">{buttons}</div>
+              </nav>
+            </div>
+          </details>
         </div>
       </header>
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8">{children}</main>
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 sm:py-8 min-w-0">
+        {back && <BackLink />}
+        {children}
+      </main>
     </div>
   );
 }
