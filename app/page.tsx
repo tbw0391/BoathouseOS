@@ -87,7 +87,7 @@ import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
 import { clubDateKey, clubTimeLabel, delayedRaceTime, pickRaceDayEvent, raceIsOver } from "@/lib/raceDay";
-import { PRACTICE_CALL_LABELS, lightningMinutesLeft } from "@/lib/waterConditions";
+import { PRACTICE_CALL_LABELS, callConditionsLine, lightningMinutesLeft } from "@/lib/waterConditions";
 import { formatMoney } from "@/lib/payments";
 import { canCoachCheckIn, getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
@@ -127,6 +127,15 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+type PracticeCallRow = {
+  status: string;
+  note: string | null;
+  water_temp_f: number | null;
+  air_temp_f: number | null;
+  wind_mph: number | null;
+  wind_dir: string | null;
+};
 
 type FoodTentBanner = {
   eventId: string;
@@ -998,7 +1007,7 @@ export default async function Home() {
   let emailAlertsOn = true;
   const emailBackupOn = !!process.env.RESEND_API_KEY && !!process.env.EMAIL_FROM;
   let lightningHold = null as { last_strike_at: string } | null;
-  let practiceCall = null as { status: string; note: string | null } | null;
+  let practiceCall = null as PracticeCallRow | null;
   let upcomingRegattaForecast: EventForecast | null = null;
   let unreadCount = 0;
   let unreadScheduleCount = 0;
@@ -1215,10 +1224,14 @@ export default async function Home() {
       (async () => {
         const [{ data: holdRows }, { data: callRow }] = await Promise.all([
           supabase.from("lightning_holds").select("last_strike_at").is("cleared_at", null).limit(1),
-          supabase.from("practice_calls").select("status, note").eq("practice_date", clubDateKey(now)).maybeSingle(),
+          supabase
+            .from("practice_calls")
+            .select("status, note, water_temp_f, air_temp_f, wind_mph, wind_dir")
+            .eq("practice_date", clubDateKey(now))
+            .maybeSingle(),
         ]);
         lightningHold = ((holdRows as { last_strike_at: string }[] | null) ?? [])[0] ?? null;
-        practiceCall = callRow as { status: string; note: string | null } | null;
+        practiceCall = callRow as PracticeCallRow | null;
       })(),
       (async () => {
         // The "get ready" buttons each go away once followed: Food Tent and
@@ -1867,6 +1880,7 @@ export default async function Home() {
         >
           <span className="font-semibold">Today: {PRACTICE_CALL_LABELS[practiceCall.status]}</span>
           {practiceCall.note && <span className="block">{practiceCall.note}</span>}
+          {callConditionsLine(practiceCall) && <span className="block opacity-90">{callConditionsLine(practiceCall)}</span>}
         </Link>
       )}
 

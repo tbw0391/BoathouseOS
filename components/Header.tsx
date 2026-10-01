@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { signOut } from "@/app/login/actions";
 import { useBranding } from "@/components/ClubBranding";
-import { IS_DEMO_SITE } from "@/lib/site";
 
 export function Header({
   unreadCount,
@@ -32,9 +31,9 @@ export function Header({
   const router = useRouter();
   const { iconSrc } = useBranding();
 
-  // Production's signed-out pages (sign in, password reset) are just the
-  // form: photos, walk-up songs and the home logo need an account.
-  if (!userId && !IS_DEMO_SITE) return null;
+  // Signed-out pages (sign in, password reset, the demo's welcome page) are
+  // just the page: photos, walk-up songs and the home logo need an account.
+  if (!userId) return null;
 
   return (
     <header className="sticky top-0 z-10 border-b bg-white">

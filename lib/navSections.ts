@@ -39,7 +39,6 @@ export function resolveNavVisibility(
 // team-facing feature.
 export const NAV_SECTIONS: NavSectionDef[] = [
   { href: "/roster", label: "Roster" },
-  { href: "/contacts", label: "Who to Ask" },
   { href: "/race-day", label: "Race Day" },
   { href: "/lineups", label: "Lineups" },
   { href: "/boats", label: "Boats" },
@@ -59,6 +58,8 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   { href: "/coach", label: "Coach" },
   { href: "/schedule", label: "Schedule" },
   { href: "/suggestions", label: "Suggestions" },
+  // New buttons go last; Todd reorders them later.
+  { href: "/contacts", label: "Who to Ask" },
 ];
 
 // Per-role home-screen buttons, set from /admin: pick a type of user, then

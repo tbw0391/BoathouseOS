@@ -1,5 +1,5 @@
 import "server-only";
-import { cToF, kmhToMph, type WaterReadings } from "@/lib/waterConditions";
+import { cToF, compassPoint, kmhToMph, type WaterReadings } from "@/lib/waterConditions";
 
 // Live readings for /water: a USGS river gauge (flow, level and, where the
 // gauge has a sensor, water temperature) and the nearest National Weather
@@ -26,7 +26,15 @@ async function fetchJson(url: string, revalidate = CACHE.next.revalidate) {
 
 // revalidate: how long readings are reused, in seconds (regattas: an hour).
 export async function liveWater(gaugeSite: string, revalidate = CACHE.next.revalidate): Promise<LiveWater> {
-  const readings: WaterReadings = { flowCfs: null, heightFt: null, waterTempF: null, airTempF: null, windMph: null, gustMph: null };
+  const readings: WaterReadings = {
+    flowCfs: null,
+    heightFt: null,
+    waterTempF: null,
+    airTempF: null,
+    windMph: null,
+    gustMph: null,
+    windDir: null,
+  };
   const errors: string[] = [];
   let gauge: GaugeInfo | null = null;
   let airReadAt: string | null = null;
@@ -63,6 +71,7 @@ export async function liveWater(gaugeSite: string, revalidate = CACHE.next.reval
       if (p.temperature?.value != null) readings.airTempF = cToF(p.temperature.value);
       if (p.windSpeed?.value != null) readings.windMph = kmhToMph(p.windSpeed.value);
       if (p.windGust?.value != null) readings.gustMph = kmhToMph(p.windGust.value);
+      if (p.windDirection?.value != null) readings.windDir = compassPoint(p.windDirection.value);
       airReadAt = p.timestamp ?? null;
     } catch {
       errors.push("Couldn't reach the National Weather Service.");

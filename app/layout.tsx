@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
 import { BottomNav } from "@/components/BottomNav";
 import { Header } from "@/components/Header";
@@ -72,6 +73,32 @@ export default async function RootLayout({
     );
   }
 
+  // The club's public website (/site) draws its own header; no app chrome.
+  if ((await headers()).get("x-site") === "1") {
+    const siteTheme = await getThemeColors();
+    return (
+      <html
+        lang="en"
+        style={
+          {
+            "--color-primary": siteTheme.primary,
+            "--color-secondary": siteTheme.secondary,
+            "--color-accent": siteTheme.accent,
+            "--background": "#ffffff",
+          } as React.CSSProperties
+        }
+      >
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+          {children}
+          <div className="py-6 flex items-center justify-center gap-2 text-xs text-gray-400 print:hidden">
+            <span>Powered by</span>
+            <Image src="/branding/logo-full.png" alt="BoathouseOS" width={789} height={205} className="h-8 w-auto" />
+          </div>
+        </body>
+      </html>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -134,7 +161,10 @@ export default async function RootLayout({
           <PullToRefresh>
             <div className="pb-16">
               {children}
-              <p className="py-4 text-center text-xs text-gray-400 print:hidden">Powered by BoathouseOS</p>
+              <div className="py-4 flex items-center justify-center gap-2 text-xs text-gray-400 print:hidden">
+                <span>Powered by</span>
+                <Image src="/branding/logo-full.png" alt="BoathouseOS" width={789} height={205} className="h-8 w-auto" />
+              </div>
             </div>
           </PullToRefresh>
           <BottomNav userId={user?.id ?? null} />

@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { clubMemberIds, sendPush } from "@/lib/push";
 import { clubDateKey } from "@/lib/raceDay";
-import { PRACTICE_CALL_LABELS, WATER_SETTINGS_KEY, type WaterSettings } from "@/lib/waterConditions";
+import {
+  PRACTICE_CALL_LABELS,
+  WATER_SETTINGS_KEY,
+  WIND_DIRECTIONS,
+  callConditionsLine,
+  type WaterSettings,
+} from "@/lib/waterConditions";
 import { UserError, tryAction } from "@/lib/userError";
 
 async function requireRole(roles: string[]) {
@@ -56,25 +62,39 @@ export async function saveWaterSettings(formData: FormData) {
   });
 }
 
-export async function makePracticeCall(status: string, note: string, waterTempF: number | null) {
+export type CallConditions = {
+  waterTempF: number | null;
+  airTempF: number | null;
+  windMph: number | null;
+  windDir: string | null;
+};
+
+export async function makePracticeCall(status: string, note: string, conditions: CallConditions) {
   return tryAction(async () => {
     const { supabase, user } = await requireRole(["coach", "admin"]);
     if (!(status in PRACTICE_CALL_LABELS)) throw new UserError("Pick a call.");
     const cleanNote = note.trim().slice(0, 300) || null;
-    const temp = waterTempF != null && Number.isFinite(waterTempF) && waterTempF > 20 && waterTempF < 100 ? waterTempF : null;
+    const inRange = (v: number | null, lo: number, hi: number) => (v != null && Number.isFinite(v) && v >= lo && v <= hi ? v : null);
+    const row = {
+      water_temp_f: inRange(conditions.waterTempF, 25, 100),
+      air_temp_f: inRange(conditions.airTempF, -20, 120),
+      wind_mph: inRange(conditions.windMph, 0, 80),
+      wind_dir: (WIND_DIRECTIONS as readonly string[]).includes(conditions.windDir ?? "") ? conditions.windDir : null,
+    };
     const { error } = await supabase.from("practice_calls").upsert({
       practice_date: clubDateKey(new Date()),
       status,
       note: cleanNote,
-      water_temp_f: temp,
+      ...row,
       called_by: user.id,
       called_at: new Date().toISOString(),
     });
     if (error) throw new Error(error.message);
+    const line = callConditionsLine(row);
     await sendPush(await clubMemberIds(user.id), {
       kind: "practice_call",
       title: `Today: ${PRACTICE_CALL_LABELS[status]}`,
-      body: cleanNote ?? "Tap for today's water conditions.",
+      body: [cleanNote, line].filter(Boolean).join("\n") || "Tap for today's water conditions.",
       url: "/water",
       tag: "practice-call",
     });

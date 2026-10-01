@@ -541,6 +541,12 @@
       prices or mark anything paid.
 
 ## Messaging
+- [ ] Forms, surveys and elections (2026-10-01, from the iCrew comparison),
+      building on polls: forms with several questions (text, choices,
+      dates, file upload) for things like registration or a season survey,
+      with results and CSV export; board elections with candidates,
+      eligible voters (e.g. members 18+ or one per family), secret ballots
+      and a set closing time.
 - [x] Group chat list, with a "New message" flow to start a chat/DM with any
       combination of people on the roster
 - [x] Send/receive messages in a group, live via Supabase Realtime
@@ -732,6 +738,12 @@
         get texts.
 
 ## Safety
+- [ ] Incident reports (2026-10-01, from the iCrew comparison): anyone
+      reports an on-water incident or near miss (what happened, when, where
+      on the water, boats and people involved, injuries, photos); coaches
+      and admins get an alert, follow up, and close it with notes. A list
+      with filters, and an export for the board or USRowing. Ties into the
+      water conditions at the time, On the Water tracks, and SafeSport.
 - [x] Water Conditions (2026-09-28, /water, 0087): live USGS gauge (flow,
       level, water temp where the gauge has it) and nearest NWS station
       (air temp, wind) against the club's limits, incl. the cold-water rule
@@ -750,6 +762,13 @@
       and on the day.
 
 ## Coaching tools
+- [ ] USRowing roster import (2026-10-01, after comparing with iCrew,
+      which has it): a club admin exports the club roster from their
+      USRowing organization account (member number, name, membership
+      expiration, waiver status, SafeSport). Upload it on Coach >
+      Paperwork; match members by USRowing number, then email, then name;
+      fill in USRowing membership, waiver and SafeSport dates; list anyone
+      who didn't match. Needs a real export file to see the exact columns.
 - [x] Seat racing (2026-09-28, 0091): Coach > Seat Racing. Two boats, tap
       rowers in, enter times, pick one from each boat to swap; each swap's
       swing and a running net per rower.
@@ -763,6 +782,27 @@
       timing, results, referee tools like penalty locations and marshaling)
       — Todd is a certified USRowing referee. Build separately from
       BoathouseOS, not inside it.
+      - Decided 2026-10-01: a separate app (e.g. regatta.boathouseos.app),
+        not inside the club app, so hosting and visiting clubs that don't use
+        BoathouseOS can enter. It can share code and sign-in, and reuse the
+        course map/GPS, live boat tracking, race delays and alerts, Stripe,
+        and the water/weather card.
+      - Pieces, roughly in the order a host needs them: setup (events,
+        schedule, course, fees); entries (visiting clubs enter and pay,
+        USRowing membership/waiver checks, scratches); draw and heat sheets
+        (lanes or start order, bow numbers); race day (marshaling, launch
+        status, running late); timing (start/finish on phones, live sync,
+        elapsed times for head races, order and margins for sprints);
+        referee tools (penalties, exclusions, protests, equipment checks,
+        log); results (live, progression, medals/points, export).
+      - First version (Todd, 2026-10-01): head race timing. Boats start
+        one at a time; a start timer and a finish timer tap bow numbers;
+        elapsed time ranks each event; live results. The host types or
+        pastes entries (bow #, club, crew, event), with no online entry
+        yet. Still to decide: who records times (volunteers with a link or
+        PIN and no account, or signed-in officials). Wait for the separate
+        site (regatta.boathouseos.app, after the DNS decision with Jeff)
+        before building.
 
 ## Suggestions
 - [x] Suggestion box: anyone can submit an idea from a "Suggestions" tile on
@@ -951,6 +991,22 @@
       password?), remove tbw0391@gmail.com.
 
 ## Multi-tenant SaaS (sell to other rowing clubs)
+- [ ] Public club website (2026-10-01, to compete with SportsEngine): each
+      club's public site, built mostly from the app's own data: home (logo,
+      colors, photos, about, news from announcements marked public),
+      schedule and race results with medals (CrewTimer), teams and coaches
+      (bios and photos, no private member data), contact (Who to Ask plus a
+      form), join (the interest form now, program registration with
+      payment later), sponsors, store link and donations, and free-form
+      pages admins edit (history, safety, Learn to Row). Members sign in
+      from it. Never shows minors' details or contact info; admins pick
+      what's public, with safe defaults.
+      - First version: the auto-built pages plus a few editable pages on
+        <club>.boathouseos.app.
+      - Next: "replication", a one-time import of a club's existing site
+        (pages, text, images) as a starting point; custom domains (e.g.
+        westervillecrew.org) added to Vercel automatically, which depends
+        on the DNS decision with Jeff; program registration and payments.
 - [ ] Do this after everything else is configured/stable. Goal: sell this app
       to 100+ other rowing clubs, each with fully isolated data. Today there
       is zero tenant isolation (almost every RLS policy is "readable by any
@@ -1054,6 +1110,11 @@
         and testing done before rolling multi-club out.
 
 ## Maintenance requests
+- [ ] Equipment inventory (2026-10-01, from the iCrew comparison): beyond
+      boats, everything the club owns (oars, ergs, launches and motors, cox
+      boxes and speakers, trailers): condition, where it's kept, who has it,
+      purchase date and value, service dates with reminders, and links to
+      maintenance requests. The oar sheet and boat list feed into it.
 - [x] Boat Maintenance: anyone can report an issue with a specific fleet boat
       (picks from the boat list); coaches/admins see all requests, can mark
       resolved/reopen or delete

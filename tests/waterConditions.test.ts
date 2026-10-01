@@ -2,12 +2,22 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_WATER_SETTINGS,
   evaluateWater,
+  callConditionsLine,
+  compassPoint,
   lightningMinutesLeft,
   parseWaterSettings,
   type WaterReadings,
 } from "@/lib/waterConditions";
 
-const calm: WaterReadings = { flowCfs: 9000, heightFt: 10, waterTempF: 65, airTempF: 70, windMph: 5, gustMph: null };
+const calm: WaterReadings = {
+  flowCfs: 9000,
+  heightFt: 10,
+  waterTempF: 65,
+  airTempF: 70,
+  windMph: 5,
+  gustMph: null,
+  windDir: null,
+};
 const limits = { ...DEFAULT_WATER_SETTINGS, flowCautionCfs: 20000, flowStopCfs: 35000 };
 
 describe("evaluateWater", () => {
@@ -33,7 +43,7 @@ describe("evaluateWater", () => {
   });
 
   it("is unknown with no readings", () => {
-    const none = { flowCfs: null, heightFt: null, waterTempF: null, airTempF: null, windMph: null, gustMph: null };
+    const none = { flowCfs: null, heightFt: null, waterTempF: null, airTempF: null, windMph: null, gustMph: null, windDir: null };
     expect(evaluateWater(none, limits).verdict).toBe("unknown");
   });
 });
@@ -52,5 +62,26 @@ describe("lightningMinutesLeft", () => {
     const now = new Date("2026-09-28T16:00:00Z");
     expect(lightningMinutesLeft("2026-09-28T15:50:00Z", now)).toBe(20);
     expect(lightningMinutesLeft("2026-09-28T15:30:00Z", now)).toBe(0);
+  });
+});
+
+describe("compassPoint", () => {
+  it("rounds degrees to the nearest of 8 points", () => {
+    expect(compassPoint(0)).toBe("N");
+    expect(compassPoint(350)).toBe("N");
+    expect(compassPoint(44)).toBe("NE");
+    expect(compassPoint(180)).toBe("S");
+    expect(compassPoint(292)).toBe("W");
+    expect(compassPoint(-45)).toBe("NW");
+  });
+});
+
+describe("callConditionsLine", () => {
+  it("lists what the coach entered", () => {
+    expect(callConditionsLine({ water_temp_f: "61.6", air_temp_f: 70, wind_mph: 8, wind_dir: "NW" })).toBe(
+      "Water 62°F · Air 70°F · Wind 8 mph NW"
+    );
+    expect(callConditionsLine({ wind_dir: "S" })).toBe("Wind from the S");
+    expect(callConditionsLine({})).toBe("");
   });
 });

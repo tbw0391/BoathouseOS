@@ -34,7 +34,7 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: Users,
     title: "Roster",
-    body: "Rowers, coxswains, parents, and coaches, with bios, erg times, and family links. New members sign up with a QR code and wait for an admin to approve them.",
+    body: "Rowers, coxswains, parents, and coaches, with bios, erg times, and family links. Admins add members, and see who's on the board and who runs what.",
   },
   {
     icon: Calendar,
@@ -109,7 +109,9 @@ export default function WelcomePage() {
         </p>
         <div className="w-full max-w-xs flex flex-col gap-2">
           <TryDemoButton />
-          <p className="text-xs text-gray-500">No signup. Look around as a club admin.</p>
+          <p className="text-xs text-gray-500">
+            No signup. See it as an admin, coach, rower, coxswain or parent, and switch any time.
+          </p>
         </div>
         <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-700">
           {HIGHLIGHTS.map(({ icon: Icon, text }) => (

@@ -50,6 +50,9 @@ export async function middleware(request: NextRequest) {
   if (onConsoleHost || path === '/console' || path.startsWith('/console/')) {
     requestHeaders.set('x-console', '1');
   }
+  // The club's public website (0112) has its own header and no app chrome.
+  const onSite = path === '/site' || path.startsWith('/site/');
+  if (onSite) requestHeaders.set('x-site', '1');
   if (process.env.NODE_ENV === 'production') {
     requestHeaders.set('Content-Security-Policy', csp);
   }
@@ -98,7 +101,10 @@ export async function middleware(request: NextRequest) {
     // The public landing page for visiting clubs.
     request.nextUrl.pathname === '/welcome' ||
     request.nextUrl.pathname === '/privacy' ||
-    request.nextUrl.pathname === '/terms';
+    request.nextUrl.pathname === '/terms' ||
+    // The club's public website: the page itself sends visitors to sign in
+    // if the club hasn't turned it on.
+    onSite;
 
   // The console's address has only the console and signing in: no club
   // pages, no approval gate (the global admin belongs to no club).
@@ -126,7 +132,9 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     // The bare domain gets the landing page; deep links go straight to login.
     // (Production has no landing page.)
-    url.pathname = request.nextUrl.pathname === '/' && IS_DEMO_SITE ? '/welcome' : '/login';
+    // Production clubs' addresses open on their public website (which sends
+    // visitors on to sign in if the club hasn't turned it on).
+    url.pathname = request.nextUrl.pathname === '/' ? (IS_DEMO_SITE ? '/welcome' : '/site') : '/login';
     return NextResponse.redirect(url);
   }
 

@@ -5,6 +5,7 @@ import { liveWater, type LiveWater } from "@/lib/waterReadings";
 import {
   PRACTICE_CALL_LABELS,
   WATER_SETTINGS_KEY,
+  callConditionsLine,
   evaluateWater,
   lightningMinutesLeft,
   parseWaterSettings,
@@ -34,7 +35,8 @@ function ageLabel(iso: string | null) {
   return min < 60 ? `${min} min ago` : clubTimeLabel(iso);
 }
 
-export default async function WaterPage() {
+export default async function WaterPage({ searchParams }: { searchParams: Promise<{ call?: string }> }) {
+  const { call: openCall } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -50,7 +52,15 @@ export default async function WaterPage() {
   const role = (me as { role: string } | null)?.role;
   const isManager = role === "coach" || role === "admin";
   const settings = parseWaterSettings((settingRow as { value: string | null } | null)?.value);
-  const call = callRow as { status: string; note: string | null; water_temp_f: number | null; called_at: string } | null;
+  const call = callRow as {
+    status: string;
+    note: string | null;
+    water_temp_f: number | null;
+    air_temp_f: number | null;
+    wind_mph: number | null;
+    wind_dir: string | null;
+    called_at: string;
+  } | null;
   const hold = ((holdRows as { id: string; last_strike_at: string; started_at: string }[] | null) ?? [])[0] ?? null;
 
   const live: LiveWater | null = settings.gaugeSite ? await liveWater(settings.gaugeSite) : null;
@@ -88,6 +98,7 @@ export default async function WaterPage() {
         {call ? (
           <div className={`rounded-lg border-2 p-3 ${CALL_STYLE[call.status] ?? ""}`}>
             <p className="font-semibold">{PRACTICE_CALL_LABELS[call.status]}</p>
+            {callConditionsLine(call) && <p className="text-sm mt-1">{callConditionsLine(call)}</p>}
             {call.note && <p className="text-sm mt-1 whitespace-pre-line">{call.note}</p>}
             <p className="text-xs text-gray-500 mt-1">Called at {clubTimeLabel(call.called_at)}</p>
           </div>
@@ -98,8 +109,13 @@ export default async function WaterPage() {
           <PracticeCallForm
             current={call?.status ?? null}
             currentNote={call?.note ?? ""}
-            needsWaterTemp={!!readings && live?.readings.waterTempF == null}
-            currentWaterTemp={call?.water_temp_f ?? null}
+            startOpen={openCall === "1"}
+            defaults={{
+              waterTempF: call?.water_temp_f != null ? Number(call.water_temp_f) : (live?.readings.waterTempF ?? null),
+              airTempF: call?.air_temp_f != null ? Number(call.air_temp_f) : (live?.readings.airTempF ?? null),
+              windMph: call?.wind_mph != null ? Number(call.wind_mph) : (live?.readings.windMph ?? null),
+              windDir: call?.wind_dir ?? live?.readings.windDir ?? null,
+            }}
           />
         )}
       </section>
