@@ -25,6 +25,7 @@ import {
   Vote,
   Megaphone,
   ShieldCheck,
+  Contact,
   Trophy,
   CreditCard,
   Shirt,
@@ -74,6 +75,7 @@ import { forecastDayFor, getOrRefreshEventForecast } from "@/lib/weather";
 import { NAV_ACCESS_KEY, NAV_SECTIONS, resolveNavAccess, type NavRole } from "@/lib/navSections";
 import { QrCodes } from "@/app/console/qr/QrCodes";
 import { PlatformNotices } from "@/components/PlatformNotices";
+import { HomeContactsCard } from "@/components/HomeContactsCard";
 import { CONSOLE_URL, IS_DEMO_SITE } from "@/lib/site";
 import {
   DEMO_CLUB_COOKIE,
@@ -121,6 +123,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/todo": ListTodo,
   "/admin": Settings,
   [CONSOLE_URL]: ShieldCheck,
+  "/contacts": Contact,
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -2011,6 +2014,8 @@ export default async function Home() {
       )}
 
       {user && <PlatformNotices />}
+
+      {user && <HomeContactsCard />}
 
       {user && <PushToggle isDemo={isDemoEmail(user.email)} />}
       {user && !isDemoEmail(user.email) && emailBackupOn && <EmailAlertsToggle initial={emailAlertsOn} />}

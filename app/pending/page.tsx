@@ -14,8 +14,8 @@ export default async function PendingPage() {
     ? await supabase.from("profiles").select("display_name, disabled_at").eq("id", user.id).maybeSingle()
     : { data: null };
   const removed = Boolean((profile as { disabled_at: string | null } | null)?.disabled_at);
-  const { data: club } = user ? await supabase.from("clubs").select("suspended_at").maybeSingle() : { data: null };
-  const suspended = Boolean((club as { suspended_at: string | null } | null)?.suspended_at);
+  // Unapproved members can't read their club's row, so ask the database (0109).
+  const { data: suspended } = user ? await supabase.rpc("my_club_suspended") : { data: false };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-8">

@@ -100,6 +100,18 @@ export async function saveRaceDelay(eventId: string, minutes: number) {
   });
 }
 
+// The USGS gauge for a regatta's "Water at the course" card (0110); null lets
+// the app pick.
+export async function saveRegattaGauge(eventId: string, site: string | null) {
+  return tryAction(async () => {
+    const supabase = await requireRole(["coach", "admin"]);
+    if (site !== null && !/^\d{8,15}$/.test(site)) throw new UserError("Pick a gauge from the list.");
+    const { error } = await supabase.from("schedule_events").update({ water_gauge_site: site }).eq("id", eventId);
+    if (error) throw new Error(error.message);
+    revalidatePath("/race-day");
+  });
+}
+
 // "Racing in about 20 minutes", sent by a coach when they can see it's
 // close (race times slip too much to send it automatically). Once per race.
 export async function sendRaceSoon(lineupId: string) {

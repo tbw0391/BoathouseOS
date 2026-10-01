@@ -39,6 +39,7 @@ export function resolveNavVisibility(
 // team-facing feature.
 export const NAV_SECTIONS: NavSectionDef[] = [
   { href: "/roster", label: "Roster" },
+  { href: "/contacts", label: "Who to Ask" },
   { href: "/race-day", label: "Race Day" },
   { href: "/lineups", label: "Lineups" },
   { href: "/boats", label: "Boats" },

@@ -40,6 +40,8 @@ export interface Profile {
   is_treasurer: boolean;
   // Runs the apparel store (0097).
   is_apparel_chair: boolean;
+  // Shown next to their name, e.g. "President" (0109); admins set it.
+  club_title: string | null;
   us_rowing_number: string | null;
   spouse_id: string | null;
   walk_up_song: string | null;
@@ -81,6 +83,8 @@ export interface ScheduleEvent {
   start_lng: number | null;
   finish_lat: number | null;
   finish_lng: number | null;
+  // USGS gauge for Race Day's "Water at the course" (0110); null = guessed.
+  water_gauge_site: string | null;
   // Regatta running late: pushes back its race and launch times (0102).
   race_delay_minutes: number;
   created_by: string | null;

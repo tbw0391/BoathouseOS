@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -274,6 +275,18 @@ export default async function AdminPage() {
           Save
         </button>
       </ActionForm>
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">Board and committees</h2>
+      <p className="text-sm text-gray-500 mb-3">
+        Who&apos;s on the board and their titles, club jobs (treasurer, apparel, food tent), committees, and the
+        home page &quot;Questions?&quot; card.
+      </p>
+      <Link
+        href="/admin/contacts"
+        className="inline-block border-2 border-[var(--color-primary)] rounded-lg px-4 py-2 text-sm font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+      >
+        Edit board and committees →
+      </Link>
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Coach check-in</h2>
       <p className="text-sm text-gray-500 mb-6">
