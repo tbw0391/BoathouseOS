@@ -1003,6 +1003,15 @@
       what's public, with safe defaults.
       - First version: the auto-built pages plus a few editable pages on
         <club>.boathouseos.app.
+      - Built 2026-10-01 (0112-0114): /site with home, schedule, results,
+        coaches & board, news, pages with menu drop-downs and photos, and
+        contact/join forms; Admin Settings > Website; a "Club Website" home
+        button. westervillecrew.org (SportsEngine) was copied into
+        Westerville's site: 19 pages, 4 news posts, and 131 photos and
+        documents moved into the "website" bucket, with links between pages
+        rewritten. It's switched off until Todd reviews it. Still on
+        SportsEngine: registration forms (e.g. Youth Summer Camps), the
+        calendar and the "Dibs" volunteer sign-ups.
       - Next: "replication", a one-time import of a club's existing site
         (pages, text, images) as a starting point; custom domains (e.g.
         westervillecrew.org) added to Vercel automatically, which depends
