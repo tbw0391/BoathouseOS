@@ -1,5 +1,22 @@
 # BoathouseOS Backlog
 
+## To talk about with Jeff
+- [ ] Move boathouseos.app's DNS from Namecheap to Vercel (Todd leans
+      this way, 2026-09-30) so every club's address, and admin, works the
+      moment a club is added, with no DNS or code step. Before switching:
+      - Namecheap email forwarding for @boathouseos.app (e.g.
+        privacy@boathouseos.app) stops working. Pick a replacement first
+        (ImprovMX, Cloudflare Email Routing, or real mailboxes).
+      - Copy Resend's records to Vercel DNS (send CNAME/MX/TXT,
+        resend._domainkey TXT, _dmarc TXT), or sending email breaks.
+      - Then add *.boathouseos.app to boathouseos-prod (www and the apex
+        stay on the demo project), and add https://*.boathouseos.app/** to
+        production Supabase Auth redirect URLs.
+      - The alternative (option A): keep Namecheap with one wildcard `*`
+        CNAME, and have the app add each club's address to Vercel through
+        its API (needs a Vercel token). This keeps email forwarding.
+
+
 ## Roster
 - [x] Read-only roster list (name, role, boat side, phone, email)
 - [x] Add member form (admin/coach)
