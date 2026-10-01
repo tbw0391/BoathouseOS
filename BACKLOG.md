@@ -541,6 +541,12 @@
       prices or mark anything paid.
 
 ## Messaging
+- [ ] Forms, surveys and elections (2026-10-01, from the iCrew comparison),
+      building on polls: forms with several questions (text, choices,
+      dates, file upload) for things like registration or a season survey,
+      with results and CSV export; board elections with candidates,
+      eligible voters (e.g. members 18+ or one per family), secret ballots
+      and a set closing time.
 - [x] Group chat list, with a "New message" flow to start a chat/DM with any
       combination of people on the roster
 - [x] Send/receive messages in a group, live via Supabase Realtime
@@ -732,6 +738,12 @@
         get texts.
 
 ## Safety
+- [ ] Incident reports (2026-10-01, from the iCrew comparison): anyone
+      reports an on-water incident or near miss (what happened, when, where
+      on the water, boats and people involved, injuries, photos); coaches
+      and admins get an alert, follow up, and close it with notes. A list
+      with filters, and an export for the board or USRowing. Ties into the
+      water conditions at the time, On the Water tracks, and SafeSport.
 - [x] Water Conditions (2026-09-28, /water, 0087): live USGS gauge (flow,
       level, water temp where the gauge has it) and nearest NWS station
       (air temp, wind) against the club's limits, incl. the cold-water rule
@@ -1082,6 +1094,11 @@
         and testing done before rolling multi-club out.
 
 ## Maintenance requests
+- [ ] Equipment inventory (2026-10-01, from the iCrew comparison): beyond
+      boats, everything the club owns (oars, ergs, launches and motors, cox
+      boxes and speakers, trailers): condition, where it's kept, who has it,
+      purchase date and value, service dates with reminders, and links to
+      maintenance requests. The oar sheet and boat list feed into it.
 - [x] Boat Maintenance: anyone can report an issue with a specific fleet boat
       (picks from the boat list); coaches/admins see all requests, can mark
       resolved/reopen or delete
