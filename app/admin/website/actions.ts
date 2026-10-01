@@ -71,6 +71,25 @@ export async function saveWebsiteSettings(formData: FormData) {
   });
 }
 
+// Photos and documents for pages go in the public "website" bucket (0113).
+export async function uploadWebsiteFile(formData: FormData) {
+  return tryAction(async () => {
+    const { clubId } = await requireAdmin();
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) throw new UserError("Pick a file.");
+    if (file.size > 25 * 1024 * 1024) throw new UserError("That file is too big (25MB at most).");
+    const name = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").slice(-80) || "file";
+    const path = `${clubId}/uploads/${Date.now()}-${name}`;
+    const admin = createAdminClient();
+    const { error } = await admin.storage.from("website").upload(path, Buffer.from(await file.arrayBuffer()), {
+      contentType: file.type || "application/octet-stream",
+    });
+    if (error) throw new Error(error.message);
+    const url = admin.storage.from("website").getPublicUrl(path).data.publicUrl;
+    return { url, isImage: (file.type || "").startsWith("image/") };
+  });
+}
+
 // A new page or news post (unpublished until the admin publishes it).
 export async function createWebsitePage(formData: FormData) {
   return tryAction(async () => {
@@ -103,6 +122,7 @@ export async function saveWebsitePage(formData: FormData) {
         body: String(formData.get("body") ?? "").slice(0, 20000),
         published: formData.get("published") === "on",
         sort_order: Number(formData.get("sort_order") ?? 0) || 0,
+        menu_group: String(formData.get("menu_group") ?? "").trim().slice(0, 40) || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);

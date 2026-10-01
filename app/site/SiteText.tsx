@@ -1,13 +1,19 @@
 // Page text admins write for the club website: blank lines separate
-// paragraphs, "## " starts a heading, "- " a bullet, and web addresses
-// become links. Plain text only (React escapes it), so nothing typed can
+// paragraphs, "## " starts a heading, "- " a bullet, "![caption](address)"
+// on its own line is a photo, and web addresses become links. Plain text only (React escapes it), so nothing typed can
 // run as code.
 
+// Full web addresses, and the site's own pages written as /site/...
 function linkify(line: string, key: string) {
-  const parts = line.split(/(https?:\/\/[^\s)]+)/g);
+  const parts = line.split(/(https?:\/\/[^\s)]+|\/site(?:\/[^\s)]*)?)/g);
   return parts.map((part, i) =>
-    /^https?:\/\//.test(part) ? (
-      <a key={`${key}-${i}`} href={part} target="_blank" rel="noreferrer" className="underline text-[var(--color-primary)] break-all">
+    /^(https?:\/\/|\/site)/.test(part) ? (
+      <a
+        key={`${key}-${i}`}
+        href={part}
+        {...(part.startsWith("/") ? {} : { target: "_blank", rel: "noreferrer" })}
+        className="underline text-[var(--color-primary)] break-all"
+      >
         {part}
       </a>
     ) : (
@@ -22,6 +28,17 @@ export function SiteText({ text }: { text: string }) {
     <div className="flex flex-col gap-3 leading-relaxed">
       {blocks.map((block, i) => {
         const lines = block.split("\n");
+        const images = lines.map((l) => l.match(/^!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)$/));
+        if (images.every(Boolean)) {
+          return (
+            <div key={i} className="flex flex-wrap gap-3">
+              {images.map((m, j) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={j} src={m![2]} alt={m![1]} loading="lazy" className="max-w-full sm:max-w-md h-auto rounded-lg" />
+              ))}
+            </div>
+          );
+        }
         if (lines[0].startsWith("## ")) {
           return (
             <div key={i} className="flex flex-col gap-2">
