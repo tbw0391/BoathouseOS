@@ -128,6 +128,12 @@ export default function PrivacyPage() {
             including the club and BoathouseOS, can see how a person voted.
           </li>
           <li>
+            <strong>College recruiting (only if listed):</strong> a rower&apos;s or coxswain&apos;s choice to be
+            listed for college coaches, which details to show, anything they add (height, GPA, intended major,
+            about me, a video link), a parent&apos;s approval, and messages college coaches send about them. For
+            college coaches: their name, school, title and school email.
+          </li>
+          <li>
             <strong>Network address:</strong> the IP address of signup, &quot;interested&quot;
             form, club website form and program registration submissions, used only to block spam
             and abuse.
@@ -152,6 +158,13 @@ export default function PrivacyPage() {
           form submissions only to the BoathouseOS team. BoathouseOS&apos;s own staff can see and
           change any club&apos;s information, but only to run the service, help a club that asks,
           fix problems, or keep it secure.
+        </p>
+        <p>
+          If a club turns on college recruiting and a rower or coxswain chooses to be listed (with a parent&apos;s
+          approval if they&apos;re under 18), college coaches that BoathouseOS has approved can see their name,
+          club, role, and only the details they picked. College coaches never see phone numbers, emails,
+          addresses, birthdays or medical information. Their messages go by email to the club&apos;s coaches and
+          the athlete&apos;s parents (and the athlete, if 18 or over). Turning the listing off hides it right away.
         </p>
         <p>
           A club&apos;s public website only shows what the club chooses to publish there, such as

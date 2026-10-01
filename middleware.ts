@@ -1,6 +1,14 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { CLUB_HOST_SUFFIX, CONSOLE_HOST, IS_DEMO_SITE, clubSlugFromHost, isConsoleHost } from '@/lib/site';
+import {
+  CLUB_HOST_SUFFIX,
+  CONSOLE_HOST,
+  IS_DEMO_SITE,
+  RECRUIT_HOST,
+  clubSlugFromHost,
+  isConsoleHost,
+  isRecruitHost,
+} from '@/lib/site';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const supabaseHost = supabaseUrl ? new URL(supabaseUrl).host : '';
@@ -31,6 +39,8 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
   const path = request.nextUrl.pathname;
   const onConsoleHost = isConsoleHost(host);
+  const onRecruitHost = isRecruitHost(host);
+  const onRecruit = path === '/recruit' || path.startsWith('/recruit/');
 
   // The old Global Admin pages moved into the console.
   if (path === '/global-admin' || path.startsWith('/global-admin/')) {
@@ -44,6 +54,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(path + request.nextUrl.search, `https://${CONSOLE_HOST}`));
   }
 
+  // On production the recruit pages only live at recruit.boathouseos.app.
+  if (!IS_DEMO_SITE && !onRecruitHost && onRecruit) {
+    return NextResponse.redirect(new URL(path + request.nextUrl.search, `https://${RECRUIT_HOST}`));
+  }
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   // Tells the layout to show the console's own header instead of a club's.
@@ -53,6 +68,8 @@ export async function middleware(request: NextRequest) {
   // The club's public website (0112) has its own header and no app chrome.
   const onSite = path === '/site' || path.startsWith('/site/');
   if (onSite) requestHeaders.set('x-site', '1');
+  // College coaches' recruit pages (0121): their own plain header.
+  if (onRecruitHost || onRecruit) requestHeaders.set('x-recruit', '1');
   if (process.env.NODE_ENV === 'production') {
     requestHeaders.set('Content-Security-Policy', csp);
   }
@@ -104,7 +121,9 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname === '/terms' ||
     // The club's public website: the page itself sends visitors to sign in
     // if the club hasn't turned it on.
-    onSite;
+    onSite ||
+    // College coaches: the page explains, and checks who's signed in.
+    onRecruit;
 
   // The console's address has only the console and signing in: no club
   // pages, no approval gate (the global admin belongs to no club).
@@ -124,6 +143,20 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/console';
       url.search = '';
       return NextResponse.redirect(url);
+    }
+    return response;
+  }
+
+  // The recruit address has only the recruit pages and signing in.
+  if (onRecruitHost) {
+    const recruitSignIn = ['/login', '/forgot-password', '/reset-password', '/auth', '/terms', '/privacy'].some(
+      (p) => path === p || path.startsWith(p + '/')
+    );
+    if (!onRecruit && !recruitSignIn) {
+      return NextResponse.redirect(new URL('/recruit', request.url));
+    }
+    if (user && (path === '/login' || path === '/forgot-password')) {
+      return NextResponse.redirect(new URL('/recruit', request.url));
     }
     return response;
   }
@@ -172,6 +205,13 @@ export async function middleware(request: NextRequest) {
     // If the check itself fails (e.g. the migration isn't applied yet), don't
     // lock everyone out; RLS still guards the data.
     if (!approvalError && !approved && !onPending) {
+      // A college coach's account belongs to no club: off to the recruit pages.
+      const { data: isRecruiter } = await supabase.rpc('is_recruiter');
+      if (isRecruiter) {
+        return NextResponse.redirect(
+          IS_DEMO_SITE ? new URL('/recruit', request.url) : new URL('/recruit', `https://${RECRUIT_HOST}`)
+        );
+      }
       const url = request.nextUrl.clone();
       url.pathname = '/pending';
       return NextResponse.redirect(url);

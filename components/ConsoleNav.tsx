@@ -10,6 +10,7 @@ const SECTIONS = [
   { href: "/console/health", label: "Site health" },
   { href: "/console/announcements", label: "Announcements" },
   { href: "/console/suggestions", label: "Suggestions" },
+  { href: "/console/recruiters", label: "College coaches" },
   { href: "/console/admins", label: "Global admins" },
 ];
 

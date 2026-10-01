@@ -16,6 +16,7 @@ import { BrandingProvider } from "@/components/ClubBranding";
 import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { cookies, headers } from "next/headers";
 import { ConsoleHeader } from "@/components/ConsoleHeader";
+import { RecruitHeader } from "@/components/RecruitHeader";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -67,6 +68,19 @@ export default async function RootLayout({
       <html lang="en">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-sky-100`}>
           <ConsoleHeader />
+          {children}
+        </body>
+      </html>
+    );
+  }
+
+  // College coaches' recruit pages (recruit.boathouseos.app, or /recruit on
+  // the demo).
+  if ((await headers()).get("x-recruit") === "1") {
+    return (
+      <html lang="en">
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}>
+          <RecruitHeader />
           {children}
         </body>
       </html>

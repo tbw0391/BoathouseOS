@@ -11,11 +11,22 @@ export const CLUB_HOST_SUFFIX = ".boathouseos.app";
 // The global admin console's own address on production (the demo has it at
 // /console). It isn't a club, so no club can take these slugs.
 export const CONSOLE_HOST = `admin${CLUB_HOST_SUFFIX}`;
-export const RESERVED_SLUGS = ["admin", "www", "api", "app", "demo"];
+// College coaches' recruiting pages (/recruit on the demo).
+export const RECRUIT_HOST = `recruit${CLUB_HOST_SUFFIX}`;
+export const RESERVED_SLUGS = ["admin", "www", "api", "app", "demo", "recruit"];
 
 export function isConsoleHost(host: string | null | undefined): boolean {
   return (host ?? "").toLowerCase().split(":")[0] === CONSOLE_HOST;
 }
+
+export function isRecruitHost(host: string | null | undefined): boolean {
+  return (host ?? "").toLowerCase().split(":")[0] === RECRUIT_HOST;
+}
+
+// Where the recruit pages are, from a club's pages and emails.
+export const RECRUIT_URL = IS_DEMO_SITE
+  ? `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.boathouseos.app"}/recruit`
+  : `https://${RECRUIT_HOST}/recruit`;
 
 // Where the console is, from a club's pages.
 export const CONSOLE_URL = IS_DEMO_SITE ? "/console" : `https://${CONSOLE_HOST}/console`;

@@ -812,6 +812,20 @@
       hours per boat over 12 months and km since service with a service
       interval and "Serviced today".
 
+- [x] College recruiting portal (2026-10-01, 0121): college coaches sign
+      up at /recruit (recruit.boathouseos.app on production, which needs a
+      DNS record like admin) with a .edu email, set their password from an
+      emailed link, and a global admin approves them in Console > College
+      coaches. Each club turns it on in Admin Settings > College recruiting.
+      Rowers and coxswains opt in from their profile and pick which fields
+      show (photo, grad year, high school, side, height, weight, 2K/5K,
+      GPA, major, about, video); under-18s (or no birthday) need a linked
+      parent to approve, and the athlete changing what's shown asks again.
+      Never shown: contact details, address, birthday, medical. Contact
+      emails the club's coaches (admins if none), parents, and the athlete
+      if 18+, with reply-to the college coach; 20 messages a day each.
+      Messages show on the athlete's profile for them, parents and coaches.
+
 ## Regatta management (separate product, later)
 - [ ] A regatta management tool for hosting regattas (entries, heat sheets,
       timing, results, referee tools like penalty locations and marshaling)

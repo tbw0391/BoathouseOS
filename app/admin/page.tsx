@@ -25,6 +25,7 @@ import {
   updateAlertSettings,
   updatePaperworkSettings,
   updateCheckInSettings,
+  updateRecruiting,
   updateNavAccess,
   updateOarSettings,
   updateProfileButtons,
@@ -36,6 +37,7 @@ import {
 } from "./actions";
 import { updateStoreLink } from "@/app/store/actions";
 import { ActionForm } from "@/components/ActionForm";
+import { RECRUITING_KEY } from "@/lib/recruiting";
 
 const VISIBILITY_LABEL: Record<string, string> = {
   everyone: "Everyone",
@@ -73,6 +75,7 @@ export default async function AdminPage() {
       "team_store_url",
       PAPERWORK_SETTINGS_KEY,
       CHECK_IN_SETTINGS_KEY,
+      RECRUITING_KEY,
     ]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
@@ -321,6 +324,31 @@ export default async function AdminPage() {
             </label>
           ))}
         </div>
+        <button
+          type="submit"
+          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          Save
+        </button>
+      </ActionForm>
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">College recruiting</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        Rowers and coxswains can list themselves for college coaches from their profile, choosing what&apos;s shown (a
+        parent approves for anyone under 18). Coaches are checked by BoathouseOS and need a school email; they
+        never see contact details, addresses, birthdays or medical information, and their messages go to your
+        coaches and the athlete&apos;s parents. Turning this off hides every listing right away.
+      </p>
+      <ActionForm action={updateRecruiting} className="flex flex-col gap-3 max-w-sm">
+        <label className="border rounded-lg px-4 py-3 text-sm flex items-center gap-2">
+          <input
+            type="checkbox"
+            name="recruiting"
+            defaultChecked={settingsByKey.get(RECRUITING_KEY) === "on"}
+            className="w-4 h-4"
+          />
+          Let our athletes be listed for college coaches
+        </label>
         <button
           type="submit"
           className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"

@@ -38,6 +38,9 @@ import { ProfileShortcuts } from "./ProfileShortcuts";
 import { TextAlertsCard } from "./TextAlertsCard";
 import { ProfilePhotoButton } from "./ProfilePhotoButton";
 import { canOptInToTexts } from "@/lib/smsRules";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { RECRUITING_KEY, type RecruitListing } from "@/lib/recruiting";
+import { RecruitingCard } from "./RecruitingCard";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -243,6 +246,54 @@ export default async function BioPage({
     );
   }
 
+  // College recruiting (0121), when the club has it on: the athlete and
+  // their parents can edit; coaches and admins see where it stands.
+  let recruiting: {
+    listing: RecruitListing | null;
+    contacts: { id: string; message: string; created_at: string; school: string; name: string }[];
+  } | null = null;
+  const isAthlete = profile.role === "rower" || profile.role === "coxswain";
+  const isParentOfProfile = isAthlete && !!user && familyValue.includes(user.id);
+  if (isAthlete && canSeeEmergency) {
+    const { data: recruitingSetting } = await supabase
+      .from("club_settings")
+      .select("value")
+      .eq("key", RECRUITING_KEY)
+      .maybeSingle();
+    if ((recruitingSetting as { value: string | null } | null)?.value === "on") {
+      const [{ data: listingRow }, { data: contactRows }] = await Promise.all([
+        supabase.from("recruit_listings").select("*").eq("profile_id", profile.id).maybeSingle(),
+        supabase
+          .from("recruit_contacts")
+          .select("id, message, created_at, recruiter_id")
+          .eq("profile_id", profile.id)
+          .order("created_at", { ascending: false }),
+      ]);
+      const contacts = (contactRows as { id: string; message: string; created_at: string; recruiter_id: string }[] | null) ?? [];
+      // College coaches aren't club members, so their names come from the
+      // service role (only for messages this member can already see).
+      const { data: recruiterRows } = contacts.length
+        ? await createAdminClient()
+            .from("recruiters")
+            .select("user_id, name, school")
+            .in("user_id", [...new Set(contacts.map((c) => c.recruiter_id))])
+        : { data: [] };
+      const recruiters = new Map(
+        ((recruiterRows as { user_id: string; name: string; school: string }[] | null) ?? []).map((r) => [r.user_id, r])
+      );
+      recruiting = {
+        listing: (listingRow as RecruitListing | null) ?? null,
+        contacts: contacts.map((c) => ({
+          id: c.id,
+          message: c.message,
+          created_at: c.created_at,
+          name: recruiters.get(c.recruiter_id)?.name ?? "A college coach",
+          school: recruiters.get(c.recruiter_id)?.school ?? "",
+        })),
+      };
+    }
+  }
+
   if (edit === "1" && canEdit) {
     return (
       <div className="min-h-screen p-8">
@@ -365,6 +416,17 @@ export default async function BioPage({
       )}
 
       {isSelf && <TextAlertsCard phone={textPhone} canOptIn={canOptInToTexts(profile.role, profile.birthday)} />}
+
+      {recruiting && (
+        <RecruitingCard
+          profile={profile}
+          listing={recruiting.listing}
+          canEdit={isSelf || isParentOfProfile}
+          isParent={isParentOfProfile}
+          hasParent={familyValue.length > 0}
+          contacts={recruiting.contacts}
+        />
+      )}
 
       {profile.disabled_at && (
         <p className="mt-4 text-sm text-red-600">

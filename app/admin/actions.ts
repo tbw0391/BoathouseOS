@@ -29,6 +29,7 @@ import {
   type ProfileGroup,
 } from "@/lib/profileButtons";
 import { UserError, tryAction } from "@/lib/userError";
+import { RECRUITING_KEY } from "@/lib/recruiting";
 
 export async function updateLineupSectionVisibility(formData: FormData) {
   return tryAction(async () => {
@@ -161,6 +162,22 @@ export async function updateAlertSettings(formData: FormData) {
 
     revalidatePath("/");
     revalidatePath("/admin");
+  });
+}
+
+// College recruiting (0121): whether the club's rowers and coxswains can
+// list themselves for college coaches.
+export async function updateRecruiting(formData: FormData) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { data: isAdmin } = await supabase.rpc("is_club_admin");
+    if (!isAdmin) throw new UserError("Only admins can change this.");
+    const { error } = await supabase
+      .from("club_settings")
+      .upsert({ key: RECRUITING_KEY, value: formData.get("recruiting") === "on" ? "on" : "off" }, { onConflict: "club_id,key" });
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin");
+    revalidatePath("/roster", "layout");
   });
 }
 

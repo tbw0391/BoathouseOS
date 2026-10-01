@@ -8,7 +8,7 @@ export function emailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY && !!process.env.EMAIL_FROM;
 }
 
-const escapeHtml = (s: string) =>
+export const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 export function alertEmail(title: string, body: string, link: string) {
@@ -23,7 +23,13 @@ export function alertEmail(title: string, body: string, link: string) {
 }
 
 // Sends one email per recipient (no shared To line). Never throws.
-export async function sendEmails(to: string[], subject: string, html: string, text: string) {
+export async function sendEmails(
+  to: string[],
+  subject: string,
+  html: string,
+  text: string,
+  options: { replyTo?: string } = {}
+) {
   if (!emailConfigured() || to.length === 0) return;
   try {
     for (let i = 0; i < to.length; i += 100) {
@@ -31,7 +37,14 @@ export async function sendEmails(to: string[], subject: string, html: string, te
         method: "POST",
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify(
-          to.slice(i, i + 100).map((address) => ({ from: process.env.EMAIL_FROM, to: [address], subject, html, text }))
+          to.slice(i, i + 100).map((address) => ({
+            from: process.env.EMAIL_FROM,
+            to: [address],
+            subject,
+            html,
+            text,
+            ...(options.replyTo ? { reply_to: options.replyTo } : {}),
+          }))
         ),
       });
       if (!res.ok) console.error("Alert email failed", res.status, await res.text());
