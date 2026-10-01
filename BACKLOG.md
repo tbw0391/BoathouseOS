@@ -750,6 +750,13 @@
       and on the day.
 
 ## Coaching tools
+- [ ] USRowing roster import (2026-10-01, after comparing with iCrew,
+      which has it): a club admin exports the club roster from their
+      USRowing organization account (member number, name, membership
+      expiration, waiver status, SafeSport). Upload it on Coach >
+      Paperwork; match members by USRowing number, then email, then name;
+      fill in USRowing membership, waiver and SafeSport dates; list anyone
+      who didn't match. Needs a real export file to see the exact columns.
 - [x] Seat racing (2026-09-28, 0091): Coach > Seat Racing. Two boats, tap
       rowers in, enter times, pick one from each boat to swap; each swap's
       swing and a running net per rower.
