@@ -128,7 +128,7 @@ export function RosterGrid({
       {filtered.length === 0 ? (
         <p className="text-sm text-gray-500 mt-4">No matching members.</p>
       ) : (
-        <div className="mt-4 -mx-4 px-4 py-4 bg-gray-50 rounded-xl grid grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="mt-4 -mx-4 px-4 py-4 bg-gray-50 rounded-xl grid grid-cols-3 gap-3 max-w-3xl">
           {filtered.map((p) => (
             <Link
               key={p.id}
