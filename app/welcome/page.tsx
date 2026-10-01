@@ -34,7 +34,7 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: Users,
     title: "Roster",
-    body: "Rowers, coxswains, parents, and coaches, with bios, erg times, and family links. New members sign up with a QR code and wait for an admin to approve them.",
+    body: "Rowers, coxswains, parents, and coaches, with bios, erg times, and family links. Admins add members, and see who's on the board and who runs what.",
   },
   {
     icon: Calendar,
