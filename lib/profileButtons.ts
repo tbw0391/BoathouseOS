@@ -32,6 +32,7 @@ export const PROFILE_BUTTONS: NavSectionDef[] = [
   { href: "/coach/paperwork", label: "Paperwork" },
   { href: "/coach/emergency", label: "Emergency Info" },
   { href: "/coach/tasks", label: "Tasks" },
+  { href: "/coach/programs", label: "Program Sign-ups" },
   { href: "/payments/manage", label: "Manage Payments" },
   { href: "/admin", label: "Admin Settings" },
 ];
@@ -45,6 +46,7 @@ const ROLE_LIMITS: Record<string, NavRole[]> = {
   "/coach/paperwork": COACH_AREA,
   "/coach/emergency": COACH_AREA,
   "/coach/tasks": COACH_AREA,
+  "/coach/programs": COACH_AREA,
   "/payments/manage": ["admin"],
   "/admin": ["admin"],
 };
