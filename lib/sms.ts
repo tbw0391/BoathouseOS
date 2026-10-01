@@ -5,8 +5,26 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 // Sends texts through Twilio's REST API. Needs TWILIO_ACCOUNT_SID,
 // TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER; without them nothing is sent.
 
+// The Twilio settings, forgiving of how they were pasted into Vercel: stray
+// spaces, line breaks or quotes around them, and a From number typed like
+// (614) 819-3351.
+function clean(value: string | undefined): string {
+  return (value ?? "").trim().replace(/^["']|["']$/g, "").trim();
+}
+
+function twilioSettings() {
+  const digits = clean(process.env.TWILIO_FROM_NUMBER).replace(/[^\d+]/g, "");
+  const from = digits.startsWith("+") ? digits : digits.length === 10 ? `+1${digits}` : digits ? `+${digits}` : "";
+  return {
+    sid: clean(process.env.TWILIO_ACCOUNT_SID),
+    token: clean(process.env.TWILIO_AUTH_TOKEN),
+    from,
+  };
+}
+
 export function smsConfigured(): boolean {
-  return !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN && !!process.env.TWILIO_FROM_NUMBER;
+  const t = twilioSettings();
+  return !!t.sid && !!t.token && !!t.from;
 }
 
 // Twilio error 21610: the number replied STOP, so Twilio won't text it.
@@ -21,8 +39,8 @@ export async function sendTexts(
 ): Promise<number> {
   if (!smsConfigured() || phones.length === 0) return 0;
   let accepted = 0;
-  const sid = process.env.TWILIO_ACCOUNT_SID!;
-  const auth = Buffer.from(`${sid}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64");
+  const { sid, token, from } = twilioSettings();
+  const auth = Buffer.from(`${sid}:${token}`).toString("base64");
   const optedOut: string[] = [];
   await Promise.allSettled(
     [...new Set(phones)].map(async (to) => {
@@ -30,7 +48,7 @@ export async function sendTexts(
         const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
           method: "POST",
           headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ To: to, From: process.env.TWILIO_FROM_NUMBER!, Body: body }),
+          body: new URLSearchParams({ To: to, From: from, Body: body }),
         });
         if (res.ok) accepted++;
         else {
@@ -56,7 +74,7 @@ export async function sendTexts(
 // Checks X-Twilio-Signature: base64 HMAC-SHA1 (auth token) of the full URL
 // followed by each POST field name and value, sorted by name.
 export function validTwilioSignature(url: string, params: Record<string, string>, signature: string): boolean {
-  const token = process.env.TWILIO_AUTH_TOKEN;
+  const { token } = twilioSettings();
   if (!token || !signature) return false;
   const data = url + Object.keys(params).sort().map((k) => k + params[k]).join("");
   const expected = createHmac("sha1", token).update(data).digest();
@@ -68,13 +86,13 @@ export function validTwilioSignature(url: string, params: Record<string, string>
 // "Send me a test text"). Returns null when Twilio accepted it.
 export async function sendTextReport(to: string, body: string): Promise<string | null> {
   if (!smsConfigured()) return "Texting isn't set up (Twilio settings missing).";
-  const sid = process.env.TWILIO_ACCOUNT_SID!;
-  const auth = Buffer.from(`${sid}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64");
+  const { sid, token, from } = twilioSettings();
+  const auth = Buffer.from(`${sid}:${token}`).toString("base64");
   try {
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
       method: "POST",
       headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ To: to, From: process.env.TWILIO_FROM_NUMBER!, Body: body }),
+      body: new URLSearchParams({ To: to, From: from, Body: body }),
     });
     if (res.ok) return null;
     const err = (await res.json().catch(() => null)) as { code?: number; message?: string } | null;

@@ -661,9 +661,17 @@
         2026-09-30 on the number's Messaging Service (Integration → Send a
         webhook) to https://westerville.boathouseos.app/api/twilio/inbound
         (POST): one number for every site; STOP/START are recorded on
-        production. Still to do: copy the TWILIO_* settings into
-        boathouseos-prod and redeploy (production refuses the webhook
-        until then); submit
+        production. TWILIO_* in boathouseos-prod and STOP/START tested
+        end to end on production 2026-09-30 (both recorded). NOT sending:
+        (614) 819-3351 is a local number, and carriers block texts from
+        unregistered local numbers (Twilio error 30034). Even the 9/28 "test
+        text" was Undelivered, and Twilio's STOP/START replies never went
+        out. Needs A2P 10DLC registration (brand + campaign, on the
+        Messaging Service's A2P & Compliance page), or a toll-free number
+        with toll-free verification instead. Todd submitted the 10DLC
+        registration 2026-09-30; waiting for approval. After approval: send
+        a test text from the profile's Text alerts card on production.
+        Earlier plan was to submit
         toll-free (or 10DLC) verification pointing at the profile opt-in,
         /terms and /privacy; until approved, only Verified Caller IDs
         get texts.
