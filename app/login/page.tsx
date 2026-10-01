@@ -81,7 +81,10 @@ export default function LoginPage() {
           Forgot password?
         </Link>
         {SELF_SIGNUP_OPEN && (
-          <Link href="/signup" className="text-sm text-gray-500 hover:underline text-center">
+          <Link
+            href="/signup"
+            className="border-2 border-[var(--color-primary)] text-[var(--color-primary)] rounded px-3 py-2 text-center font-medium hover:bg-gray-50"
+          >
             New here? Create an account
           </Link>
         )}
