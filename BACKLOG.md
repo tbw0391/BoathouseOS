@@ -1060,8 +1060,20 @@
         club's admins. Admins see everyone, give waitlisted people a spot,
         cancel, mark paid, add notes, download a CSV. Coaches can read
         registrations in the database but have no page for them yet.
-        Later: card payment (after the Stripe decision), a coach view,
-        turning a registration into a member account.
+        Later: card payment (after the Stripe decision).
+      - Coach > Program Sign-ups (2026-10-01): who's coming to each program,
+        tap-to-call parent and emergency contact, medical notes.
+      - Members sign up in the app (2026-10-01, 0120): a "Programs" home
+        button (/programs). Each program lists the parent's rowers (and
+        themselves) with a Register button; only the program's own questions
+        and the waiver are asked. Birthday, contact details, emergency
+        contact and medical notes come from the profile (no emergency
+        contact = a link to add one first). Linked to the rower
+        (program_registrations.profile_id; one per rower per program),
+        shown on their profile, tagged "Member" for admins and coaches;
+        families can cancel. Signed-in members on the website's program
+        page get a "Sign up in the app" link; the website form stays for
+        new families.
       - Next: "replication", a one-time import of a club's existing site
         (pages, text, images) as a starting point; custom domains (e.g.
         westervillecrew.org) added to Vercel automatically, which depends

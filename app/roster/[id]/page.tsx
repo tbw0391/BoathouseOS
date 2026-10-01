@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatProgramDates } from "@/lib/programs";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { FamilyLink, Photo, PhotoTag, Profile, ProfileTeam } from "@/lib/database.types";
@@ -143,6 +144,27 @@ export default async function BioPage({
   const { data: emergencyRow } = canSeeEmergency
     ? await supabase.from("emergency_info").select("*").eq("profile_id", profile.id).maybeSingle()
     : { data: null };
+  // Programs they're signed up for (0120): family, coaches and admins.
+  const { data: programRegRows } = canSeeEmergency
+    ? await supabase
+        .from("program_registrations")
+        .select("id, status, program_id")
+        .eq("profile_id", profile.id)
+        .neq("status", "cancelled")
+    : { data: [] };
+  const regRowsTyped = (programRegRows as { id: string; status: string; program_id: string }[] | null) ?? [];
+  const { data: regProgramRows } = regRowsTyped.length
+    ? await supabase
+        .from("programs")
+        .select("id, title, starts_on, ends_on")
+        .in("id", regRowsTyped.map((r) => r.program_id))
+    : { data: [] };
+  const regProgramById = new Map(
+    ((regProgramRows as { id: string; title: string; starts_on: string | null; ends_on: string | null }[] | null) ?? []).map(
+      (p) => [p.id, p]
+    )
+  );
+  const programRegs = regRowsTyped.map((r) => ({ ...r, programs: regProgramById.get(r.program_id) ?? null }));
 
   const { data: tagRows } = await supabase
     .from("photo_tags")
@@ -450,6 +472,28 @@ export default async function BioPage({
       )}
 
       {canSeeEmergency && <EmergencyInfoCard profileId={profile.id} info={emergencyRow as EmergencyInfo | null} />}
+
+      {programRegs.length > 0 && (
+        <div className="mt-6 max-w-lg rounded-lg border-2 border-gray-200 p-4">
+          <h2 className="font-semibold mb-2">Programs</h2>
+          <ul className="text-sm flex flex-col gap-1">
+            {programRegs.map((r) => (
+              <li key={r.id}>
+                {r.programs?.title ?? "Program"}
+                <span className="text-gray-500">
+                  {[formatProgramDates(r.programs?.starts_on ?? null, r.programs?.ends_on ?? null), r.status === "waitlist" ? "Waitlist" : "Registered"]
+                    .filter(Boolean)
+                    .map((t) => ` · ${t}`)
+                    .join("")}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Link href="/programs" className="text-sm text-[var(--color-primary)] hover:underline">
+            All programs →
+          </Link>
+        </div>
+      )}
 
       {taggedPhotos.length > 0 && (
         <div className="mt-6 max-w-lg">

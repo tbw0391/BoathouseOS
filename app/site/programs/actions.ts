@@ -2,17 +2,13 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp } from "@/lib/clientIp";
-import { emailConfigured, sendEmails } from "@/lib/email";
 import { getSiteClub } from "@/lib/website";
-import { formatPrice, parseProgramQuestions, programState, type Program } from "@/lib/programs";
+import { programState, type Program } from "@/lib/programs";
+import { checkAnswers, saveRegistration } from "@/lib/programRegistration";
 import { UserError, tryAction } from "@/lib/userError";
 
 // Families often sign up more than one child at once.
 const MAX_PER_IP_PER_HOUR = 10;
-
-function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 // Registration from the club website (0117). Public, so it writes with the
 // service role, for the club whose address this is. Once the program is
@@ -57,14 +53,7 @@ export async function registerForProgram(formData: FormData) {
     if (!emergencyName || !emergencyPhone) throw new UserError("Please enter an emergency contact and their phone number.");
     if (program.waiver && formData.get("waiver") !== "on") throw new UserError("Please read and agree to the waiver.");
 
-    const answers: Record<string, string> = {};
-    for (const q of parseProgramQuestions(program.questions)) {
-      const value = String(formData.get(`q:${q.id}`) ?? "").trim().slice(0, 2000);
-      if (value && q.kind === "choice" && !q.options.includes(value)) throw new UserError(`Pick one of the choices for "${q.label}".`);
-      if (value && q.kind === "yes_no" && value !== "Yes" && value !== "No") throw new UserError(`Answer yes or no for "${q.label}".`);
-      if (q.required && !value) throw new UserError(`Please answer "${q.label}".`);
-      if (value) answers[q.id] = value;
-    }
+    const answers = checkAnswers(program, (id) => String(formData.get(`q:${id}`) ?? ""));
 
     const ip = await getClientIp();
     const { count: recent } = await admin
@@ -74,20 +63,7 @@ export async function registerForProgram(formData: FormData) {
       .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
     if ((recent ?? 0) >= MAX_PER_IP_PER_HOUR) throw new UserError("Too many registrations from this network. Please try again later.");
 
-    let status: "registered" | "waitlist" = "registered";
-    if (program.capacity !== null) {
-      const { count: taken } = await admin
-        .from("program_registrations")
-        .select("id", { count: "exact", head: true })
-        .eq("program_id", program.id)
-        .eq("status", "registered");
-      if ((taken ?? 0) >= program.capacity) status = "waitlist";
-    }
-
-    const { error } = await admin.from("program_registrations").insert({
-      club_id: club.id,
-      program_id: program.id,
-      status,
+    const status = await saveRegistration(admin, club, program, {
       participant_name: participant,
       participant_birthdate: birthdate,
       guardian_name: guardian,
@@ -97,46 +73,8 @@ export async function registerForProgram(formData: FormData) {
       emergency_phone: emergencyPhone,
       medical_notes: medical,
       answers,
-      waiver_accepted_at: program.waiver ? new Date().toISOString() : null,
       ip,
     });
-    if (error) throw new UserError("Couldn't save the registration. Please try again.");
-
-    if (emailConfigured()) {
-      const price = formatPrice(program.price_cents);
-      const confirm = [
-        status === "waitlist"
-          ? `${participant} is on the waitlist for ${program.title} at ${club.name}. The club will contact you if a spot opens up.`
-          : `${participant} is registered for ${program.title} at ${club.name}.`,
-        price && price !== "Free" && status === "registered" ? `Cost: ${price}. The club will be in touch about payment.` : null,
-        `Questions? Contact ${club.name} through its website.`,
-      ].filter(Boolean) as string[];
-      const html = (lines: string[]) =>
-        `<div style="font-family:system-ui,sans-serif;max-width:520px">${lines
-          .map((l) => `<p style="margin:0 0 8px;white-space:pre-line">${escapeHtml(l)}</p>`)
-          .join("")}</div>`;
-      await sendEmails(
-        [email],
-        `${status === "waitlist" ? "Waitlist" : "Registered"}: ${program.title}`,
-        html(confirm),
-        confirm.join("\n\n")
-      );
-
-      const { data: admins } = await admin
-        .from("profiles")
-        .select("email")
-        .eq("club_id", club.id)
-        .eq("role", "admin")
-        .not("approved_at", "is", null)
-        .is("disabled_at", null);
-      const to = ((admins as { email: string | null }[] | null) ?? []).map((a) => a.email?.trim()).filter((e): e is string => !!e);
-      const note = [
-        `${participant} ${status === "waitlist" ? "joined the waitlist for" : "registered for"} ${program.title}.`,
-        `Contact: ${guardian ? `${guardian}, ` : ""}${email}, ${phone}`,
-        `See everyone in the app: Admin Settings > Website > Programs.`,
-      ];
-      if (to.length) await sendEmails(to, `${club.name}: ${participant} ${status === "waitlist" ? "waitlisted for" : "registered for"} ${program.title}`, html(note), note.join("\n"));
-    }
 
     return { status };
   });

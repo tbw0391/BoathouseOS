@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { medicalSummary, primaryEmergencyContact } from "@/lib/emergencyInfo";
 import { formatPrice, formatProgramDates, parseProgramQuestions, programState, spotsLeft } from "@/lib/programs";
 
 describe("programState", () => {
@@ -44,5 +45,19 @@ describe("parseProgramQuestions", () => {
       ])
     ).toEqual([{ id: "a", label: "Size", kind: "choice", options: ["S", "M"], required: true }]);
     expect(parseProgramQuestions(null)).toEqual([]);
+  });
+});
+
+describe("registration details from the profile", () => {
+  it("uses the first emergency contact with a phone", () => {
+    expect(primaryEmergencyContact({ contact1_name: "Al", contact2_name: "Bea", contact2_relation: "Aunt", contact2_phone: "555-1" })).toEqual({
+      name: "Bea (Aunt)",
+      phone: "555-1",
+    });
+    expect(primaryEmergencyContact({ contact1_name: "Al" })).toBeNull();
+  });
+  it("joins medical notes", () => {
+    expect(medicalSummary({ allergies: "Bees", medications: "", medical_notes: "Asthma" })).toBe("Allergies: Bees. Asthma");
+    expect(medicalSummary(null)).toBeNull();
   });
 });

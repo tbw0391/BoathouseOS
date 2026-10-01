@@ -22,6 +22,7 @@ import {
   Navigation,
   ClipboardList,
   ClipboardCheck,
+  CalendarCheck,
   Settings,
   Vote,
   Megaphone,
@@ -130,6 +131,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/contacts": Contact,
   "/site": Globe,
   "/forms": ClipboardCheck,
+  "/programs": CalendarCheck,
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;

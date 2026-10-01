@@ -62,6 +62,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   { href: "/contacts", label: "Who to Ask" },
   { href: "/site", label: "Club Website" },
   { href: "/forms", label: "Forms & Elections" },
+  { href: "/programs", label: "Programs" },
 ];
 
 // Per-role home-screen buttons, set from /admin: pick a type of user, then

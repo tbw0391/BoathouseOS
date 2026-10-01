@@ -85,7 +85,18 @@ export default async function AdminProgramPage({ params }: { params: Promise<{ i
               {g.rows.map((r) => (
                 <div key={r.id} className={`border rounded-lg p-3 text-sm flex flex-col gap-1 ${r.status === "cancelled" ? "opacity-60" : ""}`}>
                   <p className="font-medium">
-                    {r.participant_name}
+                    {r.profile_id ? (
+                      <Link href={`/roster/${r.profile_id}`} className="hover:underline">
+                        {r.participant_name}
+                      </Link>
+                    ) : (
+                      r.participant_name
+                    )}
+                    {r.profile_id && (
+                      <span className="ml-2 text-[10px] font-medium uppercase tracking-wide rounded-full px-2 py-0.5 bg-gray-100 text-gray-600">
+                        Member
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500 font-normal">
                       {" "}
                       {[age(r.participant_birthdate), r.paid_at && "Paid ✓"].filter(Boolean).join(" · ")}
