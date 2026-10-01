@@ -57,6 +57,26 @@ export async function fetchCrewTimerFeed(feedUrl: string, revalidateSeconds = 60
   }
 }
 
+// A race's local start from CrewTimer's "Start": "7:45 AM" on the regatta's
+// date, or, at multi-day regattas, "10/4 13:05" (month/day, 24-hour, AM/PM
+// optional) in the regatta's year.
+export function crewTimerStartLocal(
+  regattaDate: string,
+  start: string | null
+): { date: string; hour: number; minute: number } | null {
+  const m = start?.trim().match(/^(?:(\d{1,2})\/(\d{1,2})\s+)?(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!m) return null;
+  let hour = Number(m[3]);
+  if (m[5]) hour = (hour % 12) + (m[5].toUpperCase() === "PM" ? 12 : 0);
+  else if (!m[1]) return null; // a bare "8:45" could be AM or PM
+  const minute = Number(m[4]);
+  if (hour > 23 || minute > 59) return null;
+  const date = m[1]
+    ? `${regattaDate.slice(0, 4)}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`
+    : regattaDate;
+  return { date, hour, minute };
+}
+
 export function normalizeCrewName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }

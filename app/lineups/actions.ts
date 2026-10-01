@@ -11,7 +11,14 @@ import {
 import { HULL_COLOR_OPTIONS, RIG_OPTIONS } from "@/lib/boatOptions";
 import type { LineupCategory } from "@/lib/database.types";
 import { getSelectedClubSlug } from "@/lib/demoClubs";
-import { clubRaces, crewNamesIn, crewTimerFeedUrl, fetchCrewTimerFeed, type Feed } from "@/lib/crewtimer";
+import {
+  clubRaces,
+  crewNamesIn,
+  crewTimerFeedUrl,
+  crewTimerStartLocal,
+  fetchCrewTimerFeed,
+  type Feed,
+} from "@/lib/crewtimer";
 import { hotcRaceCategory, hotcRaceName } from "@/lib/hotc";
 import { notifyOarSheetCaptain } from "@/lib/oarSheetAlerts";
 import {
@@ -402,13 +409,10 @@ async function loadCrewTimer(link: string): Promise<{ feed: Feed; date: string }
   return { feed, date };
 }
 
-// "7:45 AM" on the regatta's date, Eastern.
+// "7:45 AM" on the regatta's date (or "10/4 13:05" on a later day), Eastern.
 function crewTimerStart(date: string, start: string | null): string | null {
-  const m = start?.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!m) return null;
-  let hour = Number(m[1]) % 12;
-  if (m[3].toUpperCase() === "PM") hour += 12;
-  return easternTimeOn(date, hour, Number(m[2]));
+  const local = crewTimerStartLocal(date, start);
+  return local ? easternTimeOn(local.date, local.hour, local.minute) : null;
 }
 
 // Step 1 of "From CrewTimer": your club's entries in that regatta, or, if

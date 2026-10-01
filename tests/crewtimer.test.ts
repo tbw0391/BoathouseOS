@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clubRaces, crewNamesIn, crewTimerFeedUrl, type Feed } from "@/lib/crewtimer";
+import { clubRaces, crewNamesIn, crewTimerFeedUrl, crewTimerStartLocal, type Feed } from "@/lib/crewtimer";
 import { hotcRaceCategory, hotcRaceName } from "@/lib/hotc";
 import { categoryForRace } from "@/lib/lineupCategories";
 
@@ -54,6 +54,8 @@ describe("clubRaces", () => {
 describe("race categories", () => {
   it("guesses squad, depth and boat from the event and boat letter", () => {
     expect(hotcRaceCategory({ eventName: "Womens Youth 2nd 8+", crew: "X" })).toBe("womens_2_8plus");
+    expect(hotcRaceCategory({ eventName: "Mens Youth U19 2nd8+", crew: "X" })).toBe("mens_2_8plus");
+    expect(hotcRaceCategory({ eventName: "Womens Youth U19 1st8+", crew: "X B" })).toBe("womens_1_8plus");
     expect(hotcRaceCategory({ eventName: "Mens Youth 8+", crew: "Club B" })).toBe("mens_2_8plus");
     expect(hotcRaceCategory({ eventName: "Womens Masters 4+", crew: "Club" })).toBe("masters_1_4plus");
     expect(hotcRaceCategory({ eventName: "Mixed 8+", crew: "Club" })).toBeNull();
@@ -63,5 +65,22 @@ describe("race categories", () => {
     expect(categoryForRace("Race 12: Men's Masters 8+", "mens_1_8plus")).toBe("masters");
     expect(categoryForRace("Race 12: Men's Masters 8+", "masters_2_8plus")).toBe("masters_2_8plus");
     expect(categoryForRace("Race 3: Mens Youth 8+", "mens_1_8plus")).toBe("mens_1_8plus");
+  });
+});
+
+describe("crewTimerStartLocal", () => {
+  it("reads a clock time on the regatta's date", () => {
+    expect(crewTimerStartLocal("2026-09-26", "8:45 AM")).toEqual({ date: "2026-09-26", hour: 8, minute: 45 });
+    expect(crewTimerStartLocal("2026-09-26", "12:05 PM")).toEqual({ date: "2026-09-26", hour: 12, minute: 5 });
+    expect(crewTimerStartLocal("2026-09-26", "12:05 AM")).toEqual({ date: "2026-09-26", hour: 0, minute: 5 });
+  });
+  it("reads a month/day and 24-hour time at multi-day regattas", () => {
+    expect(crewTimerStartLocal("2026-10-03", "10/3 8:00")).toEqual({ date: "2026-10-03", hour: 8, minute: 0 });
+    expect(crewTimerStartLocal("2026-10-03", "10/4 13:25")).toEqual({ date: "2026-10-04", hour: 13, minute: 25 });
+  });
+  it("gives up on anything else", () => {
+    expect(crewTimerStartLocal("2026-10-03", "8:00")).toBeNull();
+    expect(crewTimerStartLocal("2026-10-03", "")).toBeNull();
+    expect(crewTimerStartLocal("2026-10-03", null)).toBeNull();
   });
 });
