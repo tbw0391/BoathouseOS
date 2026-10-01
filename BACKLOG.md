@@ -776,8 +776,14 @@
         elapsed times for head races, order and margins for sprints);
         referee tools (penalties, exclusions, protests, equipment checks,
         log); results (live, progression, medals/points, export).
-      - First version not picked yet: head race timing and results, or
-        referee tools first.
+      - First version (Todd, 2026-10-01): head race timing. Boats start
+        one at a time; a start timer and a finish timer tap bow numbers;
+        elapsed time ranks each event; live results. The host types or
+        pastes entries (bow #, club, crew, event), with no online entry
+        yet. Still to decide: who records times (volunteers with a link or
+        PIN and no account, or signed-in officials). Wait for the separate
+        site (regatta.boathouseos.app, after the DNS decision with Jeff)
+        before building.
 
 ## Suggestions
 - [x] Suggestion box: anyone can submit an idea from a "Suggestions" tile on
