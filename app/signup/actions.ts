@@ -2,7 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { clubByJoinCode, siteClubId } from "@/lib/clubs";
-import { SELF_SIGNUP_OPEN } from "@/lib/signup";
+import { AUTO_APPROVE_CLUB_SLUGS, SELF_SIGNUP_OPEN } from "@/lib/signup";
 import { getClientIp } from "@/lib/clientIp";
 import type { Team } from "@/lib/database.types";
 import { TERMS_REQUIRED, TERMS_VERSION } from "@/lib/terms";
@@ -59,6 +59,8 @@ export async function signUp(formData: FormData) {
       throw new UserError("This invite link isn't valid anymore. Ask your club for a new one.");
     }
     const clubId = invitedTo?.id ?? (await siteClubId(admin));
+    const { data: club } = await admin.from("clubs").select("slug").eq("id", clubId).single();
+    const autoApprove = AUTO_APPROVE_CLUB_SLUGS.includes((club as { slug: string } | null)?.slug ?? "");
 
     const ip = await getClientIp();
     const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
@@ -92,8 +94,9 @@ export async function signUp(formData: FormData) {
       first_name: firstName,
       last_name: lastName,
       role,
-      // Pending until an admin approves them (see 0060_member_approval.sql).
-      approved_at: null,
+      // Pending until an admin approves them (see 0060_member_approval.sql),
+      // unless their club approves signups automatically.
+      approved_at: autoApprove ? new Date().toISOString() : null,
     });
 
     if (profileError) {

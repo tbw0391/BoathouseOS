@@ -1001,6 +1001,10 @@
 - [x] Each club's app name and home-screen icon (0106, /admin "App name and
       icon"); Westerville's is the W with crossed oars, "Westerville Crew" /
       "W-Crew" (2026-09-30).
+- [ ] Westerville signups are approved automatically for now (2026-10-01,
+      AUTO_APPROVE_CLUB_SLUGS in lib/signup.ts), so members moving over
+      don't wait on an admin. Take "westerville" out of the list to go back
+      to admin approval.
 - [ ] Switch-over: tell members the new address, then
       back up and delete W-Crew-app (Supabase + Vercel).
 - [ ] One Twilio number can only send "STOP/START" replies to one site; it

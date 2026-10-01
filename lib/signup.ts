@@ -4,3 +4,8 @@
 // them. Set to false to close it; admins can still add members from the
 // Roster.
 export const SELF_SIGNUP_OPEN = true;
+
+// Clubs (by slug) whose self-signups are approved right away instead of
+// waiting for an admin. Westerville, for now (2026-10-01). Admins can still
+// remove anyone from the Roster.
+export const AUTO_APPROVE_CLUB_SLUGS: readonly string[] = ["westerville"];
