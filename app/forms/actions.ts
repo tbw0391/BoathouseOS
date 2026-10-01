@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { clubIdOf } from "@/lib/clubs";
 import { sendPush } from "@/lib/push";
-import { formAudienceIds } from "@/lib/formAlerts";
+import { formAudienceIds, formPending, sendFormReminder } from "@/lib/formAlerts";
 import { FORM_AUDIENCES, ELECTION_VOTERS, QUESTION_KINDS, canCreateElections, canCreateForms, kindHasOptions } from "@/lib/forms";
 import type { Form, FormAudience, FormQuestion, FormQuestionKind, ElectionVoters } from "@/lib/database.types";
 import { UserError, tryAction } from "@/lib/userError";
@@ -344,5 +344,31 @@ export async function castBallot(formId: string, picks: Record<string, string[]>
       throw new Error(error.message);
     }
     refresh(formId);
+  });
+}
+
+const REMIND_EVERY_MS = 12 * 60 * 60 * 1000;
+
+// "Remind them": a phone alert to everyone who hasn't answered or voted yet,
+// at most every 12 hours (0119).
+export async function remindForm(formId: string) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase, formId);
+    const { data } = await supabase.from("forms").select("*").eq("id", formId).single();
+    const form = data as Form | null;
+    if (!form) throw new UserError("That form isn't there any more.");
+    const { data: open } = await supabase.rpc("form_is_open", { p_form: formId });
+    if (!open) throw new UserError("It's closed, so there's nobody to remind.");
+    if (form.reminded_at && Date.now() - new Date(form.reminded_at).getTime() < REMIND_EVERY_MS) {
+      throw new UserError("A reminder went out in the last 12 hours. Try again later.");
+    }
+    const { pending } = await formPending(createAdminClient(), form);
+    if (pending.length === 0) throw new UserError("Everyone has already answered.");
+    const { error } = await supabase.from("forms").update({ reminded_at: new Date().toISOString() }).eq("id", formId);
+    if (error) throw new Error(error.message);
+    after(() => sendFormReminder(form, pending, false));
+    refresh(formId);
+    return { count: pending.length };
   });
 }

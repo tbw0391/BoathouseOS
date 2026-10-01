@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { answerText, fileNameFromPath, formIsOpen, tally } from "@/lib/forms";
+import { householdOf } from "@/lib/formAlerts";
 
 describe("formIsOpen", () => {
   const now = new Date("2026-10-01T12:00:00Z");
@@ -38,5 +39,26 @@ describe("answerText", () => {
     expect(answerText({ kind: "file" }, "club/form/me/1727790000000-waiver.pdf")).toBe("waiver.pdf");
     expect(fileNameFromPath("x/1-a-b.png")).toBe("a-b.png");
     expect(answerText({ kind: "short" }, undefined)).toBe("");
+  });
+});
+
+describe("householdOf (one vote per family)", () => {
+  // Mom and Dad (spouses) guard Kid; Grandma also guards Kid; Aunt guards Cousin.
+  const links = [
+    { guardian_id: "mom", rower_id: "kid" },
+    { guardian_id: "grandma", rower_id: "kid" },
+    { guardian_id: "aunt", rower_id: "cousin" },
+  ];
+  const spouseOf = new Map([
+    ["mom", "dad"],
+    ["dad", "mom"],
+  ]);
+  it("groups spouses, their rowers and the rowers' other guardians", () => {
+    expect([...householdOf("dad", links, spouseOf)].sort()).toEqual(["dad", "grandma", "kid", "mom"]);
+    expect([...householdOf("kid", links, spouseOf)].sort()).toEqual(["dad", "grandma", "kid", "mom"]);
+  });
+  it("keeps other families apart", () => {
+    expect([...householdOf("aunt", links, spouseOf)].sort()).toEqual(["aunt", "cousin"]);
+    expect([...householdOf("coach", links, spouseOf)]).toEqual(["coach"]);
   });
 });

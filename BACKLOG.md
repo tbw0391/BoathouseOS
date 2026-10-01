@@ -579,8 +579,15 @@
         see turnout while it's open.
       - Phone alert to the audience when one is posted ("New forms and
         elections" switch).
-      - Later ideas: a parent filling in a form for their rower;
-        closing-soon reminders; who hasn't answered yet.
+      - Reminders (2026-10-01, 0119): the Responses / Turnout page lists who
+        it's for and hasn't answered or voted (elections leave out people
+        who can't vote: under-18 rowers/coxes in an adults-only one, and
+        families that already used their one vote), with "Remind them", a
+        phone alert to just those people, at most every 12 hours. The
+        alerts job also sends one reminder the day before it closes
+        (skipped for forms posted under 12 hours earlier). "Form and
+        election reminders" alert switch.
+      - Later idea: a parent filling in a form for their rower.
 - [x] Group chat list, with a "New message" flow to start a chat/DM with any
       combination of people on the roster
 - [x] Send/receive messages in a group, live via Supabase Realtime

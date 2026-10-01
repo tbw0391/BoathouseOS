@@ -92,6 +92,11 @@ export const ALERT_TYPES = [
     label: "New forms and elections",
     detail: "Phone alert to a form's or election's audience when it's posted.",
   },
+  {
+    kind: "form_reminder",
+    label: "Form and election reminders",
+    detail: "Phone alert to people who haven't answered: the day before it closes, and when an organizer taps \"Remind them\".",
+  },
 ] as const;
 
 export type AlertKind = (typeof ALERT_TYPES)[number]["kind"];

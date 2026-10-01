@@ -703,6 +703,8 @@ export interface Form {
   voters: ElectionVoters;
   closes_at: string | null;
   closed_at: string | null;
+  // Last "Remind them" (0119).
+  reminded_at: string | null;
   created_by: string | null;
   created_at: string;
 }
