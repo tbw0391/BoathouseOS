@@ -77,7 +77,7 @@ export async function uploadWebsiteFile(formData: FormData) {
     const { clubId } = await requireAdmin();
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0) throw new UserError("Pick a file.");
-    if (file.size > 25 * 1024 * 1024) throw new UserError("That file is too big (25MB at most).");
+    if (file.size > 50 * 1024 * 1024) throw new UserError("That file is too big (50MB at most).");
     const name = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").slice(-80) || "file";
     const path = `${clubId}/uploads/${Date.now()}-${name}`;
     const admin = createAdminClient();
