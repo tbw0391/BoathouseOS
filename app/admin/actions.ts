@@ -15,6 +15,7 @@ import {
 } from "@/lib/navSections";
 import { LINEUP_SECTIONS } from "@/lib/lineupSections";
 import { saveClubAppBranding } from "@/lib/clubIcon";
+import { PAPERWORK, PAPERWORK_ROLES, PAPERWORK_SETTINGS_KEY } from "@/lib/paperwork";
 import { DEFAULT_THEME_COLORS, isHexColor, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES } from "@/lib/alertSettings";
 import { OAR_COLORS_KEY } from "@/lib/oarSheet";
@@ -159,6 +160,34 @@ export async function updateAlertSettings(formData: FormData) {
 
     revalidatePath("/");
     revalidatePath("/admin");
+  });
+}
+
+// Which roles need each piece of paperwork, and whether parents see their
+// child's paperwork (lib/paperwork.ts).
+export async function updatePaperworkSettings(formData: FormData) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { data: isAdmin } = await supabase.rpc("is_club_admin");
+    if (!isAdmin) throw new UserError("Only admins can change paperwork settings.");
+
+    const roles: readonly string[] = PAPERWORK_ROLES.map((r) => r.role);
+    const required = Object.fromEntries(
+      PAPERWORK.map((p) => [
+        p.kind,
+        formData.getAll(`paperwork:${p.kind}`).map(String).filter((r) => roles.includes(r)),
+      ])
+    );
+    const value = JSON.stringify({ required, parentsSeeChild: formData.get("parents_see_child") === "on" });
+
+    const { error } = await supabase
+      .from("club_settings")
+      .upsert({ key: PAPERWORK_SETTINGS_KEY, value }, { onConflict: "club_id,key" });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/admin");
+    revalidatePath("/coach/paperwork");
+    revalidatePath("/roster", "layout");
   });
 }
 

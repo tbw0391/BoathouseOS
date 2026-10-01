@@ -14,8 +14,8 @@ export const PAPERWORK: {
   { kind: "usrowing", label: "USRowing membership", short: "USR", roles: ["rower", "coxswain", "coach"], validMonths: 12 },
   { kind: "waiver", label: "USRowing waiver", short: "Waiver", roles: ["rower", "coxswain", "coach"], validMonths: 12 },
   { kind: "swim_test", label: "Swim test", short: "Swim", roles: ["rower", "coxswain"], validMonths: null },
-  { kind: "safesport", label: "SafeSport training", short: "SafeSport", roles: ["coach", "admin"], validMonths: 12 },
-  { kind: "background_check", label: "Background check", short: "Bkgd", roles: ["coach", "admin"], validMonths: 24 },
+  { kind: "safesport", label: "SafeSport training", short: "SafeSport", roles: ["coach"], validMonths: 12 },
+  { kind: "background_check", label: "Background check", short: "Bkgd", roles: ["coach"], validMonths: 24 },
 ];
 
 export const EXPIRING_DAYS = 30;
@@ -23,8 +23,44 @@ export const EXPIRING_DAYS = 30;
 export type PaperworkRecord = { kind: string; completed_on: string | null; expires_on: string | null; checked_by?: string | null };
 export type PaperworkStatus = "ok" | "expiring" | "expired" | "missing";
 
-export function requiredFor(role: string) {
-  return PAPERWORK.filter((p) => p.roles.includes(role));
+// Who needs what, and whether parents see their child's paperwork, are picked
+// per club in Admin Settings (club_settings "paperwork_settings"); `roles`
+// above are the defaults. Admins on the Coach team count as coaches.
+export const PAPERWORK_SETTINGS_KEY = "paperwork_settings";
+export const PAPERWORK_ROLES = [
+  { role: "rower", label: "Rowers" },
+  { role: "coxswain", label: "Coxswains" },
+  { role: "coach", label: "Coaches (and admins on the Coach team)" },
+  { role: "admin", label: "All admins" },
+] as const;
+
+export type PaperworkSettings = {
+  required: Record<PaperworkKind, string[]>;
+  parentsSeeChild: boolean;
+};
+
+export function parsePaperworkSettings(raw: string | null | undefined): PaperworkSettings {
+  const settings: PaperworkSettings = {
+    required: Object.fromEntries(PAPERWORK.map((p) => [p.kind, [...p.roles]])) as Record<PaperworkKind, string[]>,
+    parentsSeeChild: true,
+  };
+  if (!raw) return settings;
+  try {
+    const saved = JSON.parse(raw) as Partial<PaperworkSettings>;
+    for (const p of PAPERWORK) {
+      const roles = saved.required?.[p.kind];
+      if (Array.isArray(roles)) settings.required[p.kind] = roles.filter((r) => typeof r === "string");
+    }
+    if (typeof saved.parentsSeeChild === "boolean") settings.parentsSeeChild = saved.parentsSeeChild;
+  } catch {
+    // Unreadable: the defaults.
+  }
+  return settings;
+}
+
+export function requiredFor(role: string, settings: PaperworkSettings = parsePaperworkSettings(null), teams: readonly string[] = []) {
+  const roles = role === "admin" && teams.includes("coach") ? ["admin", "coach"] : [role];
+  return PAPERWORK.filter((p) => settings.required[p.kind].some((r) => roles.includes(r)));
 }
 
 function addDays(dateKey: string, n: number) {
