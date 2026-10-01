@@ -16,7 +16,13 @@
         CNAME, and have the app add each club's address to Vercel through
         its API (needs a Vercel token). This keeps email forwarding.
 - [ ] Stripe card payments (on hold since 2026-09-30):
-      - DIRECTION (Todd, 2026-09-30): every charge goes through BoathouseOS,
+      - UNDECIDED (Todd, 2026-09-30, later): he's reconsidering. The other
+        option is to keep what's built: each club runs its own Stripe
+        account and BoathouseOS takes 1% (the convenience fee, sent
+        automatically as Stripe's application fee). That keeps cash/check
+        recording, leaves refunds and disputes with the club, and only
+        BoathouseOS's fees count as its income. Todd will decide later.
+      - Idea A (Todd, 2026-09-30): every charge goes through BoathouseOS,
         with no cash or check payments, except purchases on a club's own
         team store. Plan: BoathouseOS is the seller on every charge
         (destination charges, "BOATHOUSEOS" on card statements), and Stripe
