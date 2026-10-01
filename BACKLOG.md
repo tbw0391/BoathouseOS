@@ -991,6 +991,22 @@
       password?), remove tbw0391@gmail.com.
 
 ## Multi-tenant SaaS (sell to other rowing clubs)
+- [ ] Public club website (2026-10-01, to compete with SportsEngine): each
+      club's public site, built mostly from the app's own data: home (logo,
+      colors, photos, about, news from announcements marked public),
+      schedule and race results with medals (CrewTimer), teams and coaches
+      (bios and photos, no private member data), contact (Who to Ask plus a
+      form), join (the interest form now, program registration with
+      payment later), sponsors, store link and donations, and free-form
+      pages admins edit (history, safety, Learn to Row). Members sign in
+      from it. Never shows minors' details or contact info; admins pick
+      what's public, with safe defaults.
+      - First version: the auto-built pages plus a few editable pages on
+        <club>.boathouseos.app.
+      - Next: "replication", a one-time import of a club's existing site
+        (pages, text, images) as a starting point; custom domains (e.g.
+        westervillecrew.org) added to Vercel automatically, which depends
+        on the DNS decision with Jeff; program registration and payments.
 - [ ] Do this after everything else is configured/stable. Goal: sell this app
       to 100+ other rowing clubs, each with fully isolated data. Today there
       is zero tenant isolation (almost every RLS policy is "readable by any
