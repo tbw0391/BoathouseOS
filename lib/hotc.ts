@@ -87,7 +87,8 @@ export function hotcRaceCategory(race: Pick<HotcRace, "eventName" | "crew">): Li
     race.eventName.match(/(8\+|4\+|4x|4-)/)?.[1] ?? ""
   ];
   if (!boatSlug) return null;
-  const namedDepth = race.eventName.match(/\b([1-4])(?:st|nd|rd|th)\b/)?.[1];
+  // "2nd 8+" or, run together, "2nd8+".
+  const namedDepth = race.eventName.match(/\b([1-4])(?:st|nd|rd|th)(?=\b|\d)/)?.[1];
   const letter = race.crew.match(/\s([A-D])$/)?.[1];
   const depth = namedDepth ? Number(namedDepth) : letter ? letter.charCodeAt(0) - 64 : 1;
   const team = /^womens/i.test(race.eventName) ? "womens" : /^mens/i.test(race.eventName) ? "mens" : null;
