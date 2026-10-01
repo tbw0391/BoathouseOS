@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { siteClubSlug } from "@/lib/clubs";
 import { parseThemeColors, type ThemeColors } from "@/lib/theme";
+import { parseProgramQuestions, type Program } from "@/lib/programs";
 
 // The public club website (/site, 0112). Visitors aren't signed in, so it
 // reads with the service role, always scoped to the club whose address this
@@ -17,6 +18,7 @@ export const WEBSITE_SECTIONS = [
   { key: "results", label: "Results", detail: "Recent places and medals by boat, no rower names." },
   { key: "coaches", label: "Coaches & board", detail: "Names, titles and photos only." },
   { key: "news", label: "News", detail: "Posts you publish here." },
+  { key: "programs", label: "Programs", detail: "Camps, Learn to Row and seasons people can register for." },
   { key: "contact", label: "Contact", detail: "A form that emails the club's admins." },
   { key: "join", label: "Join", detail: "A form for people who want to row or join." },
 ] as const;
@@ -68,6 +70,8 @@ export type SiteClub = {
   heroUrl: string | null;
   storeUrl: string | null;
   pages: { slug: string; title: string; menu_group: string | null }[];
+  // Published programs (0117); the menu only shows Programs when there are some.
+  programCount: number;
 };
 
 // The club this address is for, with its website settings; null if there's
@@ -89,7 +93,7 @@ export const getSiteClub = cache(async (): Promise<SiteClub | null> => {
   } | null;
   if (!club || club.suspended_at) return null;
 
-  const [{ data: settingRows }, { data: pageRows }] = await Promise.all([
+  const [{ data: settingRows }, { data: pageRows }, { count: programCount }] = await Promise.all([
     admin.from("club_settings").select("key, value").eq("club_id", club.id).in("key", [WEBSITE_KEY, "theme_colors", "team_store_url"]),
     admin
       .from("website_pages")
@@ -99,6 +103,7 @@ export const getSiteClub = cache(async (): Promise<SiteClub | null> => {
       .eq("published", true)
       .order("sort_order")
       .order("title"),
+    admin.from("programs").select("id", { count: "exact", head: true }).eq("club_id", club.id).eq("published", true),
   ]);
   const byKey = new Map(((settingRows as { key: string; value: string | null }[] | null) ?? []).map((r) => [r.key, r.value]));
   const settings = parseWebsiteSettings(byKey.get(WEBSITE_KEY));
@@ -119,6 +124,7 @@ export const getSiteClub = cache(async (): Promise<SiteClub | null> => {
     heroUrl,
     storeUrl: byKey.get("team_store_url") || null,
     pages: (pageRows as { slug: string; title: string; menu_group: string | null }[] | null) ?? [],
+    programCount: programCount ?? 0,
   };
 });
 
@@ -231,4 +237,27 @@ export function slugify(text: string): string {
       .replace(/^-+|-+$/g, "")
       .slice(0, 60) || "page"
   );
+}
+
+// Programs for the site (0117): published ones only, with how many places
+// are taken. Registrations themselves are never read here.
+export async function publicPrograms(clubId: string) {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("programs")
+    .select("*")
+    .eq("club_id", clubId)
+    .eq("published", true)
+    .order("sort_order")
+    .order("starts_on", { ascending: true, nullsFirst: false });
+  const programs = ((data as Program[] | null) ?? []).map((p) => ({ ...p, questions: parseProgramQuestions(p.questions) }));
+  if (programs.length === 0) return [];
+  const { data: regs } = await admin
+    .from("program_registrations")
+    .select("program_id")
+    .in("program_id", programs.map((p) => p.id))
+    .eq("status", "registered");
+  const taken = new Map<string, number>();
+  for (const r of (regs as { program_id: string }[] | null) ?? []) taken.set(r.program_id, (taken.get(r.program_id) ?? 0) + 1);
+  return programs.map((p) => ({ ...p, registered: taken.get(p.id) ?? 0 }));
 }

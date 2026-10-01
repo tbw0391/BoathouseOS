@@ -7,9 +7,11 @@ import type { Suggestion } from "@/lib/database.types";
 export function SuggestionRow({
   suggestion,
   submitterName,
+  canDelete,
 }: {
   suggestion: Suggestion;
   submitterName: string;
+  canDelete: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const reviewed = suggestion.status === "reviewed";
@@ -45,13 +47,15 @@ export function SuggestionRow({
           >
             {reviewed ? "Mark new" : "Mark reviewed"}
           </button>
-          <button
-            onClick={remove}
-            disabled={isPending}
-            className="border border-red-600 text-red-600 rounded px-2 py-1 disabled:opacity-50"
-          >
-            Delete
-          </button>
+          {canDelete && (
+            <button
+              onClick={remove}
+              disabled={isPending}
+              className="border border-red-600 text-red-600 rounded px-2 py-1 disabled:opacity-50"
+            >
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </div>

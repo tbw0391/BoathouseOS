@@ -34,6 +34,7 @@ const NAV: { key: WebsiteSection; href: string; label: string }[] = [
   { key: "schedule", href: "/site/schedule", label: "Schedule" },
   { key: "results", href: "/site/results", label: "Results" },
   { key: "coaches", href: "/site/coaches", label: "Coaches" },
+  { key: "programs", href: "/site/programs", label: "Programs" },
   { key: "news", href: "/site/news", label: "News" },
   { key: "contact", href: "/site/contact", label: "Contact" },
 ];
@@ -54,7 +55,9 @@ export function SiteShell({
   children: React.ReactNode;
 }) {
   const s = club.settings.sections;
-  const links: { href: string; label: string }[] = NAV.filter((n) => s[n.key]).map((n) => ({ href: n.href, label: n.label }));
+  const links: { href: string; label: string }[] = NAV.filter(
+    (n) => s[n.key] && (n.key !== "programs" || club.programCount > 0)
+  ).map((n) => ({ href: n.href, label: n.label }));
   const items = menuItems(club.pages);
   const buttons = (
     <>

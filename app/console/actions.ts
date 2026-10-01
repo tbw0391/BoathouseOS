@@ -60,6 +60,36 @@ export async function clearFixedErrors() {
   revalidatePath("/console", "layout");
 }
 
+// --- App suggestions (0116: club admins only see "club" ones) ---
+
+export async function setAppSuggestionStatus(formData: FormData) {
+  return tryAction(async () => {
+    await requireGlobalAdmin();
+    const id = String(formData.get("id") ?? "");
+    const status = formData.get("status") === "reviewed" ? "reviewed" : "new";
+    const { error } = await createAdminClient()
+      .from("suggestions")
+      .update({ status })
+      .eq("id", id)
+      .eq("category", "app");
+    if (error) throw new Error(error.message);
+    revalidatePath("/console", "layout");
+  });
+}
+
+export async function deleteAppSuggestion(formData: FormData) {
+  return tryAction(async () => {
+    await requireGlobalAdmin();
+    const { error } = await createAdminClient()
+      .from("suggestions")
+      .delete()
+      .eq("id", String(formData.get("id") ?? ""))
+      .eq("category", "app");
+    if (error) throw new Error(error.message);
+    revalidatePath("/console", "layout");
+  });
+}
+
 // --- Clubs ---
 
 function slugFor(name: string): string {

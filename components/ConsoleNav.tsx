@@ -9,6 +9,7 @@ const SECTIONS = [
   { href: "/console/members", label: "Members" },
   { href: "/console/health", label: "Site health" },
   { href: "/console/announcements", label: "Announcements" },
+  { href: "/console/suggestions", label: "Suggestions" },
   { href: "/console/admins", label: "Global admins" },
 ];
 

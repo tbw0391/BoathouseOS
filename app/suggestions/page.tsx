@@ -12,11 +12,14 @@ export default async function SuggestionsPage() {
 
   const { data: callerData } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, is_board_member")
     .eq("id", user.id)
     .single();
-  const callerRole = (callerData as { role: string } | null)?.role;
-  const isAdmin = callerRole === "admin";
+  const caller = callerData as { role: string; is_board_member: boolean } | null;
+  const isAdmin = caller?.role === "admin";
+  // Club suggestions are one shared list for admins, coaches and board
+  // members (0116); app suggestions go to the BoathouseOS console.
+  const isReviewer = isAdmin || caller?.role === "coach" || Boolean(caller?.is_board_member);
 
   const { data: suggestionsData } = await supabase
     .from("suggestions")
@@ -45,13 +48,14 @@ export default async function SuggestionsPage() {
       {suggestions.length > 0 && (
         <div className="mt-8 flex flex-col gap-3 max-w-md">
           <h2 className="text-sm font-medium text-gray-600">
-            {isAdmin ? "All suggestions" : "Your suggestions"}
+            {isReviewer ? "Club suggestions (and your own)" : "Your suggestions"}
           </h2>
           {suggestions.map((s) =>
-            isAdmin ? (
+            isReviewer && s.category === "club" ? (
               <SuggestionRow
                 key={s.id}
                 suggestion={s}
+                canDelete={isAdmin}
                 submitterName={
                   s.submitted_by ? nameById.get(s.submitted_by) ?? "Unknown" : "Unknown"
                 }
@@ -64,6 +68,7 @@ export default async function SuggestionsPage() {
                 <p className="text-sm mt-2">{s.body}</p>
                 <p className="text-xs text-gray-500 mt-2">
                   {new Date(s.created_at).toLocaleDateString()}
+                  {s.category === "app" && " · Sent to the BoathouseOS team"}
                   {s.status === "reviewed" && " · Reviewed"}
                 </p>
               </div>

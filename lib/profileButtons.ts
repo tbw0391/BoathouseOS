@@ -24,6 +24,7 @@ export const PROFILE_BUTTONS: NavSectionDef[] = [
   { href: "/messages", label: "Messages" },
   { href: "/photos", label: "Photos" },
   { href: "/polls", label: "Polls" },
+  { href: "/forms", label: "Forms & Elections" },
   { href: "/announcements", label: "Announcements" },
   { href: "/suggestions", label: "Suggestions" },
   { href: "/coach/attendance", label: "Attendance" },
@@ -31,6 +32,7 @@ export const PROFILE_BUTTONS: NavSectionDef[] = [
   { href: "/coach/paperwork", label: "Paperwork" },
   { href: "/coach/emergency", label: "Emergency Info" },
   { href: "/coach/tasks", label: "Tasks" },
+  { href: "/coach/programs", label: "Program Sign-ups" },
   { href: "/payments/manage", label: "Manage Payments" },
   { href: "/admin", label: "Admin Settings" },
 ];
@@ -44,6 +46,7 @@ const ROLE_LIMITS: Record<string, NavRole[]> = {
   "/coach/paperwork": COACH_AREA,
   "/coach/emergency": COACH_AREA,
   "/coach/tasks": COACH_AREA,
+  "/coach/programs": COACH_AREA,
   "/payments/manage": ["admin"],
   "/admin": ["admin"],
 };
@@ -61,7 +64,7 @@ const DEFAULTS: Record<ProfileGroup, string[]> = {
   parent: ["/workouts", "/schedule", "/payments", "/volunteer", "/food-tent", "/messages"],
   coach: ["/schedule", "/lineups", "/coach/attendance", "/coach/seat-racing", "/coach/paperwork", "/messages"],
   admin: ["/schedule", "/lineups", "/coach/attendance", "/payments/manage", "/admin", "/messages"],
-  board: ["/announcements", "/polls", "/suggestions"],
+  board: ["/announcements", "/polls", "/forms", "/suggestions"],
 };
 
 // Saved alongside the lists: every button that existed when they were saved,

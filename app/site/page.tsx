@@ -25,11 +25,18 @@ export default async function SiteHome() {
         <div className={`px-6 py-16 sm:py-24 ${club.heroUrl ? "bg-black/40" : ""}`}>
           <h1 className="text-3xl sm:text-5xl font-bold">{club.name}</h1>
           {s.tagline && <p className="mt-3 text-lg sm:text-xl max-w-2xl">{s.tagline}</p>}
-          {s.sections.join && (
-            <Link href="/site/join" className="inline-block mt-6 rounded-lg bg-white text-[var(--color-primary)] px-5 py-2.5 font-semibold">
-              Join us
-            </Link>
-          )}
+          <div className="flex flex-wrap gap-3 mt-6">
+            {s.sections.join && (
+              <Link href="/site/join" className="rounded-lg bg-white text-[var(--color-primary)] px-5 py-2.5 font-semibold">
+                Join us
+              </Link>
+            )}
+            {s.sections.programs && club.programCount > 0 && (
+              <Link href="/site/programs" className="rounded-lg border-2 border-white text-white px-5 py-2 font-semibold">
+                Programs &amp; registration
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 

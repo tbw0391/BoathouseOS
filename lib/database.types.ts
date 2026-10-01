@@ -675,3 +675,59 @@ export interface EmergencyInfo {
   updated_at: string;
   updated_by: string | null;
 }
+
+// Forms, surveys and elections (0115).
+export type FormKind = 'form' | 'election';
+export type FormAudience = 'everyone' | 'rowers' | 'parents' | 'coaches' | 'board';
+export type ElectionVoters = 'everyone' | 'adults' | 'family';
+export type FormQuestionKind =
+  | 'short'
+  | 'long'
+  | 'choice'
+  | 'checkboxes'
+  | 'yes_no'
+  | 'date'
+  | 'number'
+  | 'file';
+
+export interface Form {
+  id: string;
+  club_id: string;
+  kind: FormKind;
+  title: string;
+  description: string | null;
+  audience: FormAudience;
+  // Elections only: who can vote.
+  voters: ElectionVoters;
+  closes_at: string | null;
+  closed_at: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface FormQuestion {
+  id: string;
+  club_id: string;
+  form_id: string;
+  position: number;
+  kind: FormQuestionKind;
+  label: string;
+  help: string | null;
+  required: boolean;
+  // Choices; for an election, the candidates.
+  options: string[];
+  // Elections: how many seats (picks) this office has.
+  max_picks: number;
+}
+
+export interface FormResponse {
+  id: string;
+  club_id: string;
+  form_id: string;
+  respondent_id: string;
+  // Keyed by question id: text, or a list for checkboxes; files are their
+  // storage path in the "form-files" bucket.
+  answers: Record<string, string | string[]>;
+  submitted_at: string;
+  updated_at: string;
+}

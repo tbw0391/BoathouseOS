@@ -55,6 +55,19 @@
         prompt on their first charge and a reminder for admins.
 
 
+## Maybe (on hold, 2026-10-01)
+- [ ] Incident reports (2026-10-01, from the iCrew comparison): anyone
+      reports an on-water incident or near miss (what happened, when, where
+      on the water, boats and people involved, injuries, photos); coaches
+      and admins get an alert, follow up, and close it with notes. A list
+      with filters, and an export for the board or USRowing. Ties into the
+      water conditions at the time, On the Water tracks, and SafeSport.
+- [ ] Equipment inventory (2026-10-01, from the iCrew comparison): beyond
+      boats, everything the club owns (oars, ergs, launches and motors, cox
+      boxes and speakers, trailers): condition, where it's kept, who has it,
+      purchase date and value, service dates with reminders, and links to
+      maintenance requests. The oar sheet and boat list feed into it.
+
 ## Roster
 - [x] Read-only roster list (name, role, boat side, phone, email)
 - [x] Add member form (admin/coach)
@@ -541,12 +554,23 @@
       prices or mark anything paid.
 
 ## Messaging
-- [ ] Forms, surveys and elections (2026-10-01, from the iCrew comparison),
-      building on polls: forms with several questions (text, choices,
-      dates, file upload) for things like registration or a season survey,
-      with results and CSV export; board elections with candidates,
-      eligible voters (e.g. members 18+ or one per family), secret ballots
-      and a set closing time.
+- [x] Forms, surveys and elections (2026-10-01, from the iCrew comparison,
+      0115): a "Forms & Elections" home button (/forms).
+      - Forms: admins, coaches and board members make them, for everyone,
+        rowers, parents, coaches or the board. Question types: short
+        answer, paragraph, pick one, pick any, yes/no, date, number, file
+        upload (private "form-files" bucket, 10 MB). People can change or
+        take back their answers until it closes. Responses page with a
+        summary, everyone's answers, file links and a CSV download.
+      - Elections: admins and board members. Offices with candidates and
+        seats; who can vote: everyone, 18 and over, or one per family.
+        Ballots are secret (who voted is kept apart from how) and can't be
+        changed. The count shows to everyone once voting closes; organizers
+        see turnout while it's open.
+      - Phone alert to the audience when one is posted ("New forms and
+        elections" switch).
+      - Later ideas: a parent filling in a form for their rower;
+        closing-soon reminders; who hasn't answered yet.
 - [x] Group chat list, with a "New message" flow to start a chat/DM with any
       combination of people on the roster
 - [x] Send/receive messages in a group, live via Supabase Realtime
@@ -738,12 +762,6 @@
         get texts.
 
 ## Safety
-- [ ] Incident reports (2026-10-01, from the iCrew comparison): anyone
-      reports an on-water incident or near miss (what happened, when, where
-      on the water, boats and people involved, injuries, photos); coaches
-      and admins get an alert, follow up, and close it with notes. A list
-      with filters, and an export for the board or USRowing. Ties into the
-      water conditions at the time, On the Water tracks, and SafeSport.
 - [x] Water Conditions (2026-09-28, /water, 0087): live USGS gauge (flow,
       level, water temp where the gauge has it) and nearest NWS station
       (air temp, wind) against the club's limits, incl. the cold-water rule
@@ -814,11 +832,14 @@
 - [x] Submitter picks a category: Club (about club operations) or App
       (about the software) — required at submission, shown as a badge on
       each suggestion
-- [ ] Route by category once Club admin / Global admin roles exist (depends
-      on the Multi-tenant SaaS work below): "app" suggestions go to Global
-      admins, "club" suggestions go to that club's own admins. For now both
-      categories are just captured and shown to the single admin role, since
-      there's only one club and no global-admin concept yet.
+- [x] Suggestions go to the right people (2026-10-01, 0116):
+      - "The club" suggestions: one shared list on Suggestions for the
+        club's admins, coaches and board members (Todd's ask). Any of them
+        can mark one reviewed; only admins delete.
+      - "This app" suggestions: Console > Suggestions (every club's, with
+        who and which club), an email to global admins for each new one,
+        and a "New app suggestions" count on the console overview. Club
+        admins no longer see them. Senders still see their own.
 
 ## Error messages
 - [x] Friendly error messages are hidden on the live site (found
@@ -1012,10 +1033,22 @@
         rewritten. It's switched off until Todd reviews it. Still on
         SportsEngine: registration forms (e.g. Youth Summer Camps), the
         calendar and the "Dibs" volunteer sign-ups.
+      - Program registration (2026-10-01, 0117): Admin Settings > Website >
+        Programs. Each program has dates, days/times, who it's for, cost
+        (shown only), spots, when registration opens/closes, an optional
+        waiver and extra questions. The site's Programs page (menu link
+        and a home-page button once one is published) takes registrations
+        with no account: participant, parent/guardian contact, emergency
+        contact, medical notes. Full = waitlist. Emails the family and the
+        club's admins. Admins see everyone, give waitlisted people a spot,
+        cancel, mark paid, add notes, download a CSV. Coaches can read
+        registrations in the database but have no page for them yet.
+        Later: card payment (after the Stripe decision), a coach view,
+        turning a registration into a member account.
       - Next: "replication", a one-time import of a club's existing site
         (pages, text, images) as a starting point; custom domains (e.g.
         westervillecrew.org) added to Vercel automatically, which depends
-        on the DNS decision with Jeff; program registration and payments.
+        on the DNS decision with Jeff; payment for program registration.
 - [ ] Do this after everything else is configured/stable. Goal: sell this app
       to 100+ other rowing clubs, each with fully isolated data. Today there
       is zero tenant isolation (almost every RLS policy is "readable by any
@@ -1119,11 +1152,6 @@
         and testing done before rolling multi-club out.
 
 ## Maintenance requests
-- [ ] Equipment inventory (2026-10-01, from the iCrew comparison): beyond
-      boats, everything the club owns (oars, ergs, launches and motors, cox
-      boxes and speakers, trailers): condition, where it's kept, who has it,
-      purchase date and value, service dates with reminders, and links to
-      maintenance requests. The oar sheet and boat list feed into it.
 - [x] Boat Maintenance: anyone can report an issue with a specific fleet boat
       (picks from the boat list); coaches/admins see all requests, can mark
       resolved/reopen or delete
