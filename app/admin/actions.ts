@@ -16,6 +16,7 @@ import {
 import { LINEUP_SECTIONS } from "@/lib/lineupSections";
 import { saveClubAppBranding } from "@/lib/clubIcon";
 import { PAPERWORK, PAPERWORK_ROLES, PAPERWORK_SETTINGS_KEY } from "@/lib/paperwork";
+import { CHECK_IN_GROUPS, CHECK_IN_SETTINGS_KEY } from "@/lib/checkIns";
 import { DEFAULT_THEME_COLORS, isHexColor, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES } from "@/lib/alertSettings";
 import { OAR_COLORS_KEY } from "@/lib/oarSheet";
@@ -160,6 +161,26 @@ export async function updateAlertSettings(formData: FormData) {
 
     revalidatePath("/");
     revalidatePath("/admin");
+  });
+}
+
+// Who gets the coach check-in button (lib/checkIns.ts).
+export async function updateCheckInSettings(formData: FormData) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { data: isAdmin } = await supabase.rpc("is_club_admin");
+    if (!isAdmin) throw new UserError("Only admins can change who checks in.");
+
+    const known: readonly string[] = CHECK_IN_GROUPS.map((g) => g.group);
+    const groups = formData.getAll("check_in_group").map(String).filter((g) => known.includes(g));
+    const { error } = await supabase
+      .from("club_settings")
+      .upsert({ key: CHECK_IN_SETTINGS_KEY, value: JSON.stringify({ groups }) }, { onConflict: "club_id,key" });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/roster", "layout");
   });
 }
 

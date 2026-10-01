@@ -18,7 +18,7 @@ import {
   resetMemberPassword,
 } from "./actions";
 import { TEAM_LABELS, hasRowingDetails } from "@/lib/teams";
-import { getTodaysCheckInLabel } from "@/lib/checkIns";
+import { canCoachCheckIn, getTodaysCheckInLabel } from "@/lib/checkIns";
 import { CheckInButton } from "@/components/CheckInButton";
 import { getMedalsForProfile } from "@/lib/medals";
 import { MedalBadge } from "@/components/MedalBadge";
@@ -88,7 +88,7 @@ export default async function BioPage({
   const canEdit = isSelf || callerRole === "admin" || callerRole === "coach";
   const isCallerAdmin = callerRole === "admin";
   const canRemove = !isSelf && (callerRole === "admin" || callerRole === "coach");
-  const showCheckIn = isSelf && (callerRole === "admin" || callerRole === "coach");
+  const showCheckIn = isSelf && (await canCoachCheckIn(profile.id, callerRole));
   const checkInLabel = showCheckIn ? await getTodaysCheckInLabel(profile.id) : null;
 
   // Your own text-alert opt-in (0099).
