@@ -37,6 +37,31 @@ export async function resetDemo(formData: FormData) {
   });
 }
 
+// Pretend boats on Hoover Reservoir for showing off live tracking (0123).
+export async function startBoatSim(formData: FormData) {
+  return tryAction(async () => {
+    if (!IS_DEMO_SITE) throw new UserError("The boat simulator is only on the demo site.");
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("on_water_sim_start", {
+      p_club_id: String(formData.get("clubId") ?? ""),
+      p_boats: Number(formData.get("boats") ?? 5),
+      p_minutes: Number(formData.get("minutes") ?? 30),
+    });
+    if (error) throw new UserError(error.message);
+    revalidatePath("/console");
+  });
+}
+
+export async function stopBoatSim(formData: FormData) {
+  return tryAction(async () => {
+    if (!IS_DEMO_SITE) throw new UserError("The boat simulator is only on the demo site.");
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("on_water_sim_stop", { p_club_id: String(formData.get("clubId") ?? "") });
+    if (error) throw new UserError(error.message);
+    revalidatePath("/console");
+  });
+}
+
 // --- Errors (0100: no update policy, so written with the service role) ---
 
 export async function markErrorFixed(formData: FormData) {
