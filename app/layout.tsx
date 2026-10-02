@@ -167,7 +167,11 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SplashScreen iconSrc={siteBranding.iconSrc} appName={siteBranding.appName} />
+        <SplashScreen
+          iconSrc={siteBranding.iconSrc}
+          appName={siteBranding.appName}
+          nonce={(await headers()).get("x-nonce") ?? undefined}
+        />
         <BrandingProvider value={siteBranding}>
           <ServiceWorkerUpdater />
           <Header

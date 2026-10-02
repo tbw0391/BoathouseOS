@@ -4,11 +4,15 @@
 // pull-to-refresh or a reload after a new deploy goes straight to the app.
 //
 // The script only flips a data attribute on <html>; it never touches the
-// splash's own markup, so hydration sees what the server rendered.
+// splash's own markup, so hydration sees what the server rendered. It needs
+// the request's CSP nonce (see middleware.ts) or the browser won't run it.
+// If it still doesn't run, a CSS animation hides the splash after
+// FAILSAFE_MS, so it can never strand anyone.
 
 const MIN_VISIBLE_MS = 600; // long enough not to flash on a fast load
 const MAX_VISIBLE_MS = 8000; // never trap anyone behind a slow image
 const FADE_MS = 350;
+const FAILSAFE_MS = 10000; // CSS-only, in case the script never runs
 
 const script = `(function(){
   var d = document.documentElement;
@@ -32,7 +36,9 @@ const script = `(function(){
 const css = `
 #app-splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:28px;background:var(--background,#fff);
-  transition:opacity ${FADE_MS}ms ease}
+  transition:opacity ${FADE_MS}ms ease;
+  animation:splash-failsafe ${FADE_MS}ms ease ${FAILSAFE_MS}ms forwards}
+@keyframes splash-failsafe{to{opacity:0;visibility:hidden;pointer-events:none}}
 html[data-splash="fading"] #app-splash{opacity:0;pointer-events:none}
 html[data-splash="done"] #app-splash{display:none}
 #app-splash .splash-logo{width:160px;height:160px;object-fit:contain;border-radius:28px}
@@ -47,7 +53,15 @@ html[data-splash="done"] #app-splash{display:none}
 @media print{#app-splash{display:none}}
 `;
 
-export function SplashScreen({ iconSrc, appName }: { iconSrc: string | null; appName: string }) {
+export function SplashScreen({
+  iconSrc,
+  appName,
+  nonce,
+}: {
+  iconSrc: string | null;
+  appName: string;
+  nonce: string | undefined;
+}) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
@@ -65,7 +79,7 @@ export function SplashScreen({ iconSrc, appName }: { iconSrc: string | null; app
           <span />
         </div>
       </div>
-      <script dangerouslySetInnerHTML={{ __html: script }} />
+      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: script }} />
     </>
   );
 }
