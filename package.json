@@ -13,6 +13,7 @@
     "@ducanh2912/next-pwa": "^10.2.9",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
+    "h5wasm": "^0.10.3",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.47.0",
     "next": "15.5.25",

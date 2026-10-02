@@ -40,6 +40,9 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "4mb" },
   },
+  // The HDF5 reader for satellite lightning files (lib/lightning.ts) loads
+  // its own WebAssembly; leave it unbundled.
+  serverExternalPackages: ["h5wasm"],
   images: {
     remotePatterns: supabaseHost
       ? [{ protocol: "https", hostname: supabaseHost, pathname: "/storage/v1/object/public/**" }]

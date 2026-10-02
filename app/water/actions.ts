@@ -47,11 +47,16 @@ export async function saveWaterSettings(formData: FormData) {
     const pointText = String(formData.get("weatherPoint") ?? "").trim();
     const point = pointText ? parseCoordinates(pointText) : null;
     if (pointText && !point) throw new UserError("Couldn't read those coordinates. Try something like 40.1150, -82.8800.");
+    if (formData.get("lightningAuto") === "on" && !point) {
+      throw new UserError("Automatic lightning warnings need the weather location's coordinates.");
+    }
     const settings: WaterSettings = {
       gaugeSite: site || null,
       weatherName: point ? String(formData.get("weatherName") ?? "").trim().slice(0, 80) || null : null,
       weatherLat: point?.lat ?? null,
       weatherLon: point?.lng ?? null,
+      lightningAuto: formData.get("lightningAuto") === "on",
+      lightningMiles: Math.min(50, Math.max(1, Math.round(num(formData.get("lightningMiles")) ?? 20))),
       flowCautionCfs: num(formData.get("flowCautionCfs")),
       flowStopCfs: num(formData.get("flowStopCfs")),
       heightCautionFt: num(formData.get("heightCautionFt")),
