@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/payments";
 import { activeMemberIds, guardianIdsFor, householdIdsForRower, sendPush } from "@/lib/push";
 import { EXPIRING_DAYS, PAPERWORK } from "@/lib/paperwork";
 import { formPending, sendFormReminder } from "@/lib/formAlerts";
+import { runLightningWatch } from "@/lib/lightning";
 import { LAUNCH_MINUTES_KEY, clubTimeLabel, delayedRaceTime, launchTime, parseLaunchMinutes } from "@/lib/raceDay";
 
 // Alerts that depend on the clock rather than on someone doing something.
@@ -310,6 +311,7 @@ export async function runScheduledAlerts() {
     raceStartAlerts(admin),
     formClosingAlerts(admin),
     endStaleOutings(admin),
+    runLightningWatch(admin),
   ]);
   const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
   for (const f of failures) console.error("Scheduled alert failed", f.reason);

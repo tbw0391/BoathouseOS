@@ -816,6 +816,16 @@
       live on every coach's screen as they're added (day before / next
       day). Athletes tab: every rower and cox, tap one for their notes.
       Authors delete their own; admins any.
+- [x] Automatic lightning warning (2026-10-01, from suggestions; lib/
+      lightning.ts): Water settings > "Automatic lightning warning" and a
+      distance (default 20 miles) around the weather location. Every 5
+      minutes, 5 AM-9 PM, the last 7 minutes of NOAA GOES-East GLM
+      satellite lightning (free files on AWS noaa-goes19, read with h5wasm)
+      are checked; a flash in range starts a lightning hold and alerts
+      everyone ("Lightning 12 miles NE of Hoover Reservoir"), or restarts
+      an open hold's 30 minutes. Holds it starts clear themselves 30
+      minutes after the last flash. GLM places flashes to about 8 km and
+      misses some, so it backs up the coaches, doesn't replace them.
 - [x] Weather location (2026-10-01, from suggestions): Water > Gauge,
       weather location and limits has a weather location (name +
       coordinates) separate from the river gauge; air, wind (with

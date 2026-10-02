@@ -13,6 +13,10 @@ export type WaterSettings = {
   weatherName: string | null;
   weatherLat: number | null;
   weatherLon: number | null;
+  // Satellite lightning within this many miles of the weather location
+  // starts a lightning hold by itself (lib/lightning.ts).
+  lightningAuto: boolean;
+  lightningMiles: number;
   flowCautionCfs: number | null;
   flowStopCfs: number | null;
   heightCautionFt: number | null;
@@ -29,6 +33,8 @@ export const DEFAULT_WATER_SETTINGS: WaterSettings = {
   weatherName: null,
   weatherLat: null,
   weatherLon: null,
+  lightningAuto: false,
+  lightningMiles: 20,
   flowCautionCfs: null,
   flowStopCfs: null,
   heightCautionFt: null,
@@ -60,6 +66,11 @@ export function parseWaterSettings(raw: string | null | undefined): WaterSetting
     weatherName: hasPoint && typeof saved.weatherName === "string" ? saved.weatherName.slice(0, 80) || null : null,
     weatherLat: hasPoint ? lat : null,
     weatherLon: hasPoint ? lon : null,
+    lightningAuto: saved.lightningAuto === true,
+    lightningMiles:
+      typeof saved.lightningMiles === "number" && saved.lightningMiles >= 1 && saved.lightningMiles <= 50
+        ? saved.lightningMiles
+        : DEFAULT_WATER_SETTINGS.lightningMiles,
     flowCautionCfs: num("flowCautionCfs"),
     flowStopCfs: num("flowStopCfs"),
     heightCautionFt: num("heightCautionFt"),

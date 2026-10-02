@@ -242,6 +242,28 @@ export function WaterSettingsForm({ settings }: { settings: WaterSettings }) {
               className="border rounded px-2 py-1"
             />
           </div>
+          <div className="flex flex-col gap-1 text-sm">
+            <label className="flex items-center gap-2 font-medium">
+              <input type="checkbox" name="lightningAuto" defaultChecked={settings.lightningAuto} />
+              Automatic lightning warning
+            </label>
+            <span className="text-gray-600">
+              Lightning seen by NOAA&apos;s weather satellite within this distance of the weather location starts a
+              lightning hold and alerts everyone, 5 AM to 9 PM. It clears itself after 30 minutes with no more
+              lightning, or a coach can clear it.
+            </span>
+            <label className="flex items-center gap-2">
+              <input
+                name="lightningMiles"
+                type="number"
+                min={1}
+                max={50}
+                defaultValue={settings.lightningMiles}
+                className="w-20 border rounded px-2 py-1"
+              />
+              miles
+            </label>
+          </div>
           <p className="text-sm text-gray-600">Leave a limit blank to skip it. Caution turns the verdict yellow; stop turns it red.</p>
           <div className="grid grid-cols-2 gap-3">
             <Field name="flowCautionCfs" label="Flow: caution at" value={settings.flowCautionCfs} unit="cfs" />

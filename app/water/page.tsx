@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { liveWater, type LiveWater } from "@/lib/waterReadings";
 import {
   PRACTICE_CALL_LABELS,
+  LIGHTNING_WAIT_MINUTES,
   WATER_SETTINGS_KEY,
   callConditionsLine,
   evaluateWater,
@@ -69,7 +70,9 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
     wind_dir: string | null;
     called_at: string;
   } | null;
-  const hold = ((holdRows as { id: string; last_strike_at: string; started_at: string }[] | null) ?? [])[0] ?? null;
+  const hold =
+    ((holdRows as { id: string; last_strike_at: string; started_at: string; started_by: string | null }[] | null) ??
+      [])[0] ?? null;
 
   // Where the weather is read: a regatta's course on race day, else the
   // club's weather location (e.g. its lake), else the river gauge.
@@ -121,6 +124,12 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
               : "30 minutes have passed since the last thunder. Waiting on a coach's all clear."}
           </p>
           <p className="text-xs opacity-80 mt-1">Last thunder or lightning at {clubTimeLabel(hold.last_strike_at)}</p>
+          {!hold.started_by && (
+            <p className="text-xs opacity-80">
+              Started automatically: NOAA&apos;s weather satellite saw lightning within {settings.lightningMiles} miles.
+              It clears itself after {LIGHTNING_WAIT_MINUTES} minutes with no more.
+            </p>
+          )}
         </div>
       )}
       {isManager && <LightningControls active={!!hold} />}
