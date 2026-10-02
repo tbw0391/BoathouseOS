@@ -107,6 +107,11 @@ Everyone (juniors, college, masters):
 - [ ] Fundraising: erg-a-thon pledges, per-family fundraising credit toward
       dues, sponsor tracking.
 - [ ] Boat location: which rack, trailer, or regatta each boat is at.
+- [ ] Practice carpools (2026-10-02, Cincinnati Juniors' site has one):
+      families offer rides to and from practice by day/week, with seats
+      and pickup area; others claim a seat for their rower; drivers get a
+      reminder and riders a "who's driving today" list. Regattas already
+      have cars on the Travel tab; reuse that for everyday practices.
 - [ ] Kiosk mode: a boathouse tablet for check-in and boat sign-out without
       everyone logging in.
 - [ ] Card payments (waiting on the Stripe decision) for dues, program
