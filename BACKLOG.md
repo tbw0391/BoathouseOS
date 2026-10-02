@@ -68,6 +68,53 @@
       purchase date and value, service dates with reminders, and links to
       maintenance requests. The oar sheet and boat list feed into it.
 
+## Missing features (2026-10-02, compared with iCrew and masters clubs)
+Masters:
+- [ ] Boat and erg reservations: members book a single, double or erg for a
+      time slot; no double-booking; cancel and swap. The biggest gap for
+      masters, who row on their own schedules.
+- [ ] Boat sign-out logbook: sign a boat out and back in (crew, route,
+      expected return), who's out now, overdue alerts to the safety contact.
+      Feeds boat usage (km/hours) like On the Water tracks do.
+- [ ] Rower ratings: which members are cleared for which boats (e.g. racing
+      singles, coxless 4), plus swim test; reservations and sign-out check it.
+- [ ] Safety rules the app enforces: no rowing alone, buddy boat, launch
+      required, water-temperature and daylight limits (we already have
+      water conditions and sunrise/sunset).
+- [ ] Find a crew / open rows: "rowing a 4+ Saturday 7am, need 2", others
+      claim seats; recurring open sculling times.
+- [ ] Masters age categories and handicaps: average crew age (A-K) and
+      handicap seconds in lineups, regatta entries and results.
+- [ ] Rack rental for privately owned boats: who has which rack, yearly fee
+      billed through Payments.
+- [ ] Guest and visiting rowers: day or week pass with waiver and fee.
+- [ ] Membership levels and renewals: competitive / recreational / winter
+      indoor, expiry dates, renewal reminders, lapsed-member list.
+- [ ] Split regatta entry fees across a crew (charge each rower their share).
+
+Everyone (juniors, college, masters):
+- [ ] Practice RSVPs / availability: "can't make Tuesday", injured or
+      limited; coaches see who's coming when building lineups. (Schedule
+      RSVPs were never built.)
+- [ ] Practice plans: coaches write the session plan (pieces, rates,
+      lineups) ahead of time; rowers see it; reuse past plans.
+- [ ] Training journal: rowers log notes on each practice; coaches can read.
+- [ ] Coach hours: coaches log hours per practice/regatta for pay; export.
+- [ ] Substitute coach requests: post a practice that needs a sub, another
+      coach claims it.
+- [ ] Volunteer hours totals: hours per family/member from volunteer
+      sign-ups, required hours per season, buy-out option.
+- [ ] Fundraising: erg-a-thon pledges, per-family fundraising credit toward
+      dues, sponsor tracking.
+- [ ] Boat location: which rack, trailer, or regatta each boat is at.
+- [ ] Kiosk mode: a boathouse tablet for check-in and boat sign-out without
+      everyone logging in.
+- [ ] Card payments (waiting on the Stripe decision) for dues, program
+      registration and regatta fees.
+- [ ] Equipment inventory, incident reports and USRowing roster import are
+      already listed above (Maybe / Coaching tools).
+
+
 ## Roster
 - [x] Read-only roster list (name, role, boat side, phone, email)
 - [x] Add member form (admin/coach)
