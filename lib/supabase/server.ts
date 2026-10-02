@@ -1,7 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 
-export async function createClient() {
+async function newClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -29,4 +30,17 @@ export async function createClient() {
       },
     }
   );
+}
+
+// The layout, the theme, the header and the page all ask who's signed in, and
+// each ask is a trip to the auth server. Within one page render they share a
+// single answer. (React's cache only applies while rendering, so server
+// actions that sign in or out still get a fresh answer.)
+const requestUser = cache(async () => (await newClient()).auth.getUser());
+
+export async function createClient() {
+  const client = await newClient();
+  const getUser = client.auth.getUser.bind(client.auth);
+  client.auth.getUser = (jwt?: string) => (jwt ? getUser(jwt) : requestUser());
+  return client;
 }

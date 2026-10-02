@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 export const DEFAULT_THEME_COLORS = {
   primary: "#022e5d",
   secondary: "#404040",
@@ -22,7 +24,8 @@ export function isHexColor(value: unknown): value is string {
   return typeof value === "string" && HEX_COLOR.test(value);
 }
 
-export async function getThemeColors(): Promise<ThemeColors> {
+// Cached per page render: the viewport and the layout both ask.
+export const getThemeColors = cache(async (): Promise<ThemeColors> => {
   // A demo visitor who picked their club on /choose-club sees its colors.
   // Kept in a cookie, not club_settings, since every visitor shares the one
   // demo account.
@@ -67,7 +70,7 @@ export async function getThemeColors(): Promise<ThemeColors> {
     .limit(1);
   const row = (data as { value: string | null }[] | null)?.[0];
   return parseThemeColors(row?.value ?? null);
-}
+});
 
 export function parseThemeColors(raw: string | null | undefined): ThemeColors {
   if (!raw) return { ...DEFAULT_THEME_COLORS };
