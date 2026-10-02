@@ -76,7 +76,7 @@ export default async function MessagesPage() {
 
   // "New message" candidates don't depend on any of the group/message data
   // below, so load them concurrently instead of after.
-  const [{ groups, latestByGroup, otherMembersByGroup, displayNameByOtherId }, othersResult] =
+  const [{ groups, latestByGroup, otherMembersByGroup, displayNameByOtherId }, othersResult, meResult] =
     await Promise.all([
       loadGroupsAndMessages(supabase, groupIds, user.id),
       supabase
@@ -85,7 +85,9 @@ export default async function MessagesPage() {
         .is("disabled_at", null)
         .neq("id", user.id)
         .order("display_name", { ascending: true }),
+      supabase.from("profiles").select("is_board_member").eq("id", user.id).single(),
     ]);
+  const isBoardMember = Boolean((meResult.data as { is_board_member: boolean } | null)?.is_board_member);
   const others = (othersResult.data as NewChatOther[] | null) ?? [];
 
   function groupDisplayName(g: ChatGroup): string {
@@ -107,7 +109,19 @@ export default async function MessagesPage() {
 
   return (
     <div className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold">Messages</h1>
+      <div className="flex items-baseline justify-between gap-3 max-w-md">
+        <h1 className="text-2xl font-bold">Messages</h1>
+        {isBoardMember && (
+          <Link href="/messages/log" prefetch={false} className="text-sm underline">
+            Message log
+          </Link>
+        )}
+      </div>
+      <p className="text-xs text-gray-500 mt-1 max-w-md">
+        For everyone&apos;s safety (SafeSport), a copy of every message is kept, even ones you
+        delete, and the club&apos;s board can review them if a concern comes up. Parents of
+        rowers under 18 are included in chats with adults.
+      </p>
 
       <div className="mt-4">
         <NewChatForm others={others} />

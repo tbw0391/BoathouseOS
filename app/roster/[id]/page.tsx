@@ -41,6 +41,7 @@ import { canOptInToTexts } from "@/lib/smsRules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RECRUITING_KEY, type RecruitListing } from "@/lib/recruiting";
 import { RecruitingCard } from "./RecruitingCard";
+import { NoMessagesCard } from "./NoMessagesCard";
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -254,6 +255,19 @@ export default async function BioPage({
   } | null = null;
   const isAthlete = profile.role === "rower" || profile.role === "coxswain";
   const isParentOfProfile = isAthlete && !!user && familyValue.includes(user.id);
+
+  // SafeSport no-message request (0123): parents and admins change it,
+  // coaches see it.
+  const showNoMessages = isAthlete && (isParentOfProfile || callerRole === "admin" || callerRole === "coach");
+  let noMessagesSince: string | null = null;
+  if (showNoMessages) {
+    const { data: request } = await supabase
+      .from("no_message_requests")
+      .select("requested_at")
+      .eq("rower_id", profile.id)
+      .maybeSingle();
+    noMessagesSince = (request as { requested_at: string } | null)?.requested_at ?? null;
+  }
   if (isAthlete && canSeeEmergency) {
     const { data: recruitingSetting } = await supabase
       .from("club_settings")
@@ -416,6 +430,15 @@ export default async function BioPage({
       )}
 
       {isSelf && <TextAlertsCard phone={textPhone} canOptIn={canOptInToTexts(profile.role, profile.birthday)} />}
+
+      {showNoMessages && (
+        <NoMessagesCard
+          rowerId={profile.id}
+          firstName={profile.first_name || profile.display_name}
+          requestedAt={noMessagesSince}
+          canChange={isParentOfProfile || isCallerAdmin}
+        />
+      )}
 
       {recruiting && (
         <RecruitingCard

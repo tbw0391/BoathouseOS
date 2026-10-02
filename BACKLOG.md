@@ -206,6 +206,12 @@ Everyone (juniors, college, masters):
       login) surfaces a clear "nothing to reset" error instead of a raw API
       failure.
 
+- [x] Graduates move to Alumni automatically (2026-10-02, 0124): rowers and
+      coxes with a grad year leave Men's/Women's/Development (and those
+      chats) and join Alumni on July 1 of that year; daily job. Anyone
+      already in Alumni is left alone, so a coach can put an alum back on a
+      team.
+
 ## Schedule
 - [x] List upcoming/past events, split into Regattas and Practice
 - [x] Create/delete event (coach/admin), including recurrence (weekly/monthly/yearly)
@@ -1059,11 +1065,44 @@ Everyone (juniors, college, masters):
       big releases, check Supabase Advisors → Security.
 
 ## Safe Sport compliance
-- [ ] Make the app compliant with US Rowing / Safe Sport requirements —
-      Todd is gathering the specific requirements and will share them.
-      Likely touches messaging (e.g. rules around private adult-minor
-      communication), roster/background-check tracking, and photos; don't
-      guess at requirements, wait for the actual list.
+Rules: U.S. Center for SafeSport MAAPP 2025 (USRowing clubs must follow it).
+There's no SafeSport certification for software; the club and its adults
+comply, and the app mustn't break the rules.
+- [x] Message log (2026-10-02, 0122): a copy of every chat message,
+      including ones deleted from the chat, with the chat's name, members and
+      sender as they were. Board members only (Messages > Message log:
+      search by person, words, dates); nobody can change or delete copies;
+      every opening/search is recorded and the board sees it. Messages page
+      and Privacy policy tell members.
+- [x] Open and transparent messaging (2026-10-02, 0123): any chat with an
+      adult and a rower/cox under 18 (or no birthday) automatically adds the
+      minor's parents (family_links), team chats included; close-in-age
+      teammates (rower/cox no more than 4 years older) are exempt. A minor
+      with no parent linked needs 2+ adults in the chat, or nothing can be
+      sent (says why). Checked in the database on join and before every
+      message. Parents who were only there for a rower leave with them.
+- [x] Parent "no messages from adults" request (2026-10-02, 0123): on the
+      rower's profile (parents and admins change it, coaches see it). The
+      rower is taken out of chats with adults and their parents stay in, in
+      their place; withdrawing puts them back in their team chats (other
+      chats can add them again).
+- [x] Announcements: "Rowers only" removed; rowers' announcements always
+      reach parents too.
+- [ ] Yearly transportation consent (Paperwork), checked when claiming a
+      seat on a regatta's Travel tab and in practice carpools: an adult
+      driving someone else's minor one-on-one needs written parent consent,
+      renewed every year; club-arranged transport needs it for every minor.
+- [ ] Rooming lists: warn on an adult sharing a room with a minor who isn't
+      their child (lodging rules).
+- [ ] Training/background tracking: extend Paperwork's SafeSport and
+      background-check dates to board members, adult athletes and regular
+      volunteers (drivers, chaperones); yearly refresher due dates; flag
+      lapsed; record the yearly abuse-prevention training offered to minors.
+- [ ] Recommended: quiet hours (hold coach-to-minor messages/notifications
+      8pm-8am, except safety alerts); "Report a concern" link to the U.S.
+      Center for SafeSport plus the club's Safe Sport contact.
+- [ ] Check other adult-to-minor channels: forms/polls aimed at rowers,
+      food-tent messages, coach notes.
 
 ## Production site (real clubs)
 - [x] Two sites, one code base (2026-09-29). Demo: boathouseos.app, Supabase

@@ -41,9 +41,11 @@ export default async function ChatGroupPage({
 
   const { data: memberRows } = await supabase
     .from("chat_group_members")
-    .select("user_id")
+    .select("*")
     .eq("group_id", groupId);
-  const memberIds = ((memberRows as { user_id: string }[] | null) ?? []).map((m) => m.user_id);
+  const members = (memberRows as { user_id: string; added_for_safesport?: boolean }[] | null) ?? [];
+  const memberIds = members.map((m) => m.user_id);
+  const parentsCopied = members.some((m) => m.added_for_safesport);
 
   const { data: sendersData } = await supabase
     .from("profiles")
@@ -73,6 +75,11 @@ export default async function ChatGroupPage({
         ← Messages
       </Link>
       <h1 className="text-2xl font-bold mt-2 mb-4">{displayName}</h1>
+      {parentsCopied && (
+        <p className="text-xs text-gray-500 -mt-2 mb-4">
+          Parents of rowers under 18 are included in this chat (SafeSport).
+        </p>
+      )}
 
       <ChatThread
         groupId={groupId}

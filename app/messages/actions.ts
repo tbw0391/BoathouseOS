@@ -45,6 +45,14 @@ export async function createChat(formData: FormData) {
 
     if (membersError) throw new Error(membersError.message);
 
+    // SafeSport (0123): parents of rowers under 18 were just added if the
+    // chat needs them; if it still can't comply, don't leave it lying around.
+    const { data: problem } = await supabase.rpc("chat_safesport_problem", { gid: group.id });
+    if (problem) {
+      await createAdminClient().from("chat_groups").delete().eq("id", group.id);
+      throw new UserError(problem as string);
+    }
+
     revalidatePath("/messages");
     return { groupId: group.id as string };
   });
@@ -65,6 +73,9 @@ export async function sendMessage(groupId: string, formData: FormData) {
       .from("messages")
       .insert({ group_id: groupId, sender_id: user.id, body });
 
+    // The database refuses messages that would break SafeSport rules
+    // (0123) and says why.
+    if (error?.message.startsWith("SafeSport:")) throw new UserError(error.message);
     if (error) throw new Error(error.message);
 
     revalidatePath(`/messages/${groupId}`);
