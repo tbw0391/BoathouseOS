@@ -849,6 +849,16 @@ Everyone (juniors, college, masters):
       and on the day.
 
 ## Coaching tools
+- [ ] Import from iCrew (2026-10-02, to move clubs off iCrew): an admin
+      uploads iCrew's Excel exports as-is. Members: name, email, phone,
+      role, team, side, birthday, emergency contacts, USRowing number,
+      waiver/SafeSport dates, weight, parent-rower links. Boats: name,
+      class, manufacturer, year, weight class, rigging. Preview with
+      matches, duplicates and skipped rows before saving; email each new
+      member an invite to set a password (logins can't move). iCrew has no
+      API or full download, so attendance, payments and signed documents
+      stay behind. Needs a real export file first: start iCrew's free trial
+      (45 days, 20 members), add a few fake members and boats, export.
 - [ ] USRowing roster import (2026-10-01, after comparing with iCrew,
       which has it): a club admin exports the club roster from their
       USRowing organization account (member number, name, membership
