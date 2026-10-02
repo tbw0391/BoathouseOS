@@ -118,38 +118,43 @@ export default async function RootLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const theme = await getThemeColors();
-  const { data: isGlobalAdmin } = user ? await supabase.rpc("is_global_admin") : { data: false };
-  const unreadCount = user ? await getUnreadChatCount(user.id) : null;
-  const branding = await siteClubBranding();
+
+  // None of these depend on each other: ask for them all at once rather than
+  // waiting on each in turn, since this runs on every page.
+  const [theme, isGlobalAdmin, unreadCount, branding, cookieStore, photoUrl, needsTerms] = await Promise.all([
+    getThemeColors(),
+    user ? supabase.rpc("is_global_admin").then((r) => r.data) : false,
+    user ? getUnreadChatCount(user.id) : null,
+    siteClubBranding(),
+    cookies(),
+    user
+      ? supabase
+          .from("profiles")
+          .select("photo_url")
+          .eq("id", user.id)
+          .single()
+          .then((r) => (r.data as { photo_url: string | null } | null)?.photo_url ?? null)
+      : null,
+    // Approved members who haven't agreed to the current Terms. Queried on
+    // its own so a missing column (migration not applied yet) just skips the
+    // gate.
+    TERMS_REQUIRED && user && !isDemoEmail(user.email)
+      ? supabase
+          .from("profiles")
+          .select("terms_version, approved_at")
+          .eq("id", user.id)
+          .single()
+          .then(({ data, error }) => {
+            const terms = data as { terms_version: string | null; approved_at: string | null } | null;
+            return !error && !!terms?.approved_at && terms.terms_version !== TERMS_VERSION;
+          })
+      : false,
+  ]);
   const siteBranding = {
     appName: branding.appName,
     iconSrc: branding.iconPath ? `/club-icon/512?v=${branding.iconVersion}` : null,
   };
-  const demoClub = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
-
-  let photoUrl: string | null = null;
-  if (user) {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("photo_url")
-      .eq("id", user.id)
-      .single();
-    photoUrl = (profileData as { photo_url: string | null } | null)?.photo_url ?? null;
-  }
-
-  // Approved members who haven't agreed to the current Terms. Queried on its
-  // own so a missing column (migration not applied yet) just skips the gate.
-  let needsTerms = false;
-  if (TERMS_REQUIRED && user && !isDemoEmail(user.email)) {
-    const { data: termsData, error: termsError } = await supabase
-      .from("profiles")
-      .select("terms_version, approved_at")
-      .eq("id", user.id)
-      .single();
-    const terms = termsData as { terms_version: string | null; approved_at: string | null } | null;
-    needsTerms = !termsError && !!terms?.approved_at && terms.terms_version !== TERMS_VERSION;
-  }
+  const demoClub = findDemoClub(cookieStore.get(DEMO_CLUB_COOKIE)?.value);
 
   const themeStyle = {
     "--color-primary": theme.primary,
