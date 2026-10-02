@@ -43,11 +43,19 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: me }, { data: settingRow }, { data: callRow }, { data: holdRows }] = await Promise.all([
+  const today = clubDateKey(new Date());
+  const [{ data: me }, { data: settingRow }, { data: callRow }, { data: holdRows }, { data: regattaRows }] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", user.id).single(),
     supabase.from("club_settings").select("value").eq("key", WATER_SETTINGS_KEY).maybeSingle(),
     supabase.from("practice_calls").select("*").eq("practice_date", clubDateKey(new Date())).maybeSingle(),
     supabase.from("lightning_holds").select("*").is("cleared_at", null).order("started_at", { ascending: false }).limit(1),
+    // Regattas around today, to read the weather at the course on race day.
+    supabase
+      .from("schedule_events")
+      .select("title, starts_at, ends_at, start_lat, start_lng, finish_lat, finish_lng")
+      .eq("event_type", "regatta")
+      .gte("starts_at", new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString())
+      .lte("starts_at", new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()),
   ]);
   const role = (me as { role: string } | null)?.role;
   const isManager = role === "coach" || role === "admin";
@@ -63,7 +71,31 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
   } | null;
   const hold = ((holdRows as { id: string; last_strike_at: string; started_at: string }[] | null) ?? [])[0] ?? null;
 
-  const live: LiveWater | null = settings.gaugeSite ? await liveWater(settings.gaugeSite) : null;
+  // Where the weather is read: a regatta's course on race day, else the
+  // club's weather location (e.g. its lake), else the river gauge.
+  const regattaToday = (
+    (regattaRows as {
+      title: string;
+      starts_at: string;
+      ends_at: string | null;
+      start_lat: number | null;
+      start_lng: number | null;
+      finish_lat: number | null;
+      finish_lng: number | null;
+    }[] | null) ?? []
+  ).find((r) => clubDateKey(r.starts_at) <= today && today <= clubDateKey(r.ends_at ?? r.starts_at));
+  const coursePoint =
+    regattaToday?.finish_lat != null && regattaToday.finish_lng != null
+      ? { lat: regattaToday.finish_lat, lon: regattaToday.finish_lng }
+      : regattaToday?.start_lat != null && regattaToday.start_lng != null
+        ? { lat: regattaToday.start_lat, lon: regattaToday.start_lng }
+        : null;
+  const homePoint =
+    settings.weatherLat != null && settings.weatherLon != null ? { lat: settings.weatherLat, lon: settings.weatherLon } : null;
+  const weatherAt = coursePoint ?? homePoint;
+  const weatherPlace = coursePoint ? regattaToday!.title : homePoint ? settings.weatherName : null;
+  const live: LiveWater | null =
+    settings.gaugeSite || weatherAt ? await liveWater(settings.gaugeSite, undefined, weatherAt) : null;
   const readings = live?.readings ?? null;
   // A coach's measured water temperature beats a gauge without a sensor.
   if (readings && readings.waterTempF == null && call?.water_temp_f != null) readings.waterTempF = Number(call.water_temp_f);
@@ -122,9 +154,17 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Conditions now</h2>
-        {!settings.gaugeSite ? (
+        {regattaToday && !coursePoint && (
+          <p className="text-sm text-amber-700">
+            {regattaToday.title} is today, but its course isn&apos;t set, so this is the weather at home. Add the
+            course&apos;s start or finish on the regatta&apos;s Course tab.
+          </p>
+        )}
+        {!live ? (
           <p className="text-sm text-gray-600">
-            {role === "admin" ? "Pick the club's river gauge below to see live conditions." : "An admin hasn't set up the river gauge yet."}
+            {role === "admin"
+              ? "Set the club's river gauge or weather location below to see live conditions."
+              : "An admin hasn't set up the river gauge or weather location yet."}
           </p>
         ) : (
           <>
@@ -153,7 +193,9 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
                   label="Wind"
                   value={
                     readings?.windMph != null
-                      ? `${Math.round(readings.windMph)} mph${readings.gustMph != null ? `, gusts ${Math.round(readings.gustMph)}` : ""}`
+                      ? `${Math.round(readings.windMph)} mph${readings.windDir ? ` from ${readings.windDir}` : ""}${
+                          readings.gustMph != null ? `, gusts ${Math.round(readings.gustMph)}` : ""
+                        }`
                       : null
                   }
                 />
@@ -167,10 +209,11 @@ export default async function WaterPage({ searchParams }: { searchParams: Promis
                 />
               </dl>
             )}
-            {live?.gauge && (
+            {live && (
               <p className="text-xs text-gray-500">
-                USGS gauge: {live.gauge.name}
-                {live.gauge.readAt && `, ${ageLabel(live.gauge.readAt)}`}. Weather: National Weather Service
+                {live.gauge && `USGS gauge: ${live.gauge.name}${live.gauge.readAt ? `, ${ageLabel(live.gauge.readAt)}` : ""}. `}
+                Weather{weatherPlace ? ` for ${weatherPlace}` : ""}: National Weather Service
+                {live.station && ` (${live.station}, the nearest station)`}
                 {live.airReadAt && `, ${ageLabel(live.airReadAt)}`}. Readings are a guide; the coaches make the call.
               </p>
             )}

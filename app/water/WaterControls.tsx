@@ -196,13 +196,13 @@ function Field({ name, label, value, unit }: { name: keyof WaterSettings; label:
 
 export function WaterSettingsForm({ settings }: { settings: WaterSettings }) {
   const { error, pending, run } = useRunner();
-  const [open, setOpen] = useState(!settings.gaugeSite);
+  const [open, setOpen] = useState(!settings.gaugeSite && settings.weatherLat == null);
   const [saved, setSaved] = useState(false);
 
   return (
     <section className="flex flex-col gap-2">
       <button type="button" onClick={() => setOpen(!open)} className="text-left text-lg font-semibold">
-        Gauge and limits {open ? "▾" : "▸"}
+        Gauge, weather location and limits {open ? "▾" : "▸"}
       </button>
       {open && (
         <form
@@ -219,6 +219,29 @@ export function WaterSettingsForm({ settings }: { settings: WaterSettings }) {
             </span>
             <input name="gaugeSite" defaultValue={settings.gaugeSite ?? ""} inputMode="numeric" className="w-40 border rounded px-2 py-1" />
           </label>
+          <div className="flex flex-col gap-1 text-sm">
+            <span className="text-gray-600">
+              Weather location: where air temperature, wind and gusts are read (the nearest National Weather Service
+              station to it). Blank: the gauge&apos;s location. On a regatta day the regatta&apos;s course is used.
+            </span>
+            <input
+              name="weatherName"
+              defaultValue={settings.weatherName ?? ""}
+              placeholder="Name, e.g. Hoover Reservoir"
+              maxLength={80}
+              className="border rounded px-2 py-1"
+            />
+            <input
+              name="weatherPoint"
+              defaultValue={
+                settings.weatherLat != null && settings.weatherLon != null
+                  ? `${settings.weatherLat}, ${settings.weatherLon}`
+                  : ""
+              }
+              placeholder="Coordinates, e.g. 40.1150, -82.8800"
+              className="border rounded px-2 py-1"
+            />
+          </div>
           <p className="text-sm text-gray-600">Leave a limit blank to skip it. Caution turns the verdict yellow; stop turns it red.</p>
           <div className="grid grid-cols-2 gap-3">
             <Field name="flowCautionCfs" label="Flow: caution at" value={settings.flowCautionCfs} unit="cfs" />

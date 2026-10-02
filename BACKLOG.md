@@ -816,6 +816,14 @@
       live on every coach's screen as they're added (day before / next
       day). Athletes tab: every rower and cox, tap one for their notes.
       Authors delete their own; admins any.
+- [x] Weather location (2026-10-01, from suggestions): Water > Gauge,
+      weather location and limits has a weather location (name +
+      coordinates) separate from the river gauge; air, wind (with
+      direction) and gusts come from the nearest NWS station to it.
+      Westerville: Hoover Reservoir (nearest station John Glenn, KCMH).
+      On a regatta day the Water page reads the weather at the regatta's
+      course instead (says so if the course isn't set); the race-day
+      water card reads it at the course too.
 - [x] On the Water fixes (2026-10-01, from "no way to turn it off"): an
       outing with no GPS for 30 minutes ends itself (5-minute cron, as of
       its last fix); coaches/admins get "End" on each boat in the live list;

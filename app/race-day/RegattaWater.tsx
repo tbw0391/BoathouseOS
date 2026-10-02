@@ -38,7 +38,7 @@ export async function RegattaWater({
     );
   }
 
-  const { readings: r, gauge: info, airReadAt, errors } = await liveWater(site, 30 * 60);
+  const { readings: r, gauge: info, airReadAt, station, errors } = await liveWater(site, 30 * 60, { lat, lon: lng });
   const listed = list.find((g) => g.site === site);
   const miles = listed ? listed.km / 1.609344 : null;
   const time = (iso: string | null) =>
@@ -73,7 +73,7 @@ export async function RegattaWater({
         {miles != null && `, ${miles < 1 ? "under a mile" : `${miles.toFixed(1)} miles`} from the course`}
         {!chosenSite && " (picked automatically)"}
         {info?.readAt && ` · read ${time(info.readAt)}`}
-        {airReadAt && ` · weather ${time(airReadAt)}`} · updates every 30 minutes
+        {airReadAt && ` · weather ${station ? `from ${station} ` : ""}${time(airReadAt)}`} · updates every 30 minutes
       </p>
       {errors.length > 0 && <p className="text-xs text-amber-700">{errors.join(" ")}</p>}
       {canPick && list.length > 0 && (
