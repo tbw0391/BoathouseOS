@@ -23,7 +23,7 @@ function TapChoices({ name, options, initial }: { name: string; options: { value
 }
 
 // Demo: pretend boats rowing on Hoover Reservoir, so live tracking has
-// something to show (0123). They move on their own (a database job) until
+// something to show (0125). They move on their own (a database job) until
 // their time is up or someone taps Stop.
 export async function BoatSimCard({ clubs }: { clubs: Club[] }) {
   const supabase = await createClient();
