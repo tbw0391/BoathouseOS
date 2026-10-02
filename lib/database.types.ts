@@ -288,6 +288,38 @@ export interface Message {
   created_at: string;
 }
 
+// A kept copy of a chat message (0122), readable only by board members.
+export interface MessageLogEntry {
+  message_id: string;
+  group_id: string;
+  group_name: string;
+  is_direct: boolean;
+  sender_id: string;
+  sender_name: string;
+  sender_role: string | null;
+  member_ids: string[];
+  member_names: string[];
+  body: string;
+  sent_at: string;
+  removed_at: string | null;
+}
+
+// Each time a board member opened the message log (0122).
+export interface MessageLogView {
+  id: string;
+  viewer_id: string;
+  viewer_name: string;
+  searched: string;
+  viewed_at: string;
+}
+
+// A parent's request that adults not message their child (0123).
+export interface NoMessageRequest {
+  rower_id: string;
+  requested_by: string | null;
+  requested_at: string;
+}
+
 export interface ClubSetting {
   key: string;
   value: string | null;

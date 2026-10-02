@@ -7,7 +7,9 @@ import { clubMemberIds, sendPush } from "@/lib/push";
 import type { AnnouncementAudience } from "@/lib/database.types";
 import { UserError, tryAction } from "@/lib/userError";
 
-const VALID_AUDIENCES: AnnouncementAudience[] = ["rowers", "parents", "both"];
+// "rowers" (rowers only) is no longer offered: SafeSport rules say adults'
+// messages to minors must copy their parents. Old ones still show.
+const VALID_AUDIENCES: AnnouncementAudience[] = ["parents", "both"];
 
 async function requireCoachOrAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {

@@ -68,7 +68,7 @@ export async function BoatSimCard({ clubs }: { clubs: Club[] }) {
         )}
         <div className="flex flex-col gap-1">
           <span className="text-sm font-medium">Boats</span>
-          <TapChoices name="boats" options={["2", "3", "5", "8"].map((v) => ({ value: v, label: v }))} initial="5" />
+          <TapChoices name="boats" options={["2", "3", "5", "8", "10"].map((v) => ({ value: v, label: v }))} initial="5" />
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-sm font-medium">For</span>

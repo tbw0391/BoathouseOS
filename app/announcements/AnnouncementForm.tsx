@@ -35,18 +35,17 @@ export function AnnouncementForm() {
       <fieldset className="flex gap-4">
         <legend className="text-xs text-gray-500 mb-1">Who&apos;s this for?</legend>
         <label className="flex items-center gap-1.5 text-sm">
-          <input type="radio" name="audience" value="rowers" required className="w-4 h-4" />
-          Rowers
+          <input type="radio" name="audience" value="both" required className="w-4 h-4" />
+          Rowers and parents
         </label>
         <label className="flex items-center gap-1.5 text-sm">
           <input type="radio" name="audience" value="parents" required className="w-4 h-4" />
-          Parents
-        </label>
-        <label className="flex items-center gap-1.5 text-sm">
-          <input type="radio" name="audience" value="both" required className="w-4 h-4" />
-          Both
+          Parents only
         </label>
       </fieldset>
+      <p className="text-xs text-gray-500 -mt-1">
+        Parents always get messages sent to rowers (SafeSport).
+      </p>
 
       <textarea
         name="message"

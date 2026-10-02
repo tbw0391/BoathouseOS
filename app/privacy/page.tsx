@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 // collects: new profile fields, tables, cookies, or outside services that
 // receive data should be reflected here.
 const CONTACT_EMAIL = "privacy@boathouseos.app";
-const LAST_UPDATED = "October 1, 2026";
+const LAST_UPDATED = "October 2, 2026";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -158,6 +158,14 @@ export default function PrivacyPage() {
           form submissions only to the BoathouseOS team. BoathouseOS&apos;s own staff can see and
           change any club&apos;s information, but only to run the service, help a club that asks,
           fix problems, or keep it secure.
+        </p>
+        <p>
+          Chat messages are visible to the people in the chat. For safety under SafeSport rules, a
+          copy of every message is kept, including messages someone deletes from a chat, and only
+          the club&apos;s board members can read those copies, to look into a concern. Each time a
+          board member opens them is recorded, and the other board members can see that. When an
+          adult is in a chat with a rower under 18, the rower&apos;s parent or guardian is added to
+          the chat, and a parent can ask that adults not message their child at all.
         </p>
         <p>
           If a club turns on college recruiting and a rower or coxswain chooses to be listed (with a parent&apos;s
