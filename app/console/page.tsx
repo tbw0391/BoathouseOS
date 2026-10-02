@@ -6,6 +6,7 @@ import { ActionForm } from "@/components/ActionForm";
 import { IS_DEMO_SITE } from "@/lib/site";
 import { allAuthUsers, consoleUser, daysAgo, formatWhen } from "@/lib/console";
 import { Card, ConsolePage, NotGlobalAdmin, Stat, buttonClass } from "./ui";
+import { BoatSimCard } from "./BoatSim";
 
 type InterestSignup = {
   id: string;
@@ -151,6 +152,8 @@ export default async function ConsoleHome() {
               QR codes to print or show →
             </Link>
           </Card>
+
+          <BoatSimCard clubs={clubs} />
 
           <Card title="Demo: reset to default" tone="danger">
             <p className="text-sm text-gray-500">
