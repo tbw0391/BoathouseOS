@@ -824,6 +824,13 @@
       On a regatta day the Water page reads the weather at the regatta's
       course instead (says so if the course isn't set); the race-day
       water card reads it at the course too.
+- [x] Rate & Split (2026-10-01, Todd's idea): Coach > Rate & Split. The
+      coach in the launch taps a big pad at each catch; rate is averaged
+      over the last 4 strokes (a 4-second pause starts over). Split and mph
+      from the coach's phone GPS (keeping pace with the boat), plus meters
+      per stroke. Pick the boat and save a reading to today's Coach Notes.
+      No database change. Later maybe: rate from the cox's phone motion
+      sensor, or SpeedCoach file import.
 - [x] On the Water fixes (2026-10-01, from "no way to turn it off"): an
       outing with no GPS for 30 minutes ends itself (5-minute cron, as of
       its last fix); coaches/admins get "End" on each boat in the live list;

@@ -3,6 +3,7 @@ import {
   ArrowLeftRight,
   ClipboardList,
   FileCheck,
+  Gauge,
   HeartPulse,
   MapPin,
   NotebookPen,
@@ -102,6 +103,13 @@ export default async function CoachHubPage() {
         >
           <NotebookPen className="w-5 h-5" />
           Coach Notes
+        </Link>
+        <Link
+          href="/coach/rate"
+          className="flex items-center gap-3 rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+        >
+          <Gauge className="w-5 h-5" />
+          Rate &amp; Split
         </Link>
       </div>
     </div>
