@@ -17,6 +17,7 @@ import { DEMO_CLUB_COOKIE, findDemoClub } from "@/lib/demoClubs";
 import { cookies, headers } from "next/headers";
 import { ConsoleHeader } from "@/components/ConsoleHeader";
 import { RecruitHeader } from "@/components/RecruitHeader";
+import { SplashScreen } from "@/components/SplashScreen";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -160,10 +161,13 @@ export default async function RootLayout({
   } as React.CSSProperties;
 
   return (
-    <html lang="en" style={themeStyle}>
+    // suppressHydrationWarning: the splash script sets data-splash on <html>
+    // before React hydrates.
+    <html lang="en" style={themeStyle} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <SplashScreen iconSrc={siteBranding.iconSrc} appName={siteBranding.appName} />
         <BrandingProvider value={siteBranding}>
           <ServiceWorkerUpdater />
           <Header
