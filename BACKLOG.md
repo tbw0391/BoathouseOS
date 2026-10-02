@@ -70,14 +70,19 @@
 
 ## Missing features (2026-10-02, compared with iCrew and masters clubs)
 Masters:
-- [ ] Boat and erg reservations: members book a single, double or erg for a
-      time slot; no double-booking; cancel and swap. The biggest gap for
-      masters, who row on their own schedules.
-- [ ] Boat sign-out logbook: sign a boat out and back in (crew, route,
-      expected return), who's out now, overdue alerts to the safety contact.
-      Feeds boat usage (km/hours) like On the Water tracks do.
-- [ ] Rower ratings: which members are cleared for which boats (e.g. racing
-      singles, coxless 4), plus swim test; reservations and sign-out check it.
+- [x] Boat and erg reservations (2026-10-02, 0128, Boathouse > Book): book
+      a boat or erg by day, start time and length (up to 6 hours), with crew
+      and a note; no double-booking; cancel your own (coaches any). Coaches
+      pick which boats members can book; the rest are coach-only.
+- [x] Boat sign-out logbook (2026-10-02, 0128, Boathouse > Logbook): sign a
+      boat out (crew, route, back-by time) and back in (km, damage); who's
+      out now; overdue push/email to the crew, coaches and admins. Blocked
+      while someone else has it booked or it's already out. Damage opens a
+      boat maintenance request; trips count toward boat usage on Boats.
+- [x] Rower ratings (2026-10-02, 0128, Boathouse > Settings): levels 0-3
+      set by coaches, a minimum level per boat, and the swim test (from
+      Paperwork, per the club's settings); booking and sign-out check every
+      crew member.
 - [ ] Safety rules the app enforces: no rowing alone, buddy boat, launch
       required, water-temperature and daylight limits (we already have
       water conditions and sunrise/sunset).
@@ -93,9 +98,8 @@ Masters:
 - [ ] Split regatta entry fees across a crew (charge each rower their share).
 
 Everyone (juniors, college, masters):
-- [ ] Practice RSVPs / availability: "can't make Tuesday", injured or
-      limited; coaches see who's coming when building lineups. (Schedule
-      RSVPs were never built.)
+- [x] Practice RSVPs / availability: covered by practice check-in (decided
+      2026-10-02); not building a separate RSVP.
 - [ ] Practice plans: coaches write the session plan (pieces, rates,
       lineups) ahead of time; rowers see it; reuse past plans.
 - [ ] Training journal: rowers log notes on each practice; coaches can read.
@@ -1096,10 +1100,14 @@ comply, and the app mustn't break the rules.
       chats can add them again).
 - [x] Announcements: "Rowers only" removed; rowers' announcements always
       reach parents too.
-- [ ] Yearly transportation consent (Paperwork), checked when claiming a
-      seat on a regatta's Travel tab and in practice carpools: an adult
-      driving someone else's minor one-on-one needs written parent consent,
-      renewed every year; club-arranged transport needs it for every minor.
+- [x] Yearly transportation consent (2026-10-02, 0127): on a minor's
+      profile, a parent (or an admin, from a paper form) gives club travel
+      consent and, separately, one-on-one ride consent; good for one year.
+      Taking a seat on a regatta's Travel tab checks it (a parent driving
+      their own child doesn't need it); a minor left alone with a driver
+      who isn't close in age shows a SafeSport warning on the car. Missing
+      consents are listed on Coach > Paperwork. Practice carpools should
+      reuse the same check when built.
 - [ ] Rooming lists: warn on an adult sharing a room with a minor who isn't
       their child (lodging rules).
 - [ ] Training/background tracking: extend Paperwork's SafeSport and

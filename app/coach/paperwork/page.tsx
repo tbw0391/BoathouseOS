@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PAPERWORK, PAPERWORK_SETTINGS_KEY, paperworkStatus, parsePaperworkSettings, requiredFor, type PaperworkRecord } from "@/lib/paperwork";
 import { clubDateKey } from "@/lib/raceDay";
 import { PaperworkChip } from "@/components/PaperworkEditor";
+import { isAdult } from "@/lib/recruiting";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function CoachPaperworkPage({ searchParams }: { searchParam
   const [{ data: people }, { data: rows }, { data: settingRow }, { data: coachTeamRows }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, display_name, role")
+      .select("id, display_name, role, birthday")
       .in("role", ["rower", "coxswain", "coach", "admin"])
       .is("disabled_at", null)
       .not("approved_at", "is", null)
@@ -32,6 +33,8 @@ export default async function CoachPaperworkPage({ searchParams }: { searchParam
     supabase.from("club_settings").select("value").eq("key", PAPERWORK_SETTINGS_KEY).maybeSingle(),
     supabase.from("profile_teams").select("profile_id").eq("team", "coach"),
   ]);
+  // SafeSport travel consent (0127) for rowers and coxes under 18.
+  const { data: consentRows } = await supabase.from("transport_consents").select("rower_id, club_travel, expires_on");
   const settings = parsePaperworkSettings((settingRow as { value: string | null } | null)?.value);
   const onCoachTeam = new Set(((coachTeamRows as { profile_id: string }[] | null) ?? []).map((r) => r.profile_id));
   const today = clubDateKey(new Date());
@@ -41,7 +44,16 @@ export default async function CoachPaperworkPage({ searchParams }: { searchParam
     byPerson.get(r.profile_id)!.set(r.kind, r);
   }
 
-  const list = ((people as { id: string; display_name: string; role: string }[] | null) ?? []).map((p) => {
+  const everyone = (people as { id: string; display_name: string; role: string; birthday: string | null }[] | null) ?? [];
+  const consented = new Set(
+    ((consentRows as { rower_id: string; club_travel: boolean; expires_on: string }[] | null) ?? [])
+      .filter((c) => c.club_travel && c.expires_on >= today)
+      .map((c) => c.rower_id)
+  );
+  const noTravelConsent = everyone.filter(
+    (p) => (p.role === "rower" || p.role === "coxswain") && !isAdult(p.birthday) && !consented.has(p.id)
+  );
+  const list = everyone.map((p) => {
     const needs = requiredFor(p.role, settings, onCoachTeam.has(p.id) ? ["coach"] : []);
     const records = byPerson.get(p.id) ?? new Map<string, PaperworkRecord>();
     const problems = needs.filter((n) => paperworkStatus(records.get(n.kind), today) !== "ok").length;
@@ -100,6 +112,27 @@ export default async function CoachPaperworkPage({ searchParams }: { searchParam
           </div>
         ))}
       </div>
+
+      <h2 className="text-lg font-semibold mt-8">Travel consent</h2>
+      <p className="text-sm text-gray-600 mb-2">
+        SafeSport: rowers under 18 need a parent&apos;s yearly consent before riding in club-arranged travel. Parents
+        give it on the rower&apos;s profile.
+      </p>
+      {noTravelConsent.length === 0 ? (
+        <p className="text-sm text-green-700">Every rower under 18 has travel consent.</p>
+      ) : (
+        <p className="text-sm">
+          Still needed ({noTravelConsent.length}):{" "}
+          {noTravelConsent.map((p, i) => (
+            <span key={p.id}>
+              {i > 0 && ", "}
+              <Link href={`/roster/${p.id}`} className="underline">
+                {p.display_name}
+              </Link>
+            </span>
+          ))}
+        </p>
+      )}
     </div>
   );
 }

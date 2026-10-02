@@ -84,10 +84,15 @@ export async function removeVehicle(eventId: string, vehicleId: string) {
 }
 
 export async function takeSeat(eventId: string, vehicleId: string, personId: string) {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("take_travel_seat", { vehicle: vehicleId, person: personId });
-  if (error) throw new Error(error.message);
-  done(eventId);
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("take_travel_seat", { vehicle: vehicleId, person: personId });
+    // Full rides, and SafeSport travel consent (0127), come back with a
+    // message for the person.
+    if (error && /^(SafeSport:|That ride|You can only)/.test(error.message)) throw new UserError(error.message);
+    if (error) throw new Error(error.message);
+    done(eventId);
+  });
 }
 
 export async function leaveSeat(eventId: string, vehicleId: string, personId: string) {

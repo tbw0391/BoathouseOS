@@ -97,6 +97,11 @@ export const ALERT_TYPES = [
     label: "Form and election reminders",
     detail: "Phone alert to people who haven't answered: the day before it closes, and when an organizer taps \"Remind them\".",
   },
+  {
+    kind: "boat_overdue",
+    label: "Boat overdue",
+    detail: "Phone alert to the crew and the club's coaches when a boat signed out in the Boathouse logbook isn't back on time.",
+  },
 ] as const;
 
 export type AlertKind = (typeof ALERT_TYPES)[number]["kind"];
@@ -110,6 +115,7 @@ export const EMAIL_BACKUP_KINDS: AlertKind[] = [
   "payment_due",
   "payment_failed",
   "paperwork_expiring",
+  "boat_overdue",
 ];
 
 export const ALERT_SETTINGS_KEY = "alert_settings";

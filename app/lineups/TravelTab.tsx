@@ -17,7 +17,7 @@ import {
 import { unwrapIfResult } from "@/lib/userError";
 
 type Person = { id: string; name: string };
-export type VehicleView = TravelVehicle & { driverName: string | null; riders: Person[] };
+export type VehicleView = TravelVehicle & { driverName: string | null; riders: Person[]; warnings: string[] };
 export type RoomView = TravelRoom & { members: Person[] };
 
 const chip = (active: boolean) =>
@@ -235,6 +235,11 @@ export function TravelTab({
                   ))}
                 </ul>
               )}
+              {v.warnings.map((w) => (
+                <p key={w} className="mt-1 text-xs rounded bg-amber-50 border border-amber-300 text-amber-900 px-2 py-1">
+                  SafeSport: {w}
+                </p>
+              ))}
               <div className="mt-2 flex flex-wrap gap-2">
                 {myPeople.map((p) => {
                   const here = rideOf.get(p.id) === v.id;

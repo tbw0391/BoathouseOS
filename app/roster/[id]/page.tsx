@@ -39,9 +39,11 @@ import { TextAlertsCard } from "./TextAlertsCard";
 import { ProfilePhotoButton } from "./ProfilePhotoButton";
 import { canOptInToTexts } from "@/lib/smsRules";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { RECRUITING_KEY, type RecruitListing } from "@/lib/recruiting";
+import { RECRUITING_KEY, isAdult, type RecruitListing } from "@/lib/recruiting";
 import { RecruitingCard } from "./RecruitingCard";
 import { NoMessagesCard } from "./NoMessagesCard";
+import { TravelConsentCard, type TravelConsent } from "./TravelConsentCard";
+
 
 const ROLE_LABELS: Record<Profile["role"], string> = {
   rower: "Rower",
@@ -268,6 +270,19 @@ export default async function BioPage({
       .maybeSingle();
     noMessagesSince = (request as { requested_at: string } | null)?.requested_at ?? null;
   }
+
+  // SafeSport travel consent (0127), for rowers and coxes under 18 (or with
+  // no birthday): same people as above.
+  const showTravelConsent = showNoMessages && !isAdult(profile.birthday);
+  let travelConsent: TravelConsent | null = null;
+  if (showTravelConsent) {
+    const { data: consentRow } = await supabase
+      .from("transport_consents")
+      .select("club_travel, one_on_one, given_by_name, given_at, expires_on")
+      .eq("rower_id", profile.id)
+      .maybeSingle();
+    travelConsent = (consentRow as TravelConsent | null) ?? null;
+  }
   if (isAthlete && canSeeEmergency) {
     const { data: recruitingSetting } = await supabase
       .from("club_settings")
@@ -436,6 +451,16 @@ export default async function BioPage({
           rowerId={profile.id}
           firstName={profile.first_name || profile.display_name}
           requestedAt={noMessagesSince}
+          canChange={isParentOfProfile || isCallerAdmin}
+        />
+      )}
+
+      {showTravelConsent && (
+        <TravelConsentCard
+          rowerId={profile.id}
+          firstName={profile.first_name || profile.display_name}
+          consent={travelConsent}
+          today={clubDateKey(new Date())}
           canChange={isParentOfProfile || isCallerAdmin}
         />
       )}
