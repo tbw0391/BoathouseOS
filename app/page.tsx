@@ -2104,8 +2104,14 @@ export default async function Home() {
 
       {user && <HomeContactsCard />}
 
-      {user && <PushToggle isDemo={isDemoEmail(user.email)} />}
-      {user && !isDemoEmail(user.email) && emailBackupOn && <EmailAlertsToggle initial={emailAlertsOn} />}
+      {user && (
+        // Phone alerts on one half, the email backup on the other (either
+        // fills the row when the other isn't shown).
+        <div className="w-full flex gap-3 [&>*]:flex-1 [&>*]:min-w-0">
+          <PushToggle isDemo={isDemoEmail(user.email)} />
+          {!isDemoEmail(user.email) && emailBackupOn && <EmailAlertsToggle initial={emailAlertsOn} />}
+        </div>
+      )}
 
       {regattaWeek && (
         <RegattaWeekPopup
