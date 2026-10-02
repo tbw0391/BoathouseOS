@@ -747,3 +747,14 @@ export interface FoodTentMessage {
   message: string;
   created_at: string;
 }
+
+// Notes only coaches and admins see (0122): about one athlete, or a
+// practice day's shared notes.
+export interface CoachNote {
+  id: string;
+  athlete_id: string | null;
+  note_date: string | null;
+  body: string;
+  created_by: string | null;
+  created_at: string;
+}

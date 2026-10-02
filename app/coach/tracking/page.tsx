@@ -29,7 +29,7 @@ export default async function CoachTrackingPage() {
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-6">Live Tracking</h1>
-      <LiveBoats initialSessions={await getActiveBoats()} mapOpenByDefault />
+      <LiveBoats initialSessions={await getActiveBoats()} mapOpenByDefault canEnd />
     </div>
   );
 }

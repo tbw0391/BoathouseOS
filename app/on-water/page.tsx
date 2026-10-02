@@ -26,7 +26,7 @@ export default async function OnWaterPage() {
     return (
       <div className="min-h-screen p-8">
         <h1 className="text-2xl font-bold mb-6">On the Water</h1>
-        <LiveBoats initialSessions={activeBoats} />
+        <LiveBoats initialSessions={activeBoats} canEnd />
       </div>
     );
   }
@@ -96,16 +96,8 @@ export default async function OnWaterPage() {
 
   const liveBoats = callerRole === "admin" ? await getActiveBoats() : null;
 
-  return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold mb-6">On the Water</h1>
-      {liveBoats && (
-        <>
-          <LiveBoats initialSessions={liveBoats} />
-          <h2 className="text-lg font-semibold mt-8 mb-4">Track my boat</h2>
-        </>
-      )}
-      {boats.length === 0 ? (
+  const tracker =
+    boats.length === 0 ? (
         <p className="text-sm text-gray-500">
           There are no boats set up yet. A coach can add them on the{" "}
           <Link href="/boats" className="underline">
@@ -120,6 +112,24 @@ export default async function OnWaterPage() {
           colorsInUse={colorsInUse}
           activeSession={activeSession}
         />
+      );
+
+  // An admin who's tracking sees their own outing (and End Outing) first.
+  return (
+    <div className="min-h-screen p-8">
+      <h1 className="text-2xl font-bold mb-6">On the Water</h1>
+      {liveBoats && !activeSession && (
+        <>
+          <LiveBoats initialSessions={liveBoats} canEnd />
+          <h2 className="text-lg font-semibold mt-8 mb-4">Track my boat</h2>
+        </>
+      )}
+      {tracker}
+      {liveBoats && activeSession && (
+        <>
+          <h2 className="text-lg font-semibold mt-8 mb-4">All boats on the water</h2>
+          <LiveBoats initialSessions={liveBoats} canEnd />
+        </>
       )}
     </div>
   );
