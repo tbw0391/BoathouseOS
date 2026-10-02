@@ -5,7 +5,14 @@ import { createClient } from "@/lib/supabase/client";
 import type { Boat, OnWaterSession } from "@/lib/database.types";
 import { ON_WATER_COLORS } from "@/lib/onWaterColors";
 import { startSession, endSession } from "./actions";
-import { APPROXIMATE_FIX_M, distanceLabel, GOOD_FIX_M } from "@/app/coach/tracking/boatDisplay";
+import {
+  APPROXIMATE_FIX_M,
+  boatMotion,
+  distanceLabel,
+  GOOD_FIX_M,
+  mph,
+  split500,
+} from "@/app/coach/tracking/boatDisplay";
 import { unwrap } from "@/lib/userError";
 
 const PING_INTERVAL_MS = 7000;
@@ -42,6 +49,15 @@ function GpsQuality({ accuracyM }: { accuracyM: number | null }) {
     </div>
   );
 }
+
+type SentFix = {
+  lat: number;
+  lng: number;
+  accuracy_m: number | null;
+  speed_mps: number | null;
+  heading_deg: number | null;
+  recorded_at: string;
+};
 
 // This phone remembers which boat it's in and its color, so the coxswain
 // only has to pick them once.
@@ -94,6 +110,11 @@ function LocationSwitch({ permission, onEnable }: { permission: PermissionState;
         </p>
       )}
       {!isOn && !isDenied && <p className="text-xs text-gray-500">Tap the switch to allow location access.</p>}
+      {isOn && (
+        <p className="text-xs text-gray-500">
+          Allowed. Your location is only sent while an outing is running; End Outing stops it.
+        </p>
+      )}
     </div>
   );
 }
@@ -124,6 +145,9 @@ export function OnWaterTracker({
   const [lastPingAt, setLastPingAt] = useState<Date | null>(null);
   const [lastAccuracy, setLastAccuracy] = useState<number | null>(null);
   const [permission, setPermission] = useState<PermissionState>("prompt");
+  const [notice, setNotice] = useState<string | null>(null);
+  // The last two fixes sent, for speed and split.
+  const [fixes, setFixes] = useState<{ last: SentFix | null; prev: SentFix | null }>({ last: null, prev: null });
 
   const watchIdRef = useRef<number | null>(null);
   const lastInsertRef = useRef<number>(0);
@@ -246,23 +270,44 @@ export function OnWaterTracker({
         const fix = bestFixRef.current ?? position;
         bestFixRef.current = null;
         const { latitude, longitude, accuracy, heading, speed } = fix.coords;
+        const sent: SentFix = {
+          lat: latitude,
+          lng: longitude,
+          accuracy_m: accuracy ?? null,
+          heading_deg: heading ?? null,
+          speed_mps: speed ?? null,
+          recorded_at: new Date(fix.timestamp).toISOString(),
+        };
         supabase
           .from("location_pings")
           .insert({
             session_id: activeSessionId,
-            lat: latitude,
-            lng: longitude,
-            accuracy_m: accuracy ?? null,
-            heading_deg: heading ?? null,
-            speed_mps: speed ?? null,
+            lat: sent.lat,
+            lng: sent.lng,
+            accuracy_m: sent.accuracy_m,
+            heading_deg: sent.heading_deg,
+            speed_mps: sent.speed_mps,
           })
-          .then(({ error: insertError }) => {
-            if (insertError) {
-              setError(insertError.message);
-            } else {
+          .then(async ({ error: insertError }) => {
+            if (!insertError) {
               setLastPingAt(new Date());
               setLastAccuracy(accuracy ?? null);
+              setFixes((f) => ({ last: sent, prev: f.last }));
               setError(null);
+              return;
+            }
+            // Pings are refused once the outing has ended: a coach ended it,
+            // or it went 30 minutes without GPS and was ended automatically.
+            const { data: session } = await supabase
+              .from("on_water_sessions")
+              .select("ended_at")
+              .eq("id", activeSessionId)
+              .maybeSingle();
+            if ((session as { ended_at: string | null } | null)?.ended_at) {
+              stopTracking();
+              setNotice("This outing has ended (a coach ended it, or the phone sent no GPS for 30 minutes). Start a new one if you're still on the water.");
+            } else {
+              setError(insertError.message);
             }
           });
       },
@@ -289,6 +334,7 @@ export function OnWaterTracker({
   async function handleStart() {
     if (!boatId || !color) return;
     setError(null);
+    setNotice(null);
     setStarting(true);
     try {
       const id = unwrap(await startSession(boatId, color));
@@ -304,20 +350,28 @@ export function OnWaterTracker({
     setStarting(false);
   }
 
-  async function handleEnd() {
-    if (!sessionId) return;
+  // Stops this phone's GPS and goes back to the start screen.
+  function stopTracking() {
     if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    watchIdRef.current = null;
     wakeLockRef.current?.release();
     setWakeLockActive(false);
-    try {
-      unwrap(await endSession(sessionId));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't end tracking.");
-    }
     setSessionId(null);
     setStartedAt(null);
     setElapsedMs(0);
     setLastPingAt(null);
+    setFixes({ last: null, prev: null });
+  }
+
+  async function handleEnd() {
+    if (!sessionId) return;
+    const ending = sessionId;
+    stopTracking();
+    try {
+      unwrap(await endSession(ending));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't end tracking.");
+    }
   }
 
   const boatName = boats.find((b) => b.id === boatId)?.name ?? null;
@@ -326,6 +380,7 @@ export function OnWaterTracker({
   if (!sessionId) {
     return (
       <div className="flex flex-col gap-5 max-w-sm">
+        {notice && <p className="text-sm rounded-lg bg-amber-50 border border-amber-300 p-3">{notice}</p>}
         <div>
           <LocationSwitch permission={permission} onEnable={requestLocation} />
           <GpsQuality accuracyM={lastAccuracy} />
@@ -412,6 +467,7 @@ export function OnWaterTracker({
   const elapsedMin = Math.floor(elapsedMs / 60000);
   const elapsedSec = Math.floor((elapsedMs % 60000) / 1000);
   const lastPingAgeSec = lastPingAt ? Math.floor((Date.now() - lastPingAt.getTime()) / 1000) : null;
+  const motion = boatMotion(fixes.last, fixes.prev);
 
   return (
     <div className="flex flex-col gap-3 max-w-sm">
@@ -423,6 +479,18 @@ export function OnWaterTracker({
         <p className="text-2xl font-bold tabular-nums">
           {elapsedMin}:{String(elapsedSec).padStart(2, "0")}
         </p>
+        {motion.speedMps != null && (
+          <p className="mt-2 tabular-nums">
+            {motion.moving ? (
+              <>
+                <span className="text-xl font-bold">{split500(motion.speedMps)}</span>
+                <span className="text-sm text-gray-500"> /500m · {mph(motion.speedMps)} mph</span>
+              </>
+            ) : (
+              <span className="text-sm text-gray-500">Stopped</span>
+            )}
+          </p>
+        )}
         <p className="text-sm text-gray-500 mt-2">
           {lastPingAgeSec === null
             ? "Waiting for first GPS fix…"

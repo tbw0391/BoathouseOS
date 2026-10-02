@@ -6,6 +6,8 @@ import { Map as MapIcon, Navigation2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { LocationPing, OnWaterSession } from "@/lib/database.types";
 import type { ActiveSessionView } from "@/lib/onWater";
+import { endSession } from "@/app/on-water/actions";
+import { unwrap } from "@/lib/userError";
 import {
   ageLabel,
   boatColor,
@@ -25,11 +27,27 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), { ssr: false });
 export function LiveBoats({
   initialSessions,
   mapOpenByDefault = false,
+  canEnd = false,
 }: {
   initialSessions: ActiveSessionView[];
   mapOpenByDefault?: boolean;
+  // Coaches and admins can end any outing (a phone left tracking ashore).
+  canEnd?: boolean;
 }) {
   const [sessions, setSessions] = useState(initialSessions);
+  const [confirmingEnd, setConfirmingEnd] = useState<string | null>(null);
+  const [endError, setEndError] = useState<string | null>(null);
+
+  async function endOuting(sessionId: string) {
+    setConfirmingEnd(null);
+    setEndError(null);
+    try {
+      unwrap(await endSession(sessionId));
+      setSessions((prev) => prev.filter((view) => view.session.id !== sessionId));
+    } catch (e) {
+      setEndError(e instanceof Error ? e.message : "Couldn't end that outing.");
+    }
+  }
   const [showMap, setShowMap] = useState(mapOpenByDefault);
   const [, setTick] = useState(0);
 
@@ -175,17 +193,39 @@ export function LiveBoats({
                   </p>
                 )}
               </div>
-              <span className={`text-xs shrink-0 ${stale ? "text-red-600" : "text-gray-500"}`}>
-                {view.lastPing
-                  ? stale
-                    ? `No GPS for ${ageLabel(view.lastPing.recorded_at)}`
-                    : `GPS ${ageLabel(view.lastPing.recorded_at)} ago`
-                  : "Waiting for GPS…"}
-              </span>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <span className={`text-xs ${stale ? "text-red-600" : "text-gray-500"}`}>
+                  {view.lastPing
+                    ? stale
+                      ? `No GPS for ${ageLabel(view.lastPing.recorded_at)}`
+                      : `GPS ${ageLabel(view.lastPing.recorded_at)} ago`
+                    : "Waiting for GPS…"}
+                </span>
+                {canEnd &&
+                  (confirmingEnd === view.session.id ? (
+                    <span className="flex gap-2 text-xs">
+                      <button onClick={() => endOuting(view.session.id)} className="font-semibold text-red-700 underline">
+                        Yes, end
+                      </button>
+                      <button onClick={() => setConfirmingEnd(null)} className="text-gray-600 underline">
+                        Keep
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmingEnd(view.session.id)}
+                      className="text-xs text-gray-600 underline"
+                    >
+                      End
+                    </button>
+                  ))}
+              </div>
             </li>
           );
         })}
       </ul>
+
+      {endError && <p className="text-sm text-red-600">{endError}</p>}
 
       <button
         onClick={() => setShowMap((s) => !s)}

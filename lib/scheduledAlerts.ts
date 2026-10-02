@@ -273,6 +273,33 @@ async function formClosingAlerts(admin: Admin) {
   }
 }
 
+// An outing whose phone stopped sending GPS (the cox left the tracker, the
+// phone slept or died) would otherwise show as on the water forever. After
+// 30 minutes with no fix it's ended, as of its last fix.
+const STALE_OUTING_MS = 30 * 60 * 1000;
+
+async function endStaleOutings(admin: Admin) {
+  const { data } = await admin.from("on_water_sessions").select("id, started_at").is("ended_at", null);
+  const cutoff = Date.now() - STALE_OUTING_MS;
+  for (const session of (data as { id: string; started_at: string }[] | null) ?? []) {
+    const { data: last } = await admin
+      .from("location_pings")
+      .select("recorded_at")
+      .eq("session_id", session.id)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const lastSeen = (last as { recorded_at: string } | null)?.recorded_at ?? session.started_at;
+    if (new Date(lastSeen).getTime() > cutoff) continue;
+    const { error } = await admin
+      .from("on_water_sessions")
+      .update({ ended_at: lastSeen })
+      .eq("id", session.id)
+      .is("ended_at", null);
+    if (error) throw new Error(error.message);
+  }
+}
+
 export async function runScheduledAlerts() {
   const admin = createAdminClient();
   const results = await Promise.allSettled([
@@ -282,6 +309,7 @@ export async function runScheduledAlerts() {
     paperworkAlerts(admin),
     raceStartAlerts(admin),
     formClosingAlerts(admin),
+    endStaleOutings(admin),
   ]);
   const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
   for (const f of failures) console.error("Scheduled alert failed", f.reason);

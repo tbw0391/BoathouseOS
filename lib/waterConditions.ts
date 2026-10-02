@@ -7,6 +7,12 @@ export const LIGHTNING_WAIT_MINUTES = 30;
 
 export type WaterSettings = {
   gaugeSite: string | null; // USGS site number, e.g. "03049500"
+  // Where air and wind are read (the nearest weather station to it), e.g.
+  // the club's lake. Unset: the gauge's location. Regatta days use the
+  // regatta's course instead.
+  weatherName: string | null;
+  weatherLat: number | null;
+  weatherLon: number | null;
   flowCautionCfs: number | null;
   flowStopCfs: number | null;
   heightCautionFt: number | null;
@@ -20,6 +26,9 @@ export type WaterSettings = {
 
 export const DEFAULT_WATER_SETTINGS: WaterSettings = {
   gaugeSite: null,
+  weatherName: null,
+  weatherLat: null,
+  weatherLon: null,
   flowCautionCfs: null,
   flowStopCfs: null,
   heightCautionFt: null,
@@ -43,8 +52,14 @@ export function parseWaterSettings(raw: string | null | undefined): WaterSetting
     return typeof v === "number" && Number.isFinite(v) ? v : null;
   };
   const site = typeof saved.gaugeSite === "string" && /^\d{8,15}$/.test(saved.gaugeSite) ? saved.gaugeSite : null;
+  const lat = num("weatherLat");
+  const lon = num("weatherLon");
+  const hasPoint = lat != null && lon != null && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
   return {
     gaugeSite: site,
+    weatherName: hasPoint && typeof saved.weatherName === "string" ? saved.weatherName.slice(0, 80) || null : null,
+    weatherLat: hasPoint ? lat : null,
+    weatherLon: hasPoint ? lon : null,
     flowCautionCfs: num("flowCautionCfs"),
     flowStopCfs: num("flowStopCfs"),
     heightCautionFt: num("heightCautionFt"),

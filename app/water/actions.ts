@@ -11,6 +11,7 @@ import {
   callConditionsLine,
   type WaterSettings,
 } from "@/lib/waterConditions";
+import { parseCoordinates } from "@/lib/course";
 import { UserError, tryAction } from "@/lib/userError";
 
 async function requireRole(roles: string[]) {
@@ -43,8 +44,14 @@ export async function saveWaterSettings(formData: FormData) {
     const { supabase } = await requireRole(["admin"]);
     const site = String(formData.get("gaugeSite") ?? "").trim();
     if (site && !/^\d{8,15}$/.test(site)) throw new UserError("A USGS site number is 8 to 15 digits, like 03049500.");
+    const pointText = String(formData.get("weatherPoint") ?? "").trim();
+    const point = pointText ? parseCoordinates(pointText) : null;
+    if (pointText && !point) throw new UserError("Couldn't read those coordinates. Try something like 40.1150, -82.8800.");
     const settings: WaterSettings = {
       gaugeSite: site || null,
+      weatherName: point ? String(formData.get("weatherName") ?? "").trim().slice(0, 80) || null : null,
+      weatherLat: point?.lat ?? null,
+      weatherLon: point?.lng ?? null,
       flowCautionCfs: num(formData.get("flowCautionCfs")),
       flowStopCfs: num(formData.get("flowStopCfs")),
       heightCautionFt: num(formData.get("heightCautionFt")),

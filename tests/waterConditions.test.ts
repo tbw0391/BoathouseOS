@@ -55,6 +55,15 @@ describe("parseWaterSettings", () => {
     expect(parseWaterSettings(JSON.stringify({ gaugeSite: "03049500" })).gaugeSite).toBe("03049500");
     expect(parseWaterSettings(JSON.stringify({ gaugeSite: "x; drop" })).gaugeSite).toBeNull();
   });
+  it("keeps a weather location only with both coordinates", () => {
+    const hoover = parseWaterSettings(
+      JSON.stringify({ weatherName: "Hoover Reservoir", weatherLat: 40.115, weatherLon: -82.88 })
+    );
+    expect([hoover.weatherName, hoover.weatherLat, hoover.weatherLon]).toEqual(["Hoover Reservoir", 40.115, -82.88]);
+    const half = parseWaterSettings(JSON.stringify({ weatherName: "Lake", weatherLat: 40.1 }));
+    expect([half.weatherName, half.weatherLat, half.weatherLon]).toEqual([null, null, null]);
+    expect(parseWaterSettings(null).weatherLat).toBeNull();
+  });
 });
 
 describe("lightningMinutesLeft", () => {

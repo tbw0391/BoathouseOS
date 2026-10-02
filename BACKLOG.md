@@ -811,6 +811,26 @@
       from its GPS track (bad fixes skipped); Boats page shows outings, km,
       hours per boat over 12 months and km since service with a service
       interval and "Serviced today".
+- [x] Coach Notes (2026-10-01, 0122, from suggestions): Coach > Coach
+      Notes, coaches and admins only. Practice tab: the day's shared notes,
+      live on every coach's screen as they're added (day before / next
+      day). Athletes tab: every rower and cox, tap one for their notes.
+      Authors delete their own; admins any.
+- [x] Weather location (2026-10-01, from suggestions): Water > Gauge,
+      weather location and limits has a weather location (name +
+      coordinates) separate from the river gauge; air, wind (with
+      direction) and gusts come from the nearest NWS station to it.
+      Westerville: Hoover Reservoir (nearest station John Glenn, KCMH).
+      On a regatta day the Water page reads the weather at the regatta's
+      course instead (says so if the course isn't set); the race-day
+      water card reads it at the course too.
+- [x] On the Water fixes (2026-10-01, from "no way to turn it off"): an
+      outing with no GPS for 30 minutes ends itself (5-minute cron, as of
+      its last fix); coaches/admins get "End" on each boat in the live list;
+      an admin who's tracking sees their own outing (End Outing) above the
+      map; the cox's screen shows split /500m and mph, explains the GPS
+      switch only allows location (End Outing stops sending), and says so
+      when the outing was ended elsewhere.
 
 - [x] College recruiting portal (2026-10-01, 0121): college coaches sign
       up at /recruit (recruit.boathouseos.app on production, which needs a
