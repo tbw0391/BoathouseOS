@@ -7,6 +7,12 @@ import {
 } from "@/lib/rookieParent";
 import { AddSection, MoveUpButton } from "./SectionEditor";
 
+// Guides every club gets, above the club's own sections.
+const BUILT_IN = [
+  { href: "/rookie-parent/shell", title: "Parts of a Racing Shell" },
+  { href: "/rookie-parent/boat-types", title: "Sweep vs. Sculling Boats" },
+];
+
 export default async function RookieParentPage() {
   const supabase = await createClient();
   const {
@@ -35,6 +41,15 @@ export default async function RookieParentPage() {
       <p className="text-sm text-gray-500 mb-6">New to the team? Start here.</p>
 
       <div className="flex flex-col gap-3 max-w-md">
+        {BUILT_IN.map((b) => (
+          <Link
+            key={b.href}
+            href={b.href}
+            className="rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 text-center font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+          >
+            {b.title}
+          </Link>
+        ))}
         {sections.map((s, i) => (
           <div key={s.id} className="flex items-center gap-2">
             <Link

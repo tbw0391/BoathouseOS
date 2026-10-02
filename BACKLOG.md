@@ -525,6 +525,11 @@ Everyone (juniors, college, masters):
         connected yet as of 2026-09-29).
 
 ## Rookie Parent
+- [x] Rookie Parent guides (2026-10-02): built-in "Parts of a Racing Shell"
+      (labeled top view of an eight, numbered parts, words you'll hear) and
+      "Sweep vs. Sculling Boats" (one oar vs two, reading 8+/4-/2x, each boat
+      class with a small drawing, which is fastest), above the club's own
+      sections. Same for every club; not editable.
 - [x] Rookie Parent tile/button (2026-09-27): /rookie-parent with buttons
       for FAQ, What to Bring, and Food Tent/Parking/Team Tent. Admins write
       each section on the page (stored in club_settings). Content still
