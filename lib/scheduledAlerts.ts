@@ -301,6 +301,47 @@ async function endStaleOutings(admin: Admin) {
   }
 }
 
+// Boats signed out in the Boathouse logbook (0128) and not back on time:
+// one alert to the crew and the club's coaches and admins.
+async function boatOverdueAlerts(admin: Admin) {
+  const { data } = await admin
+    .from("boat_signouts")
+    .select("id, club_id, boat_id, rower_ids, expected_back_at")
+    .is("back_at", null)
+    .is("overdue_alerted_at", null)
+    .lt("expected_back_at", new Date().toISOString());
+  const late = (data as { id: string; club_id: string; boat_id: string; rower_ids: string[]; expected_back_at: string }[] | null) ?? [];
+  for (const s of late) {
+    const [{ data: boat }, { data: staff }, { data: crew }] = await Promise.all([
+      admin.from("boats").select("name").eq("id", s.boat_id).maybeSingle(),
+      admin
+        .from("profiles")
+        .select("id")
+        .eq("club_id", s.club_id)
+        .in("role", ["coach", "admin"])
+        .is("disabled_at", null)
+        .not("approved_at", "is", null),
+      admin.from("profiles").select("display_name").in("id", s.rower_ids.length > 0 ? s.rower_ids : [""]),
+    ]);
+    // Mark it first so a slow push never sends twice.
+    const { error } = await admin
+      .from("boat_signouts")
+      .update({ overdue_alerted_at: new Date().toISOString() })
+      .eq("id", s.id)
+      .is("overdue_alerted_at", null);
+    if (error) throw new Error(error.message);
+    const boatName = (boat as { name: string } | null)?.name ?? "A boat";
+    const crewNames = ((crew as { display_name: string }[] | null) ?? []).map((c) => c.display_name).join(", ");
+    await sendPush([...s.rower_ids, ...((staff as { id: string }[] | null) ?? []).map((p) => p.id)], {
+      kind: "boat_overdue",
+      title: `${boatName} is overdue`,
+      body: `Due back at ${clubTimeLabel(s.expected_back_at)}${crewNames ? ` with ${crewNames}` : ""}. Check on them, or sign it in on Boathouse.`,
+      url: "/boathouse",
+      tag: `overdue-${s.id}`,
+    });
+  }
+}
+
 export async function runScheduledAlerts() {
   const admin = createAdminClient();
   const results = await Promise.allSettled([
@@ -311,6 +352,7 @@ export async function runScheduledAlerts() {
     raceStartAlerts(admin),
     formClosingAlerts(admin),
     endStaleOutings(admin),
+    boatOverdueAlerts(admin),
     runLightningWatch(admin),
   ]);
   const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");

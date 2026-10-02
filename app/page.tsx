@@ -34,6 +34,7 @@ import {
   Shirt,
   Sprout,
   CloudLightning,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react";
 import RacingScull from "@/components/icons/RacingScull";
@@ -132,6 +133,7 @@ const ICONS_BY_HREF: Record<string, LucideIcon> = {
   "/site": Globe,
   "/forms": ClipboardCheck,
   "/programs": CalendarCheck,
+  "/boathouse": Warehouse,
 };
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;

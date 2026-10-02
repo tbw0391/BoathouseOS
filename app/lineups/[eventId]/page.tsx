@@ -60,10 +60,26 @@ async function travelFor(supabase: Awaited<ReturnType<typeof createClient>>, eve
   const riders = (riderRows as TravelRider[] | null) ?? [];
   const members = (memberRows as TravelRoomMember[] | null) ?? [];
 
+  // SafeSport travel consent (0127): riders who are already seated but whose
+  // ride no longer qualifies (say someone left and a rower is now alone with
+  // the driver, or their consent ran out).
+  const problems = await Promise.all(
+    riders.map(async (r) => {
+      const { data } = await supabase.rpc("travel_consent_problem", {
+        vehicle: r.vehicle_id,
+        person: r.profile_id,
+        adding: false,
+      });
+      return { vehicleId: r.vehicle_id, problem: (data as string | null) ?? null };
+    })
+  );
   const vehicles: VehicleView[] = ((vehicleRows as TravelVehicle[] | null) ?? []).map((v) => ({
     ...v,
     driverName: v.driver_id ? (nameById.get(v.driver_id) ?? null) : null,
     riders: riders.filter((r) => r.vehicle_id === v.id).map((r) => person(r.profile_id)),
+    warnings: problems
+      .filter((p) => p.vehicleId === v.id && p.problem)
+      .map((p) => (p.problem as string).replace(/^SafeSport: /, "")),
   }));
   const rooms: RoomView[] = ((roomRows as TravelRoom[] | null) ?? []).map((r) => ({
     ...r,

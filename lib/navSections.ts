@@ -63,6 +63,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   { href: "/site", label: "Club Website" },
   { href: "/forms", label: "Forms & Elections" },
   { href: "/programs", label: "Programs" },
+  { href: "/boathouse", label: "Boathouse" },
 ];
 
 // Per-role home-screen buttons, set from /admin: pick a type of user, then
@@ -89,7 +90,10 @@ export function navSectionsFor(role: NavRole): NavSectionDef[] {
 }
 
 // Who a button is on for before an admin has chosen: everyone unless listed.
-export const NAV_DEFAULT_ROLES: Record<string, NavRole[]> = {};
+export const NAV_DEFAULT_ROLES: Record<string, NavRole[]> = {
+  // Sign-out logbook and boat/erg bookings (0128): not for parents.
+  "/boathouse": ["rower", "coxswain", "coach", "admin"],
+};
 
 // Saved alongside the per-role lists: every button that existed when they
 // were saved, so a button added later starts at its default instead of off.

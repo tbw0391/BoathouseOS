@@ -39,6 +39,27 @@ export default async function BoatsPage() {
 
   const boats = (data as Boat[] | null) ?? [];
 
+  // Boathouse logbook trips (0128) count too, unless the same trip was also
+  // tracked On the Water (overlapping times on the same boat).
+  const { data: signoutRows } = await supabase
+    .from("boat_signouts")
+    .select("boat_id, out_at, back_at, meters")
+    .not("back_at", "is", null);
+  const tracked = (outingRows as Outing[] | null) ?? [];
+  const overlapsTracked = (o: Outing) =>
+    tracked.some(
+      (t) =>
+        t.boat_id === o.boat_id &&
+        t.ended_at &&
+        o.ended_at &&
+        new Date(t.started_at) < new Date(o.ended_at) &&
+        new Date(o.started_at) < new Date(t.ended_at)
+    );
+  const logged: Outing[] = (
+    (signoutRows as { boat_id: string; out_at: string; back_at: string; meters: number | null }[] | null) ?? []
+  ).map((s) => ({ boat_id: s.boat_id, started_at: s.out_at, ended_at: s.back_at, meters: s.meters }));
+  const outings = [...tracked, ...logged.filter((o) => !overlapsTracked(o))];
+
   let canManage = false;
   if (user) {
     const { data: callerProfile } = await supabase
@@ -142,7 +163,7 @@ export default async function BoatsPage() {
             name: b.name,
             serviceEveryKm: b.service_every_km,
             lastServiceAt: b.last_service_at,
-            usage: boatUsage(b, (outingRows as Outing[] | null) ?? [], yearAgo),
+            usage: boatUsage(b, outings, yearAgo),
           }))}
         />
       )}
