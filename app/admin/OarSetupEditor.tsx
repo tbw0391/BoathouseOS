@@ -30,7 +30,16 @@ function newId() {
   return `set-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export function OarSetupEditor({ initial }: { initial: OarSettings }) {
+export type FleetBoat = { id: string; name: string; boat_class: string };
+
+export function OarSetupEditor({
+  initial,
+  boats,
+}: {
+  initial: OarSettings;
+  boats: FleetBoat[];
+}) {
+  const boatName = new Map(boats.map((b) => [b.id, b.name]));
   const [colors, setColors] = useState<TapeColor[]>(initial.colors);
   const [maxRings, setMaxRings] = useState<number>(initial.maxRings);
   const [sets, setSets] = useState<OarSet[]>(initial.sets);
@@ -96,6 +105,7 @@ export function OarSetupEditor({ initial }: { initial: OarSettings }) {
           color: newColor,
           rings: newRings,
           groups: newGroups,
+          boats: [],
           note: "",
         },
       ].sort((a, b) => a.color.localeCompare(b.color) || a.rings - b.rings),
@@ -241,7 +251,8 @@ export function OarSetupEditor({ initial }: { initial: OarSettings }) {
       <section className="flex flex-col gap-2">
         <span className="font-medium">Oar sets</span>
         <span className="text-xs text-gray-500">
-          Every set of oars the club owns, and who uses it. Oar sheets pick from
+          Every set of oars the club owns, the squads that use it, and the boats it
+          usually goes with (a set can go with several). Oar sheets pick from
           this list and filter by squad. Leave it empty to let coxes pick any
           color and count.
         </span>
@@ -298,6 +309,51 @@ export function OarSetupEditor({ initial }: { initial: OarSettings }) {
                     </button>
                   ))}
                 </div>
+                {boats.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs text-gray-500">Boats:</span>
+                    {s.boats.map((id) => (
+                      <span
+                        key={id}
+                        className="flex items-center gap-0.5 rounded-full bg-gray-100 pl-2.5 pr-1 py-0.5 text-xs"
+                      >
+                        {boatName.get(id) ?? "Removed boat"}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSet(s.id, {
+                              boats: s.boats.filter((x) => x !== id),
+                            })
+                          }
+                          aria-label={`Take ${boatName.get(id) ?? "this boat"} off ${s.rings} ${s.color}`}
+                          className="p-0.5 rounded-full hover:bg-gray-200"
+                        >
+                          <X className="w-3 h-3" aria-hidden />
+                        </button>
+                      </span>
+                    ))}
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value)
+                          updateSet(s.id, {
+                            boats: [...s.boats, e.target.value],
+                          });
+                      }}
+                      className="border rounded-lg px-1.5 py-0.5 text-xs"
+                      aria-label={`Add a boat to ${s.rings} ${s.color}`}
+                    >
+                      <option value="">+ Add boat</option>
+                      {boats
+                        .filter((b) => !s.boats.includes(b.id))
+                        .map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name} ({b.boat_class})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
                 <input
                   type="text"
                   value={s.note}

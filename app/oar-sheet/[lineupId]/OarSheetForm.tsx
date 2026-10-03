@@ -52,6 +52,7 @@ export function OarSheetForm({
   maxRings,
   sets,
   boatGroup,
+  boatId,
   oars,
   tasks,
   roster,
@@ -61,6 +62,7 @@ export function OarSheetForm({
   maxRings: number;
   sets: OarSet[];
   boatGroup: string | null;
+  boatId: string | null;
   oars: BoatOars;
   tasks: TaskRow[];
   roster: { id: string; name: string; role: string }[];
@@ -124,8 +126,8 @@ export function OarSheetForm({
           )}
         </p>
         {oars.alsoIn.length > 0 && (
-          <p className="text-xs text-amber-700 mb-3">
-            Also picked for {oars.alsoIn.join(", ")}.
+          <p className="text-xs text-gray-500 mb-3">
+            Also used by {oars.alsoIn.join(", ")} at this regatta.
           </p>
         )}
 
@@ -174,7 +176,7 @@ export function OarSheetForm({
                 </div>
               )}
               <div className="flex flex-col gap-2" aria-label="Oar sets">
-                {oarSetsFor(sets, groups).map((set) => {
+                {oarSetsFor(sets, groups, boatId).map((set) => {
                   const on =
                     oars.oar?.color === set.color &&
                     oars.oar.rings === set.rings;
@@ -213,6 +215,11 @@ export function OarSheetForm({
                       <span className="font-medium">
                         {oarLabel({ rings: set.rings, tape_color: set.color })}
                       </span>
+                      {boatId && set.boats.includes(boatId) && (
+                        <span className="shrink-0 rounded-full bg-[var(--color-primary)] text-white px-2 py-0.5 text-[10px] font-medium">
+                          This boat
+                        </span>
+                      )}
                       <span className="text-xs text-gray-500 truncate">
                         {[
                           set.groups.map((g) => OAR_GROUP_LABELS[g]).join(", "),
@@ -224,7 +231,7 @@ export function OarSheetForm({
                     </button>
                   );
                 })}
-                {oarSetsFor(sets, groups).length === 0 && (
+                {oarSetsFor(sets, groups, boatId).length === 0 && (
                   <p className="text-sm text-gray-500">
                     No oar sets for that squad. Tap All to see every set.
                   </p>

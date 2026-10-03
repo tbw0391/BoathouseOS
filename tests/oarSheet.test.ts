@@ -88,8 +88,8 @@ describe("parseOarSettings", () => {
       })
     );
     expect(s.sets).toEqual([
-      { id: "a", color: "Green", rings: 1, groups: ["mens", "masters"], note: "" },
-      { id: "e", color: "Red", rings: 5, groups: ["womens"], note: "spare" },
+      { id: "a", color: "Green", rings: 1, groups: ["mens", "masters"], boats: [], note: "" },
+      { id: "e", color: "Red", rings: 5, groups: ["womens"], boats: [], note: "spare" },
     ]);
     expect(s.maxRings).toBe(5); // raised to fit the biggest set
   });
@@ -103,6 +103,7 @@ describe("oar sets on the sheet", () => {
         { id: "a", color: "Green", rings: 1, groups: ["mens"] },
         { id: "b", color: "Red", rings: 2, groups: ["womens", "masters"] },
         { id: "c", color: "Teal", rings: 3, groups: [] },
+        { id: "d", color: "Red", rings: 4, groups: ["womens"], boats: ["chase", "osu", "osu"] },
       ],
     })
   );
@@ -110,7 +111,14 @@ describe("oar sets on the sheet", () => {
   it("filters by any picked squad; untagged sets always show", () => {
     expect(oarSetsFor(settings.sets, ["mens"]).map((s) => s.id)).toEqual(["a", "c"]);
     expect(oarSetsFor(settings.sets, ["mens", "masters"]).map((s) => s.id)).toEqual(["a", "b", "c"]);
-    expect(oarSetsFor(settings.sets, []).length).toBe(3);
+    expect(oarSetsFor(settings.sets, ["womens", "masters"]).map((s) => s.id)).toEqual(["b", "d", "c"]);
+    expect(oarSetsFor(settings.sets, []).length).toBe(4);
+  });
+
+  it("can go with several boats; that boat's sets show first, whatever the squad", () => {
+    expect(settings.sets.find((s) => s.id === "d")?.boats).toEqual(["chase", "osu"]);
+    expect(oarSetsFor(settings.sets, ["mens"], "osu").map((s) => s.id)).toEqual(["d", "a", "c"]);
+    expect(oarSetsFor(settings.sets, [], "chase")[0].id).toBe("d");
   });
 
   it("only allows listed sets once there is a list", () => {

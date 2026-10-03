@@ -37,7 +37,7 @@ import {
 } from "./actions";
 import { updateStoreLink } from "@/app/store/actions";
 import { ActionForm } from "@/components/ActionForm";
-import { OarSetupEditor } from "./OarSetupEditor";
+import { OarSetupEditor, type FleetBoat } from "./OarSetupEditor";
 import { RECRUITING_KEY } from "@/lib/recruiting";
 
 const VISIBILITY_LABEL: Record<string, string> = {
@@ -85,6 +85,8 @@ export default async function AdminPage() {
   const lineupSectionVisibility = resolveLineupSectionVisibility(settingsByKey);
   const alertsEnabled = parseAlertSettings(settingsByKey.get(ALERT_SETTINGS_KEY));
   const oarSettings = parseOarSettings(settingsByKey.get(OAR_COLORS_KEY));
+  const { data: fleetData } = await supabase.from("boats").select("id, name, boat_class").order("name");
+  const fleetBoats = (fleetData as FleetBoat[] | null) ?? [];
   const storeUrl = settingsByKey.get("team_store_url") ?? null;
   const paperworkSettings = parsePaperworkSettings(settingsByKey.get(PAPERWORK_SETTINGS_KEY));
   const checkInGroups = parseCheckInGroups(settingsByKey.get(CHECK_IN_SETTINGS_KEY));
@@ -410,7 +412,7 @@ export default async function AdminPage() {
         List the club&apos;s sets and tag who uses each; coxes pick from that list on each boat&apos;s oar sheet.
       </p>
       <ActionForm action={updateOarSettings} className="flex flex-col gap-3 max-w-lg">
-        <OarSetupEditor initial={oarSettings} />
+        <OarSetupEditor initial={oarSettings} boats={fleetBoats} />
         <button
           type="submit"
           className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"

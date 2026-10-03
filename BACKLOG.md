@@ -347,6 +347,11 @@ Everyone (juniors, college, masters):
       color) plus "Oars: 1 Green" show on the home "you're in the boat"
       banner (rowers and parents, and the coach's copy), the boat card on
       Lineups, Race Day and the oar sheet (lib/boatOars.ts, OarDots).
+      A set can also go with several fleet boats (Admin → Oar tape, "+ Add
+      boat" on each set): on that boat's oar sheet those sets come first,
+      marked "This boat", and show whatever squad filter is on. The same
+      set on two boats at a regatta is normal (oars are passed along), so
+      the sheet now just notes "Also used by …" in gray, not a warning.
 
 ## Lineups
 - [x] Finished regattas move to the bottom (2026-09-29): on /lineups and

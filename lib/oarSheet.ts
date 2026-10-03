@@ -2,10 +2,11 @@
 // by its tape — a color and how many pieces of tape, "1 Green" (often the
 // Men's 1V) — and saved on every rowing seat. Everything is set by the club's
 // admins in /admin → Oar tape and stored in club_settings "oar_colors":
-//   { colors: [{ name, hex }], maxRings, sets: [{ id, color, rings, groups, note }] }
+//   { colors: [{ name, hex }], maxRings, sets: [{ id, color, rings, groups, boats, note }] }
 // colors: the tape colors the club uses, including its own (name + swatch).
 // sets: the club's master list of oar sets, each tagged with the squads that
-// use it (Men's, Women's, Masters...). When there are sets, the oar sheet
+// use it (Men's, Women's, Masters...) and the fleet boats it usually goes
+// with (boat ids; a set can go with several). When there are sets, the oar sheet
 // picks from that list; with none, it falls back to any color + any count.
 // Older saves had colors as plain names and no sets; those still read fine.
 
@@ -21,6 +22,7 @@ export interface OarSet {
   color: string;
   rings: number;
   groups: string[];
+  boats: string[];
   note: string;
 }
 
@@ -142,6 +144,7 @@ export function normalizeOarSettings(saved: unknown): OarSettings {
       color?: unknown;
       rings?: unknown;
       groups?: unknown;
+      boats?: unknown;
       note?: unknown;
     };
     const color = colorByLower.get(cleanName(r.color).toLowerCase());
@@ -160,12 +163,22 @@ export function normalizeOarSettings(saved: unknown): OarSettings {
           ),
         ]
       : [];
+    const boats = Array.isArray(r.boats)
+      ? [
+          ...new Set(
+            r.boats.filter(
+              (b): b is string =>
+                typeof b === "string" && /^[\w-]{1,64}$/.test(b),
+            ),
+          ),
+        ].slice(0, 50)
+      : [];
     const id =
       typeof r.id === "string" && /^[\w-]{1,40}$/.test(r.id)
         ? r.id
         : key.replace(/\s+/g, "-");
     const note = typeof r.note === "string" ? r.note.trim().slice(0, 60) : "";
-    sets.push({ id, color, rings, groups, note });
+    sets.push({ id, color, rings, groups, boats, note });
     if (sets.length >= 100) break;
   }
   sets.sort((a, b) => a.color.localeCompare(b.color) || a.rings - b.rings);
@@ -232,15 +245,24 @@ export function oarAllowed(
 }
 
 // Sets to show for the picked squads (any of them). No squads picked = all.
-// A set with no squads tagged shows for everyone.
+// A set with no squads tagged shows for everyone, and a set that goes with
+// this boat always shows. This boat's sets come first.
 export function oarSetsFor(
   sets: readonly OarSet[],
   groups: readonly string[],
+  boatId?: string | null,
 ): OarSet[] {
-  if (groups.length === 0) return [...sets];
-  return sets.filter(
-    (s) => s.groups.length === 0 || s.groups.some((g) => groups.includes(g)),
-  );
+  const forBoat = (s: OarSet) => !!boatId && s.boats.includes(boatId);
+  const shown =
+    groups.length === 0
+      ? [...sets]
+      : sets.filter(
+          (s) =>
+            forBoat(s) ||
+            s.groups.length === 0 ||
+            s.groups.some((g) => groups.includes(g)),
+        );
+  return shown.sort((a, b) => Number(forBoat(b)) - Number(forBoat(a)));
 }
 
 // The boat's set: the color and count every saved seat shares, or null when

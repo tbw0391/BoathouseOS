@@ -19,7 +19,7 @@ export default async function OarSheetPage({ params }: { params: Promise<{ lineu
 
   const { data: lineupData } = await supabase
     .from("lineups")
-    .select("id, boat_name, boat_class, category, race_name, race_time, event_id")
+    .select("id, boat_id, boat_name, boat_class, category, race_name, race_time, event_id")
     .eq("id", lineupId)
     .maybeSingle();
   const lineup = lineupData as {
@@ -27,6 +27,7 @@ export default async function OarSheetPage({ params }: { params: Promise<{ lineu
     boat_name: string;
     boat_class: string;
     category: string | null;
+    boat_id: string | null;
     race_name: string | null;
     race_time: string | null;
     event_id: string | null;
@@ -136,6 +137,7 @@ export default async function OarSheetPage({ params }: { params: Promise<{ lineu
           maxRings={settings.maxRings}
           sets={settings.sets}
           boatGroup={boatGroup}
+          boatId={lineup.boat_id}
           oars={oars}
           tasks={taskRowsOut}
           roster={roster}
