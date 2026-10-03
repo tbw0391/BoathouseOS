@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { myClubId } from "@/lib/clubs";
@@ -90,17 +91,38 @@ export async function addMember(formData: FormData) {
       return { inviteLink: null };
     }
 
+    // The login is created already confirmed (2026-10-03, Todd: new people
+    // shouldn't have to confirm their email), so a password set any way —
+    // the link below, "Forgot password", or an admin's "Reset password" —
+    // works straight away. The link signs them in once to set a password.
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+    });
+    if (createError || !created.user) {
+      const code = (createError as { code?: string } | null)?.code;
+      if (code === "email_exists" || /already been registered/i.test(createError?.message ?? "")) {
+        throw new UserError("Someone with this email already has a login.");
+      }
+      throw new Error(createError?.message ?? "Failed to create user.");
+    }
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-      type: "invite",
+      type: "recovery",
       email,
     });
-
-    if (linkError || !linkData.user) {
-      throw new Error(linkError?.message ?? "Failed to create user.");
+    if (linkError || !linkData.properties?.hashed_token) {
+      await admin.auth.admin.deleteUser(created.user.id);
+      throw new Error(linkError?.message ?? "Failed to create their set-password link.");
     }
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    const setPasswordLink = `${proto}://${host}/auth/confirm?token_hash=${encodeURIComponent(
+      linkData.properties.hashed_token
+    )}&type=recovery&next=/reset-password`;
 
     const { error: profileError } = await admin.from("profiles").insert({
-      id: linkData.user.id,
+      id: created.user.id,
       club_id: clubId,
       email,
       display_name: displayName,
@@ -112,6 +134,7 @@ export async function addMember(formData: FormData) {
     });
 
     if (profileError) {
+      await admin.auth.admin.deleteUser(created.user.id);
       if (profileError.code === "23505") throw new UserError("A member with this email already exists.");
       throw new Error(profileError.message);
     }
@@ -119,12 +142,12 @@ export async function addMember(formData: FormData) {
     if (teams.length > 0) {
       const { error: teamsError } = await admin
         .from("profile_teams")
-        .insert(teams.map((team) => ({ profile_id: linkData.user.id, team, club_id: clubId })));
+        .insert(teams.map((team) => ({ profile_id: created.user.id, team, club_id: clubId })));
       if (teamsError) throw new Error(teamsError.message);
     }
 
     revalidatePath("/roster");
-    return { inviteLink: linkData.properties.action_link };
+    return { inviteLink: setPasswordLink };
   });
 }
 

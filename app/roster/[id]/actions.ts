@@ -341,7 +341,12 @@ export async function resetMemberPassword(profileId: string, newPassword: string
     if (!target) throw new UserError("That member wasn't found.");
 
     const admin = createAdminClient();
-    const { error } = await admin.auth.admin.updateUserById(profileId, { password: newPassword });
+    const { error } = await admin.auth.admin.updateUserById(profileId, {
+      password: newPassword,
+      // A login added from the roster before 2026-10-03 may never have been
+      // confirmed; confirm it so the new password works.
+      email_confirm: true,
+    });
     if (error) {
       if (error.status === 404) {
         throw new UserError("This person doesn't have a login yet (roster-only member) — nothing to reset.");

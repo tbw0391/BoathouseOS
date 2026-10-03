@@ -41,7 +41,11 @@ export function AddMemberForm() {
         </button>
         {inviteLink && (
           <div className="text-sm border rounded p-3 max-w-md break-all">
-            <p className="font-medium mb-1">Member added. Send them this invite link:</p>
+            <p className="font-medium mb-1">Member added. Send them this link to set their password:</p>
+            <p className="text-xs text-gray-500 mb-1">
+              It works once and expires after a while. They can also use &quot;Forgot password&quot; on the sign-in
+              page anytime, or you can set one with &quot;Reset password&quot; on their profile.
+            </p>
             <a href={inviteLink} className="text-blue-600 underline">
               {inviteLink}
             </a>
@@ -122,7 +126,7 @@ export function AddMemberForm() {
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="create_login" defaultChecked />
-        Create a login for them (sends an invite link to share)
+        Create a login for them (gives you a set-password link to share)
       </label>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

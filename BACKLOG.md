@@ -1216,6 +1216,15 @@ comply, and the app mustn't break the rules.
       `production` (then promote by merging main into production, as
       written above), or keep main and apply each migration to production
       before pushing code that needs it.
+- [x] No email confirmation for new people (2026-10-03, Todd): self-signup
+      already made confirmed logins, but Roster → Add member ("create a
+      login") made Supabase invites, which stay unconfirmed until the link
+      is opened, so a password set with "Reset password" still couldn't
+      sign in ("Email not confirmed"). Add member now creates the login
+      confirmed and gives a one-time set-password link
+      (/auth/confirm → /reset-password); "Reset password" (profile and
+      console) also confirms the login. Westerville's 3 unconfirmed logins
+      from that evening were confirmed by hand.
 - [ ] Westerville signups are approved automatically for now (2026-10-01,
       AUTO_APPROVE_CLUB_SLUGS in lib/signup.ts), so members moving over
       don't wait on an admin. Take "westerville" out of the list to go back

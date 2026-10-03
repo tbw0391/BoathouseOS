@@ -328,7 +328,7 @@ export async function newMemberPassword(profileId: string) {
     const person = await memberOrThrow(admin, profileId);
     if (!person.email) throw new UserError("They don't have a login (no email on their profile).");
     const password = temporaryPassword();
-    const { error } = await admin.auth.admin.updateUserById(profileId, { password });
+    const { error } = await admin.auth.admin.updateUserById(profileId, { password, email_confirm: true });
     if (error) {
       if (error.message.toLowerCase().includes("not found")) throw new UserError("They don't have a login yet.");
       throw new Error(error.message);
