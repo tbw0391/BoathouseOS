@@ -535,6 +535,12 @@ Everyone (juniors, college, masters):
       the slot for everyone, and the confirm dialog points people at the
       "Cancel" link next to their own name if they just want to drop their
       own signup — matching the food tent item's confirm copy.
+- [x] "No volunteers at this regatta" (2026-10-03, from suggestions, 0132):
+      a switch on each regatta in Volunteer Needs (schedule_events.
+      has_volunteers) for tent leaders, coaches and admins, like "No food
+      tent". Off: its slots are hidden, no new slots or sign-ups, and no
+      "and a volunteer slot" in the signups-open banner or "Sign up for a
+      volunteer slot" button for it.
 
 ## Workouts
 - [x] Fixed (2026-09-28): couldn't type an erg time on a phone — the time
@@ -1392,6 +1398,13 @@ comply, and the app mustn't break the rules.
       resolved/reopen or delete
 - [x] Site Maintenance: same flow for boathouse/facility issues, no boat
       picker needed
+- [x] "Needs maintenance" switch on a boat (2026-10-03, from suggestions):
+      coaches/admins tap it on the boat's card on Boats and say what needs
+      doing; that opens a Boat Maintenance request, and the card turns red
+      with a "Needs maintenance" badge (links to Boat Maintenance). "Mark
+      fixed" resolves its open requests. Badge is coach/admin only, since
+      members can only read their own requests. Later: block booking or
+      sign-out of a boat that needs maintenance?
 
 ## Terms and Conditions
 - [x] Self-signup reopened (2026-10-01, Todd): "Create an account" on the

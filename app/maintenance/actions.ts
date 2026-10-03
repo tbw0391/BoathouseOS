@@ -85,3 +85,52 @@ export async function deleteMaintenanceRequest(type: MaintenanceType, requestId:
 
   revalidatePath(PATH_BY_TYPE[type]);
 }
+
+// Boats page switch (suggestion, 2026-09-23): "Needs maintenance" on a boat
+// opens a boat maintenance request saying what needs doing, so it shows up
+// on Boat Maintenance. "Mark fixed" resolves every open request for it.
+export async function flagBoatMaintenance(boatId: string, description: string) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
+    await requireStaff(supabase);
+
+    const what = description.trim();
+    if (!boatId) throw new UserError("Missing boat.");
+    if (!what) throw new UserError("Say what needs to be done.");
+    if (what.length > 1000) throw new UserError("Keep it under 1,000 characters.");
+
+    const { error } = await supabase.from("maintenance_requests").insert({
+      type: "boat",
+      boat_id: boatId,
+      description: what,
+      submitted_by: user.id,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/boats");
+    revalidatePath("/boat-maintenance");
+  });
+}
+
+export async function clearBoatMaintenance(boatId: string) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireStaff(supabase);
+    if (!boatId) throw new UserError("Missing boat.");
+
+    const { error } = await supabase
+      .from("maintenance_requests")
+      .update({ status: "resolved", resolved_at: new Date().toISOString() })
+      .eq("type", "boat")
+      .eq("boat_id", boatId)
+      .eq("status", "open");
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/boats");
+    revalidatePath("/boat-maintenance");
+  });
+}

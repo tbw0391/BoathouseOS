@@ -44,11 +44,13 @@ export function BoatsGrid({
   canManage,
   crewSeatsByBoatId,
   crewRosterByBoatId,
+  maintenanceByBoatId = {},
 }: {
   boats: Boat[];
   canManage: boolean;
   crewSeatsByBoatId: Record<string, LineupTemplateSeat[]>;
   crewRosterByBoatId: Record<string, { id: string; display_name: string }[]>;
+  maintenanceByBoatId?: Record<string, { open: number; latest: string }>;
 }) {
   // Order of this array is sort priority: first key wins ties broken by the next.
   const [sortKeys, setSortKeys] = useState<SortKey[]>([]);
@@ -156,6 +158,7 @@ export function BoatsGrid({
               canManage={canManage}
               crewSeats={crewSeatsByBoatId[boat.id] ?? null}
               roster={crewRosterByBoatId[boat.id] ?? []}
+              maintenance={maintenanceByBoatId[boat.id] ?? null}
             />
           ))}
         </div>

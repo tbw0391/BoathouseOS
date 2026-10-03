@@ -89,6 +89,8 @@ export interface ScheduleEvent {
   race_delay_minutes: number;
   // Off for a regatta with no food tent: no food alerts or reminders (0118).
   has_food_tent: boolean;
+  // Off for a regatta that doesn't need volunteers (0132).
+  has_volunteers: boolean;
   // CrewTimer regatta the races came from and our crew name there (0131),
   // for live results on the Results tab.
   crewtimer_url: string | null;

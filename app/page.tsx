@@ -684,7 +684,8 @@ async function loadSignupCallBanners(
       eventId: event.id,
       eventTitle: event.title,
       eventDate: new Date(event.starts_at).toLocaleDateString(),
-      hasVolunteerNeeds: eventIdsWithNeeds.has(event.id),
+      hasVolunteerNeeds:
+        event.has_volunteers !== false && eventIdsWithNeeds.has(event.id),
     }));
 }
 
@@ -1351,7 +1352,7 @@ export default async function Home() {
               : { count: 0 };
           getReady = {
             foodTent: upcomingRegatta.has_food_tent && !seen.has("food_tent"),
-            volunteer: !seen.has("volunteer"),
+            volunteer: upcomingRegatta.has_volunteers !== false && !seen.has("volunteer"),
             lineups: (crewedLineups ?? []).length > 0 && !seen.has("lineups"),
             coachMessages: (coachUnread ?? 0) > 0,
           };

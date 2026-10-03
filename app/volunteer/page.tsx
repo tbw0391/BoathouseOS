@@ -4,6 +4,7 @@ import { NeedForm } from "./NeedForm";
 import { NeedRow } from "./NeedRow";
 import { SignupControl } from "./SignupControl";
 import { ImportNeedsForm } from "./ImportNeedsForm";
+import { VolunteersToggle } from "./VolunteersToggle";
 import { EventIcon } from "@/components/EventIcon";
 import { markRegattaPrepSeen } from "@/lib/regattaPrep";
 
@@ -69,7 +70,22 @@ export default async function VolunteerPage() {
                   {event.location ? ` · ${event.location}` : ""}
                 </span>
               </h2>
+              {isManager && (
+                <div className="mt-1">
+                  <VolunteersToggle eventId={event.id} hasVolunteers={event.has_volunteers !== false} />
+                </div>
+              )}
 
+              {event.has_volunteers === false ? (
+                <p className="mt-2 text-sm text-gray-500">
+                  No volunteers needed at this regatta
+                  {isManager
+                    ? eventNeeds.length > 0
+                      ? `: its ${eventNeeds.length} slot${eventNeeds.length === 1 ? " is" : "s are"} hidden and no volunteer banners or reminders go out.`
+                      : ": no volunteer banners or reminders go out for it."
+                    : "."}
+                </p>
+              ) : (
               <div className="mt-3 flex flex-col gap-3 max-w-lg">
                 {eventNeeds.length === 0 && (
                   <p className="text-sm text-gray-500">
@@ -113,6 +129,7 @@ export default async function VolunteerPage() {
                   </div>
                 )}
               </div>
+              )}
             </div>
           );
         })}
