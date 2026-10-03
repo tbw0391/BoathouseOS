@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
-import { OAR_COLORS_KEY, boatOarSet, oarLabel, parseOarSettings, tapeSwatch } from "@/lib/oarSheet";
+import { OAR_COLORS_KEY, boatOarSet, parseOarSettings, tapeSwatch } from "@/lib/oarSheet";
+import { OarDots } from "@/components/OarDots";
 import {
   LAUNCH_MINUTES_KEY,
   clubDateKey,
@@ -319,14 +320,7 @@ function RaceCard({
           <span className="text-xs font-medium rounded-full bg-blue-100 text-blue-800 px-2 py-0.5">On the water now</span>
         )}
         {oars ? (
-          <span className="flex items-center gap-1.5 text-xs font-medium rounded-full bg-gray-100 px-2 py-0.5">
-            <span
-              className="inline-block w-3 h-3 rounded-full border border-gray-400"
-              style={{ backgroundColor: oars.swatch ?? tapeSwatch(oars.tape_color) }}
-              aria-hidden
-            />
-            Oars: {oarLabel(oars)}
-          </span>
+          <OarDots oars={oars} showLabel className="text-xs font-medium rounded-full bg-gray-100 px-2 py-0.5" />
         ) : (
           <Link
             href={`/oar-sheet/${lineup.id}`}

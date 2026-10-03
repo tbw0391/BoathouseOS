@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { captainSeat, oarSheetComplete } from "@/lib/oarSheet";
+import { loadBoatOars, type BoatOarsShown } from "@/lib/boatOars";
+import { OarDots } from "@/components/OarDots";
 import { regattaPrepSeen } from "@/lib/regattaPrep";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { SignupCallLink } from "@/components/SignupCallLink";
@@ -158,6 +160,8 @@ type FoodTentBanner = {
 type LineupBanner = {
   rowerName: string | null;
   boatName: string;
+  // The boat's oar set, once its oar sheet has one ("1 Green").
+  oars: BoatOarsShown | null;
   raceName: string | null;
   raceTimeLabel: string | null;
   eventTitle: string;
@@ -421,6 +425,8 @@ async function loadLineupBanners(
     rowerNameById.set(p.id, p.display_name);
   }
 
+  const oarsByLineup = await loadBoatOars(supabase, [...lineupById.keys()]);
+
   return seats
     .map((seat) => {
       if (!seat.rower_id) return null;
@@ -440,6 +446,7 @@ async function loadLineupBanners(
             ? (rowerNameById.get(seat.rower_id) ?? "Someone")
             : null,
         boatName: lineup.boat_name,
+        oars: oarsByLineup.get(lineup.id) ?? null,
         raceName: lineup.race_name,
         raceTimeLabel: lineup.race_time
           ? clubTimeLabel(delayedRaceTime(lineup.race_time, delayMinutes)) +
@@ -502,6 +509,10 @@ async function loadSentLineupNotices(
       (p) => [p.id, p.display_name],
     ),
   );
+  const oarsByLineup = await loadBoatOars(
+    supabase,
+    lineupsData.map((l) => l.id),
+  );
 
   return lineupsData
     .map((lineup) => {
@@ -513,6 +524,7 @@ async function loadSentLineupNotices(
       return {
         lineupId: lineup.id,
         boatName: lineup.boat_name,
+        oars: oarsByLineup.get(lineup.id) ?? null,
         raceName: lineup.race_name,
         raceTimeLabel: lineup.race_time
           ? new Date(lineup.race_time).toLocaleTimeString([], {
@@ -2018,6 +2030,13 @@ export default async function Home() {
                 </>
               )}
               )
+              {b.oars && (
+                <OarDots
+                  oars={b.oars}
+                  showLabel
+                  className="mt-1.5 flex w-fit rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium"
+                />
+              )}
             </div>
           ))}
         </div>
@@ -2048,6 +2067,13 @@ export default async function Home() {
                   </>
                 )}
                 )
+                {n.oars && (
+                  <OarDots
+                    oars={n.oars}
+                    showLabel
+                    className="mt-1.5 flex w-fit rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium"
+                  />
+                )}
               </div>
               <p className="text-gray-600">
                 Sent to {n.recipientNames.length}: {n.recipientNames.join(", ")}

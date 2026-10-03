@@ -12,6 +12,7 @@ import {
 } from "@/lib/oarSheet";
 import { unwrapIfResult } from "@/lib/userError";
 import { setBoatOars, setTaskPerson } from "./actions";
+import { OarDots } from "@/components/OarDots";
 
 export type BoatOars = {
   // The boat's set, or null when none is picked (or seats disagree, from
@@ -112,10 +113,12 @@ export function OarSheetForm({
 
         <p className="text-sm mb-3">
           {oars.oar ? (
-            <span className="inline-flex items-center gap-1.5 font-medium">
-              <Swatch hex={swatch(oars.oar.color)} />
-              {oarLabel({ rings: oars.oar.rings, tape_color: oars.oar.color })}
-            </span>
+            <OarDots
+              oars={{ tape_color: oars.oar.color, rings: oars.oar.rings, swatch: swatch(oars.oar.color) }}
+              showLabel
+              size="w-3.5 h-3.5"
+              className="font-medium"
+            />
           ) : (
             <span className="text-gray-500">No oars picked yet.</span>
           )}

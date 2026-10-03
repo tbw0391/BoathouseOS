@@ -343,6 +343,10 @@ Everyone (juniors, college, masters):
       All; a set with no squads shows for everyone. With no sets listed it
       falls back to any color + any count, as before. Custom shades show on
       Lineups and Race Day too. Older saved colors still read fine.
+      Once a boat has a set, its tape dots (one per piece, in the tape's
+      color) plus "Oars: 1 Green" show on the home "you're in the boat"
+      banner (rowers and parents, and the coach's copy), the boat card on
+      Lineups, Race Day and the oar sheet (lib/boatOars.ts, OarDots).
 
 ## Lineups
 - [x] Finished regattas move to the bottom (2026-09-29): on /lineups and

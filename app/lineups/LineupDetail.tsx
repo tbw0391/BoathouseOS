@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { oarLabel, tapeSwatch } from "@/lib/oarSheet";
+import { OarDots } from "@/components/OarDots";
 import { SeatFiller } from "./SeatFiller";
 import { assignSeat } from "./actions";
 import { DeleteLineupButton } from "./DeleteLineupButton";
@@ -69,14 +69,7 @@ export function LineupDetail({
       {lineup.event_id && lineup.boat_id && (
         <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
           {oars ? (
-            <span className="flex items-center gap-1.5 font-medium">
-              <span
-                className="inline-block w-4 h-4 rounded-full border border-gray-400"
-                style={{ backgroundColor: oars.swatch ?? tapeSwatch(oars.tape_color) }}
-                aria-hidden
-              />
-              Oars: {oarLabel(oars)}
-            </span>
+            <OarDots oars={oars} showLabel size="w-3.5 h-3.5" className="font-medium" />
           ) : (
             <span className="text-amber-700">Oars not picked</span>
           )}
