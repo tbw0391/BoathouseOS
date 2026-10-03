@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isPastEvent } from "@/lib/schedule";
-import { regattaIsFinished } from "@/lib/raceDay";
+import { clubDateLabel, regattaIsFinished } from "@/lib/raceDay";
 import { getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
 import type { Lineup, Race, ScheduleEvent } from "@/lib/database.types";
 import { EventIcon } from "@/components/EventIcon";
@@ -78,7 +78,7 @@ export default async function LineupsPage() {
           {event.title}
         </span>
         <span className="text-base text-gray-500 text-right">
-          {new Date(event.starts_at).toLocaleDateString()}
+          {clubDateLabel(event.starts_at)}
           {pendingCount > 0 && (
             <>
               <br />

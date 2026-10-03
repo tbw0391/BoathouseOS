@@ -96,7 +96,7 @@ import {
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
-import { clubDateKey, clubTimeLabel, clubTimeSecondsLabel, delayedRaceTime, pickRaceDayEvent, raceIsOver } from "@/lib/raceDay";
+import { clubDateKey, clubDateLabel, clubTimeLabel, clubTimeSecondsLabel, delayedRaceTime, pickRaceDayEvent, raceIsOver } from "@/lib/raceDay";
 import { PRACTICE_CALL_LABELS, callConditionsLine, lightningMinutesLeft } from "@/lib/waterConditions";
 import { formatMoney } from "@/lib/payments";
 import { canCoachCheckIn, getTodaysCheckInLabel } from "@/lib/checkIns";
@@ -340,7 +340,7 @@ async function loadFoodTentBanners(
       bannersByEvent.set(event.id, {
         eventId: event.id,
         eventTitle: event.title,
-        eventDate: new Date(event.starts_at).toLocaleDateString(),
+        eventDate: clubDateLabel(event.starts_at),
         items: [
           {
             emoji: foodItemEmoji(item.title),
@@ -458,7 +458,7 @@ async function loadLineupBanners(
             (delayMinutes ? ` (${delayMinutes} min late)` : "")
           : null,
         eventTitle: event.title,
-        eventDate: new Date(event.starts_at).toLocaleDateString(),
+        eventDate: clubDateLabel(lineup.race_time ?? event.starts_at),
       };
     })
     .filter((b): b is NonNullable<typeof b> => b !== null);
@@ -532,13 +532,12 @@ async function loadSentLineupNotices(
         oars: oarsByLineup.get(lineup.id) ?? null,
         raceName: lineup.race_name,
         raceTimeLabel: lineup.race_time
-          ? new Date(lineup.race_time).toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
-            })
+          ? clubTimeLabel(delayedRaceTime(lineup.race_time, event.race_delay_minutes ?? 0)) +
+            (event.race_delay_minutes ? ` (${event.race_delay_minutes} min late)` : "")
           : null,
         eventTitle: event.title,
-        eventDate: new Date(event.starts_at).toLocaleDateString(),
+        // The day of this race (a regatta can run over two days).
+        eventDate: clubDateLabel(lineup.race_time ?? event.starts_at),
         recipientNames,
       };
     })
@@ -572,7 +571,7 @@ async function loadPendingRaceBanners(
   return eventsData
     .map((event) => ({
       eventTitle: event.title,
-      eventDate: new Date(event.starts_at).toLocaleDateString(),
+      eventDate: clubDateLabel(event.starts_at),
       count: pendingRacesData.filter((r) => r.event_id === event.id).length,
     }))
     .filter((b) => b.count > 0);
@@ -602,7 +601,7 @@ async function loadFoodPrepBanners(
   return events.map((event) => ({
     eventId: event.id,
     eventTitle: event.title,
-    eventDate: new Date(event.starts_at).toLocaleDateString(),
+    eventDate: clubDateLabel(event.starts_at),
   }));
 }
 
@@ -688,7 +687,7 @@ async function loadSignupCallBanners(
     .map((event) => ({
       eventId: event.id,
       eventTitle: event.title,
-      eventDate: new Date(event.starts_at).toLocaleDateString(),
+      eventDate: clubDateLabel(event.starts_at),
       hasVolunteerNeeds:
         event.has_volunteers !== false && eventIdsWithNeeds.has(event.id),
     }));
@@ -937,7 +936,7 @@ async function loadAnnouncementBanners(
     id: a.id,
     message: a.message,
     senderName: a.sender_id ? (nameById.get(a.sender_id) ?? "Coach") : "Coach",
-    createdAt: new Date(a.created_at).toLocaleDateString(),
+    createdAt: clubDateLabel(a.created_at),
   }));
 }
 
@@ -979,7 +978,7 @@ async function loadFoodMessageBanners(
       message: m.message,
       audience: m.audience,
       senderName: (m.sender_id && nameById.get(m.sender_id)) || "Food tent",
-      createdAt: new Date(m.created_at).toLocaleDateString(),
+      createdAt: clubDateLabel(m.created_at),
     }));
 }
 
@@ -1496,7 +1495,7 @@ export default async function Home() {
         banners.push({
           eventId: upcomingRegatta.id,
           eventTitle: upcomingRegatta.title,
-          eventDate: new Date(upcomingRegatta.starts_at).toLocaleDateString(),
+          eventDate: clubDateLabel(upcomingRegatta.starts_at),
           items: [{ emoji: "💧", label: "2 gal of water" }],
         });
       }
@@ -1894,10 +1893,10 @@ export default async function Home() {
           <span>
             Forecast for <strong>{upcomingRegatta.title}</strong> (
             {upcomingRegattaForecast.forecast_date
-              ? new Date(
+              ? clubDateLabel(
                   `${upcomingRegattaForecast.forecast_date}T12:00:00`,
-                ).toLocaleDateString()
-              : new Date(upcomingRegatta.starts_at).toLocaleDateString()}
+                )
+              : clubDateLabel(upcomingRegatta.starts_at)}
             ): <strong>{upcomingRegattaForecast.short_forecast}</strong>
             {upcomingRegattaForecast.high_f !== null && (
               <>, high {upcomingRegattaForecast.high_f}°F</>
@@ -1923,7 +1922,7 @@ export default async function Home() {
         <div className="w-full flex flex-col gap-2">
           <p className="text-sm font-medium text-gray-600">
             {upcomingRegatta.title} is coming up on{" "}
-            {new Date(upcomingRegatta.starts_at).toLocaleDateString()} — get
+            {clubDateLabel(upcomingRegatta.starts_at)} — get
             ready:
           </p>
           {getReady.foodTent && (

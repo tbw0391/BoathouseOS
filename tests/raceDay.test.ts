@@ -118,3 +118,12 @@ describe("regattaIsFinished", () => {
     expect(regattaIsFinished(twoDay, [], new Date("2026-10-05T12:00:00Z"))).toBe(true);
   });
 });
+
+describe("club time on the server", () => {
+  it("shows the club's date and time whatever zone the server runs in", async () => {
+    const { clubDateLabel, clubTimeLabel } = await import("@/lib/raceDay");
+    // 10:55 PM Eastern on Oct 3 is already Oct 4 in UTC.
+    expect(clubDateLabel("2026-10-04T02:55:00Z")).toBe("10/3/2026");
+    expect(clubTimeLabel("2026-10-04T14:55:00Z")).toBe("10:55 AM");
+  });
+});

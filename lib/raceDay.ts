@@ -42,6 +42,11 @@ export function clubTimeSecondsLabel(d: Date | string): string {
   });
 }
 
+// "10/4/2026": the club's calendar date, whatever time zone the server is in.
+export function clubDateLabel(d: Date | string): string {
+  return new Date(d).toLocaleDateString("en-US", { timeZone: CLUB_TIME_ZONE });
+}
+
 export function clubDateKey(d: Date | string): string {
   return new Date(d).toLocaleDateString("en-CA", { timeZone: CLUB_TIME_ZONE });
 }

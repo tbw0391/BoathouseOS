@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { clubDateLabel } from "@/lib/raceDay";
 import { notFound } from "next/navigation";
 import { EventTasks } from "@/app/coach/tasks/EventTasks";
 import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
@@ -443,7 +444,7 @@ export default async function EventRacesPage({
         ← Lineups
       </Link>
       <h1 className="text-2xl font-bold mt-4">{typedEvent.title}</h1>
-      <p className="text-sm text-gray-500 mb-4">{new Date(typedEvent.starts_at).toLocaleDateString()}</p>
+      <p className="text-sm text-gray-500 mb-4">{clubDateLabel(typedEvent.starts_at)}</p>
       {canManage && typedEvent.event_type === "regatta" && (
         <div className="mb-4">
           <DeleteRegattaButton eventId={eventId} title={typedEvent.title} />
