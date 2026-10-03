@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { seatLabel, clubTimeLabel } from "@/lib/raceDay";
-import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { OAR_COLORS_KEY, captainSeat, oarLabel, oarSeats, parseOarSettings } from "@/lib/oarSheet";
-import { OarSheetForm, type OarSeatRow, type TaskRow } from "./OarSheetForm";
+import { clubTimeLabel } from "@/lib/raceDay";
+import { OAR_COLORS_KEY, boatOarSet, captainSeat, oarLabel, parseOarSettings } from "@/lib/oarSheet";
+import { OarSheetForm, type BoatOars, type TaskRow } from "./OarSheetForm";
 
 type Seat = { id: string; seat_number: number; seat_role: string; rower_id: string | null };
 type OarRow = { lineup_id: string; seat_number: number; tape_color: string; rings: number };
@@ -78,25 +77,18 @@ export default async function OarSheetPage({ params }: { params: Promise<{ lineu
   const allOars = (oarRows as OarRow[] | null) ?? [];
   const mine = allOars.filter((o) => o.lineup_id === lineupId);
 
-  const rowerSeats = BOAT_CLASSES[lineup.boat_class]?.rowerSeats ?? oarSeats(seats).length;
-  const seatRowsOut: OarSeatRow[] = oarSeats(seats).map((s) => {
-    const oar = mine.find((o) => o.seat_number === s.seat_number) ?? null;
-    const alsoIn = oar
-      ? allOars
-          .filter((o) => o.lineup_id !== lineupId && o.tape_color === oar.tape_color && o.rings === oar.rings)
-          .map((o) => {
-            const b = otherBoats.get(o.lineup_id);
-            return b ? `${b.boat_name}${b.race_time ? ` (${clubTimeLabel(b.race_time)})` : ""}` : "another boat";
+  const set = boatOarSet(mine);
+  const oars: BoatOars = {
+    oar: set ? { color: set.tape_color, rings: set.rings } : null,
+    alsoIn: set
+      ? [...otherBoats.values()]
+          .filter((b) => {
+            const theirs = boatOarSet(allOars.filter((o) => o.lineup_id === b.id));
+            return theirs?.tape_color === set.tape_color && theirs.rings === set.rings;
           })
-      : [];
-    return {
-      seatNumber: s.seat_number,
-      label: seatLabel(s, rowerSeats),
-      rowerName: s.rower_id ? (nameById.get(s.rower_id) ?? "—") : "Empty",
-      oar: oar ? { color: oar.tape_color, rings: oar.rings } : null,
-      alsoIn,
-    };
-  });
+          .map((b) => `${b.boat_name}${b.race_time ? ` (${clubTimeLabel(b.race_time)})` : ""}`)
+      : [],
+  };
 
   const tasks = ((taskRows as { id: string; task_types: { name: string } | null }[] | null) ?? []).sort((a, b) =>
     (a.task_types?.name ?? "").localeCompare(b.task_types?.name ?? "")
@@ -135,22 +127,16 @@ export default async function OarSheetPage({ params }: { params: Promise<{ lineu
           lineupId={lineupId}
           colors={settings.colors}
           maxRings={settings.maxRings}
-          seats={seatRowsOut}
+          oars={oars}
           tasks={taskRowsOut}
           roster={roster}
         />
       ) : (
         <div className="flex flex-col gap-6">
-          <ul className="flex flex-col gap-1 text-sm">
-            {seatRowsOut.map((s) => (
-              <li key={s.seatNumber} className="flex justify-between border-b py-1.5">
-                <span>
-                  <span className="font-medium">{s.label}</span> · {s.rowerName}
-                </span>
-                <span>{s.oar ? oarLabel({ rings: s.oar.rings, tape_color: s.oar.color }) : "—"}</span>
-              </li>
-            ))}
-          </ul>
+          <p className="text-sm">
+            <span className="font-medium">Oars:</span>{" "}
+            {oars.oar ? oarLabel({ rings: oars.oar.rings, tape_color: oars.oar.color }) : "—"}
+          </p>
           <ul className="flex flex-col gap-1 text-sm">
             {taskRowsOut.map((t) => (
               <li key={t.id}>

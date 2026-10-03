@@ -41,6 +41,7 @@ import RacingScull from "@/components/icons/RacingScull";
 import StarterFlag from "@/components/icons/StarterFlag";
 import { PushToggle } from "@/components/PushToggle";
 import { EmailAlertsToggle } from "@/components/EmailAlertsToggle";
+import { PasskeyCard } from "@/components/PasskeyCard";
 import { RegattaWeekPopup, type RegattaWeekLink } from "@/components/RegattaWeekPopup";
 import { ALERT_SETTINGS_KEY, parseAlertSettings } from "@/lib/alertSettings";
 import { DEMO_PROFILES, isDemoEmail } from "@/lib/demoAccount";
@@ -2114,6 +2115,8 @@ export default async function Home() {
           {!isDemoEmail(user.email) && emailBackupOn && <EmailAlertsToggle initial={emailAlertsOn} />}
         </div>
       )}
+
+      {user && !isDemoEmail(user.email) && <PasskeyCard variant="home" />}
 
       {regattaWeek && (
         <RegattaWeekPopup

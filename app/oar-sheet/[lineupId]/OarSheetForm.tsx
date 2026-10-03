@@ -4,14 +4,13 @@ import { useState, useTransition } from "react";
 import { X } from "lucide-react";
 import { oarLabel, tapeSwatch } from "@/lib/oarSheet";
 import { unwrapIfResult } from "@/lib/userError";
-import { fillBoatWithColor, setSeatOar, setTaskPerson } from "./actions";
+import { setBoatOars, setTaskPerson } from "./actions";
 
-export type OarSeatRow = {
-  seatNumber: number;
-  label: string;
-  rowerName: string;
+export type BoatOars = {
+  // The boat's set, or null when none is picked (or seats disagree, from
+  // before sheets were one set per boat).
   oar: { color: string; rings: number } | null;
-  // Other boats at this regatta with the same oar.
+  // Other boats at this regatta with the same set.
   alsoIn: string[];
 };
 
@@ -39,19 +38,18 @@ export function OarSheetForm({
   lineupId,
   colors,
   maxRings,
-  seats,
+  oars,
   tasks,
   roster,
 }: {
   lineupId: string;
   colors: string[];
   maxRings: number;
-  seats: OarSeatRow[];
+  oars: BoatOars;
   tasks: TaskRow[];
   roster: { id: string; name: string; role: string }[];
 }) {
-  const [openSeat, setOpenSeat] = useState<number | null>(null);
-  const [pickedColor, setPickedColor] = useState<string | null>(null);
+  const [pickedColor, setPickedColor] = useState<string | null>(oars.oar?.color ?? null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -69,11 +67,6 @@ export function OarSheetForm({
     });
   }
 
-  function openPicker(seatNumber: number, current: OarSeatRow["oar"]) {
-    setOpenSeat(openSeat === seatNumber ? null : seatNumber);
-    setPickedColor(current?.color ?? null);
-  }
-
   const matches = search.trim()
     ? roster.filter((p) => p.name.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 12)
     : [];
@@ -82,109 +75,69 @@ export function OarSheetForm({
     <div className="flex flex-col gap-8">
       <section>
         <h2 className="font-semibold mb-1">Oars</h2>
-        <p className="text-sm text-gray-500 mb-3">Tap a seat, then its tape color and number of rings.</p>
+        <p className="text-sm text-gray-500 mb-3">Pick the tape color, then how many pieces of tape.</p>
 
-        <div className="mb-4">
-          <p className="text-xs text-gray-500 mb-1.5">Whole boat one color (bow = 1 ring, up to stroke):</p>
-          <div className="flex flex-wrap gap-2">
+        <p className="text-sm mb-3">
+          {oars.oar ? (
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              <Swatch color={oars.oar.color} />
+              {oarLabel({ rings: oars.oar.rings, tape_color: oars.oar.color })}
+            </span>
+          ) : (
+            <span className="text-gray-500">No oars picked yet.</span>
+          )}
+        </p>
+        {oars.alsoIn.length > 0 && (
+          <p className="text-xs text-amber-700 mb-3">Also picked for {oars.alsoIn.join(", ")}.</p>
+        )}
+
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2" aria-label="Tape color">
             {colors.map((c) => (
               <button
                 key={c}
                 type="button"
-                disabled={isPending}
-                onClick={() => run(() => fillBoatWithColor(lineupId, c))}
-                className="flex items-center gap-1.5 rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm hover:border-[var(--color-primary)] disabled:opacity-60"
+                onClick={() => setPickedColor(c)}
+                aria-pressed={pickedColor === c}
+                className={`flex items-center gap-1.5 rounded-lg border-2 px-3 py-1.5 text-sm ${
+                  pickedColor === c ? "border-[var(--color-primary)] font-medium" : "border-gray-300"
+                }`}
               >
                 <Swatch color={c} />
                 {c}
               </button>
             ))}
           </div>
+          {pickedColor && (
+            <div className="flex flex-wrap gap-2" aria-label="Pieces of tape">
+              {Array.from({ length: maxRings }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => run(() => setBoatOars(lineupId, { color: pickedColor, rings: n }))}
+                  className={`w-11 h-11 rounded-lg border-2 text-sm font-medium disabled:opacity-60 ${
+                    oars.oar?.color === pickedColor && oars.oar.rings === n
+                      ? "border-[var(--color-primary)] bg-[var(--color-secondary)] text-white"
+                      : "border-gray-300"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
+          {oars.oar && (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => run(() => setBoatOars(lineupId, null), () => setPickedColor(null))}
+              className="self-start text-sm text-gray-500 underline"
+            >
+              Clear
+            </button>
+          )}
         </div>
-
-        <ul className="flex flex-col gap-2">
-          {seats.map((s) => (
-            <li key={s.seatNumber} className="rounded-lg border-2 border-gray-200">
-              <button
-                type="button"
-                onClick={() => openPicker(s.seatNumber, s.oar)}
-                aria-expanded={openSeat === s.seatNumber}
-                className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left text-sm"
-              >
-                <span className="min-w-0">
-                  <span className="font-medium">{s.label}</span>
-                  <span className="text-gray-500"> · {s.rowerName}</span>
-                </span>
-                {s.oar ? (
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <Swatch color={s.oar.color} />
-                    {oarLabel({ rings: s.oar.rings, tape_color: s.oar.color })}
-                  </span>
-                ) : (
-                  <span className="text-[var(--color-primary)] font-medium">Pick oar</span>
-                )}
-              </button>
-              {s.alsoIn.length > 0 && (
-                <p className="px-3 pb-2 text-xs text-amber-700">Also picked for {s.alsoIn.join(", ")}.</p>
-              )}
-
-              {openSeat === s.seatNumber && (
-                <div className="border-t px-3 py-3 flex flex-col gap-3">
-                  <div className="flex flex-wrap gap-2">
-                    {colors.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setPickedColor(c)}
-                        aria-pressed={pickedColor === c}
-                        className={`flex items-center gap-1.5 rounded-lg border-2 px-3 py-1.5 text-sm ${
-                          pickedColor === c ? "border-[var(--color-primary)] font-medium" : "border-gray-300"
-                        }`}
-                      >
-                        <Swatch color={c} />
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                  {pickedColor && (
-                    <div className="flex flex-wrap gap-2" aria-label="Rings">
-                      {Array.from({ length: maxRings }, (_, i) => i + 1).map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          disabled={isPending}
-                          onClick={() =>
-                            run(
-                              () => setSeatOar(lineupId, s.seatNumber, { color: pickedColor, rings: n }),
-                              () => setOpenSeat(null)
-                            )
-                          }
-                          className={`w-11 h-11 rounded-lg border-2 text-sm font-medium disabled:opacity-60 ${
-                            s.oar?.color === pickedColor && s.oar.rings === n
-                              ? "border-[var(--color-primary)] bg-[var(--color-secondary)] text-white"
-                              : "border-gray-300"
-                          }`}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {s.oar && (
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => run(() => setSeatOar(lineupId, s.seatNumber, null), () => setOpenSeat(null))}
-                      className="self-start text-sm text-gray-500 underline"
-                    >
-                      Clear this seat
-                    </button>
-                  )}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
       </section>
 
       <section>

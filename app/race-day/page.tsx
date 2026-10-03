@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
+import { boatOarSet, oarLabel, tapeSwatch } from "@/lib/oarSheet";
 import {
   LAUNCH_MINUTES_KEY,
   clubDateKey,
@@ -93,7 +94,7 @@ export default async function RaceDayPage() {
   });
 
   const rowerIds = [...new Set(seats.map((s) => s.rower_id).filter((id): id is string => !!id))];
-  const [{ data: nameRows }, { data: sessionRows }] = await Promise.all([
+  const [{ data: nameRows }, { data: sessionRows }, { data: oarRows }] = await Promise.all([
     rowerIds.length
       ? supabase.from("profiles").select("id, display_name").in("id", rowerIds)
       : Promise.resolve({ data: [] }),
@@ -107,7 +108,18 @@ export default async function RaceDayPage() {
             lineups.map((l) => l.id)
           )
       : Promise.resolve({ data: [] }),
+    lineups.length
+      ? supabase
+          .from("lineup_oars")
+          .select("lineup_id, tape_color, rings")
+          .in(
+            "lineup_id",
+            lineups.map((l) => l.id)
+          )
+      : Promise.resolve({ data: [] }),
   ]);
+  const oarRowsList = (oarRows as { lineup_id: string; tape_color: string; rings: number }[] | null) ?? [];
+  const oarsByLineup = new Map(lineups.map((l) => [l.id, boatOarSet(oarRowsList.filter((o) => o.lineup_id === l.id))]));
   const nameById = new Map(((nameRows as { id: string; display_name: string }[] | null) ?? []).map((p) => [p.id, p.display_name]));
   const onWater = new Set(((sessionRows as { lineup_id: string | null }[] | null) ?? []).map((s) => s.lineup_id));
 
@@ -204,6 +216,7 @@ export default async function RaceDayPage() {
             launchMinutes={launchMinutes}
             delayMinutes={delayMinutes}
             onWater={onWater.has(l.id)}
+            oars={oarsByLineup.get(l.id) ?? null}
             canEdit={isManager}
           />
         ))}
@@ -250,6 +263,7 @@ function RaceCard({
   launchMinutes,
   delayMinutes,
   onWater,
+  oars,
   canEdit,
 }: {
   lineup: Lineup;
@@ -259,6 +273,7 @@ function RaceCard({
   launchMinutes: number;
   delayMinutes: number;
   onWater: boolean;
+  oars: { tape_color: string; rings: number } | null;
   canEdit: boolean;
 }) {
   const rowerSeats = BOAT_CLASSES[lineup.boat_class]?.rowerSeats ?? seats.filter((s) => s.seat_role === "rower").length;
@@ -295,6 +310,23 @@ function RaceCard({
       <div className="flex flex-wrap items-center gap-2 mt-2">
         {onWater && (
           <span className="text-xs font-medium rounded-full bg-blue-100 text-blue-800 px-2 py-0.5">On the water now</span>
+        )}
+        {oars ? (
+          <span className="flex items-center gap-1.5 text-xs font-medium rounded-full bg-gray-100 px-2 py-0.5">
+            <span
+              className="inline-block w-3 h-3 rounded-full border border-gray-400"
+              style={{ backgroundColor: tapeSwatch(oars.tape_color) }}
+              aria-hidden
+            />
+            Oars: {oarLabel(oars)}
+          </span>
+        ) : (
+          <Link
+            href={`/oar-sheet/${lineup.id}`}
+            className="text-xs font-medium rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 hover:underline"
+          >
+            Oars not picked
+          </Link>
         )}
         {canEdit && <RaceSoonButton lineupId={lineup.id} sentAt={lineup.race_soon_sent_at ?? null} />}
         {canEdit ? (

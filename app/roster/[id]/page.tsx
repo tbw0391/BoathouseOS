@@ -36,6 +36,8 @@ import {
 } from "@/lib/profileButtons";
 import { ProfileShortcuts } from "./ProfileShortcuts";
 import { TextAlertsCard } from "./TextAlertsCard";
+import { PasskeyCard } from "@/components/PasskeyCard";
+import { isDemoEmail } from "@/lib/demoAccount";
 import { ProfilePhotoButton } from "./ProfilePhotoButton";
 import { canOptInToTexts } from "@/lib/smsRules";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -445,6 +447,8 @@ export default async function BioPage({
       )}
 
       {isSelf && <TextAlertsCard phone={textPhone} canOptIn={canOptInToTexts(profile.role, profile.birthday)} />}
+
+      {isSelf && !isDemoEmail(user?.email) && <PasskeyCard variant="profile" />}
 
       {showNoMessages && (
         <NoMessagesCard

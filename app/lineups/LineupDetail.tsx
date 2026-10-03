@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
+import { oarLabel, tapeSwatch } from "@/lib/oarSheet";
 import { SeatFiller } from "./SeatFiller";
 import { assignSeat } from "./actions";
 import { DeleteLineupButton } from "./DeleteLineupButton";
@@ -17,11 +18,13 @@ const SEAT_ROLE_LABEL: Record<LineupSeat["seat_role"], string> = {
 export function LineupDetail({
   lineup,
   lineupSeats,
+  oars = null,
   eligibleRoster,
   canManage,
 }: {
   lineup: Lineup;
   lineupSeats: LineupSeat[];
+  oars?: { tape_color: string; rings: number } | null;
   eligibleRoster: { id: string; display_name: string }[];
   canManage: boolean;
 }) {
@@ -64,12 +67,23 @@ export function LineupDetail({
       </div>
 
       {lineup.event_id && lineup.boat_id && (
-        <Link
-          href={`/oar-sheet/${lineup.id}`}
-          className="mt-3 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
-        >
-          Oar sheet →
-        </Link>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+          {oars ? (
+            <span className="flex items-center gap-1.5 font-medium">
+              <span
+                className="inline-block w-4 h-4 rounded-full border border-gray-400"
+                style={{ backgroundColor: tapeSwatch(oars.tape_color) }}
+                aria-hidden
+              />
+              Oars: {oarLabel(oars)}
+            </span>
+          ) : (
+            <span className="text-amber-700">Oars not picked</span>
+          )}
+          <Link href={`/oar-sheet/${lineup.id}`} className="font-medium text-[var(--color-primary)] hover:underline">
+            Oar sheet →
+          </Link>
+        </div>
       )}
     </div>
   );

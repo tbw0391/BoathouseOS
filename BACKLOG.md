@@ -318,6 +318,26 @@ Everyone (juniors, college, masters):
       list (every racing boat with oars in one tap, gear presets, copy the
       last regatta's); anyone ticks items packed to go / packed for home.
 - [x] Course tab: start and finish pins (see Race Results).
+- [ ] "On the water" alert to parents (Todd, 2026-10-03): when a boat
+      gets on the water, alert the parents of everyone in it. The app
+      already knows when the cox starts the On the Water tracker
+      (on_water_sessions), so that's the likely trigger. Make it a switch in
+      alert settings.
+- [ ] Course markers (Todd, 2026-10-03): pins along the course (e.g.
+      500/1000/1500 m) besides start and finish. While On the Water runs
+      (cox phone pings every 7 s, ~35 m apart at race pace), work out
+      when the boat crossed each marker. Show "passed 1000 m at 9:42:15" and
+      live splits on Race Day, and optionally alert parents. Works only if
+      a phone in the boat is tracking (no cox: a rower's phone). GPS is
+      good to a few meters: for following along, not official times.
+      Check if regattas allow phones in boats. Todd can get official course
+      GPS as a USRowing ref.
+- [ ] Master list of oars (Todd, 2026-10-03): the club keeps one list of
+      its oar sets (tape color + how many pieces, e.g. "1 Green"), and each
+      set is tagged Men's, Women's and/or Masters. The oar sheet shows that
+      list with a filter where you can pick more than one group (e.g. Men's
+      + Masters), instead of every color and number. Replaces the
+      colors / most-pieces setting in Admin → Oar tape.
 
 ## Lineups
 - [x] Finished regattas move to the bottom (2026-09-29): on /lineups and

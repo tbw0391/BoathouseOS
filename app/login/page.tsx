@@ -1,14 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ScanFace } from "lucide-react";
 import { SELF_SIGNUP_OPEN } from "@/lib/signup";
 import { IS_DEMO_SITE } from "@/lib/site";
 import { ClubLogo } from "@/components/ClubBranding";
 import { createClient } from "@/lib/supabase/client";
 import { ClearRuntimeCaches } from "@/components/ClearRuntimeCaches";
 import { TryDemoButton } from "@/components/TryDemoButton";
+import {
+  biometricName,
+  passkeyCancelled,
+  passkeyErrorMessage,
+  passkeyRememberedHere,
+  passkeysSupported,
+} from "@/lib/passkey";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +24,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // "Face ID", "fingerprint"...: only on devices where a member turned it on.
+  const [passkeyName, setPasskeyName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (passkeysSupported() && passkeyRememberedHere()) setPasskeyName(biometricName());
+  }, []);
+
+  async function handlePasskey() {
+    if (!passkeyName) return;
+    setError(null);
+    setLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPasskey();
+    setLoading(false);
+    if (error) {
+      if (!passkeyCancelled(error)) setError(passkeyErrorMessage(error, passkeyName));
+      return;
+    }
+    router.push("/");
+    router.refresh();
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +76,21 @@ export default function LoginPage() {
           <>
             <TryDemoButton />
             <p className="text-center text-xs text-gray-400">or sign in with an account</p>
+          </>
+        )}
+
+        {passkeyName && (
+          <>
+            <button
+              type="button"
+              onClick={handlePasskey}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded px-3 py-3 font-medium disabled:opacity-50"
+            >
+              <ScanFace className="w-5 h-5" />
+              Sign in with {passkeyName}
+            </button>
+            <p className="text-center text-xs text-gray-400">or with your password</p>
           </>
         )}
 

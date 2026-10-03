@@ -35,6 +35,7 @@ export function EventRacesView({
         <LineupDetail
           lineup={item.lineup}
           lineupSeats={item.lineupSeats}
+          oars={item.oars}
           eligibleRoster={item.eligibleRoster}
           canManage={canManage}
         />

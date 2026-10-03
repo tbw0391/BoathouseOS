@@ -24,7 +24,7 @@ async function checkOar(supabase: Awaited<ReturnType<typeof createClient>>, colo
   const settings = parseOarSettings((data as { value: string | null } | null)?.value);
   if (!settings.colors.includes(color)) throw new UserError("Pick one of the club's tape colors.");
   if (!Number.isInteger(rings) || rings < 1 || rings > settings.maxRings) {
-    throw new UserError(`Rings must be 1 to ${settings.maxRings}.`);
+    throw new UserError(`Pieces of tape must be 1 to ${settings.maxRings}.`);
   }
 }
 
@@ -46,56 +46,31 @@ function refused(error: { message: string; code?: string }): Error {
   );
 }
 
-export async function setSeatOar(lineupId: string, seatNumber: number, oar: { color: string; rings: number } | null) {
-  return tryAction(async () => {
-    const { supabase, user } = await signedIn();
-    if (!(await rowingSeatNumbers(supabase, lineupId)).includes(seatNumber)) throw new UserError("That seat isn't in this boat.");
-
-    if (oar) {
-      await checkOar(supabase, oar.color, oar.rings);
-      const { error } = await supabase.from("lineup_oars").upsert(
-        {
-          lineup_id: lineupId,
-          seat_number: seatNumber,
-          tape_color: oar.color,
-          rings: oar.rings,
-          updated_by: user.id,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "lineup_id,seat_number" }
-      );
-      if (error) throw refused(error);
-    } else {
-      const { error } = await supabase.from("lineup_oars").delete().eq("lineup_id", lineupId).eq("seat_number", seatNumber);
-      if (error) throw refused(error);
-    }
-
-    revalidatePath(`/oar-sheet/${lineupId}`);
-    revalidatePath("/");
-  });
-}
-
-// One color for the whole boat, rings matching the seat (bow = 1 ring).
-export async function fillBoatWithColor(lineupId: string, color: string) {
+// The boat's oar set — a tape color and how many pieces of tape ("1 Green")
+// — saved on every rowing seat, so a full boat reads as done. Null clears it.
+export async function setBoatOars(lineupId: string, oar: { color: string; rings: number } | null) {
   return tryAction(async () => {
     const { supabase, user } = await signedIn();
     const seats = await rowingSeatNumbers(supabase, lineupId);
-    if (seats.length === 0) return;
-    await checkOar(supabase, color, Math.max(...seats));
+    if (oar) await checkOar(supabase, oar.color, oar.rings);
 
-    const now = new Date().toISOString();
-    const { error } = await supabase.from("lineup_oars").upsert(
-      seats.map((n) => ({
-        lineup_id: lineupId,
-        seat_number: n,
-        tape_color: color,
-        rings: n,
-        updated_by: user.id,
-        updated_at: now,
-      })),
-      { onConflict: "lineup_id,seat_number" }
-    );
-    if (error) throw refused(error);
+    const { error: clearError } = await supabase.from("lineup_oars").delete().eq("lineup_id", lineupId);
+    if (clearError) throw refused(clearError);
+
+    if (oar && seats.length > 0) {
+      const now = new Date().toISOString();
+      const { error } = await supabase.from("lineup_oars").insert(
+        seats.map((n) => ({
+          lineup_id: lineupId,
+          seat_number: n,
+          tape_color: oar.color,
+          rings: oar.rings,
+          updated_by: user.id,
+          updated_at: now,
+        }))
+      );
+      if (error) throw refused(error);
+    }
 
     revalidatePath(`/oar-sheet/${lineupId}`);
     revalidatePath("/");

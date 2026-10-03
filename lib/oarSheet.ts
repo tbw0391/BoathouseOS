@@ -1,6 +1,7 @@
-// Oar sheets (0095): for each regatta boat, which oar goes in each seat.
-// Oars are named by their tape — a color and a number of rings, "3 Green" —
-// and the club's tape colors and most rings are set in /admin, stored in
+// Oar sheets (0095): which set of oars each regatta boat takes. A set is named
+// by its tape — a color and how many pieces of tape, "1 Green" (often the
+// Men's 1V) — and saved on every rowing seat. The club's tape colors and the
+// most pieces of tape are set in /admin, stored in
 // club_settings "oar_colors" as { colors: string[], maxRings: number }.
 
 export const OAR_COLORS_KEY = "oar_colors";
@@ -11,7 +12,7 @@ export interface OarSettings {
 }
 
 export const DEFAULT_OAR_SETTINGS: OarSettings = {
-  colors: ["Blue", "Green", "Red", "Yellow", "White", "Black"],
+  colors: ["Blue", "Green", "Red", "Yellow", "White", "Black", "Purple"],
   maxRings: 8,
 };
 
@@ -49,8 +50,33 @@ const SWATCHES: Record<string, string> = {
   gold: "#ca8a04",
 };
 
+// The colors an admin can turn on in Admin → Oar tape, in button order.
+export const TAPE_COLOR_CHOICES = [
+  "Blue",
+  "Green",
+  "Red",
+  "Yellow",
+  "White",
+  "Black",
+  "Purple",
+  "Orange",
+  "Pink",
+  "Gray",
+  "Brown",
+  "Silver",
+  "Gold",
+];
+
 export function tapeSwatch(color: string): string {
   return SWATCHES[color.trim().toLowerCase()] ?? "#9ca3af";
+}
+
+// The boat's set: the color and count every saved seat shares, or null when
+// nothing is saved or seats disagree.
+export function boatOarSet<O extends { tape_color: string; rings: number }>(oars: O[]): O | null {
+  const first = oars[0];
+  if (!first) return null;
+  return oars.every((o) => o.tape_color === first.tape_color && o.rings === first.rings) ? first : null;
 }
 
 export function oarLabel(oar: { rings: number; tape_color: string }): string {

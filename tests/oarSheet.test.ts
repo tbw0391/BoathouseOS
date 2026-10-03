@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { captainSeat, oarLabel, oarSeats, oarSheetComplete, parseOarSettings, DEFAULT_OAR_SETTINGS } from "@/lib/oarSheet";
+import { boatOarSet, captainSeat, oarLabel, oarSeats, oarSheetComplete, parseOarSettings, DEFAULT_OAR_SETTINGS } from "@/lib/oarSheet";
 
 const seat = (seat_number: number, seat_role: string, rower_id: string | null = null) => ({ seat_number, seat_role, rower_id });
 
@@ -50,4 +50,13 @@ describe("parseOarSettings", () => {
 
 it("names an oar by rings and color", () => {
   expect(oarLabel({ rings: 3, tape_color: "Green" })).toBe("3 Green");
+});
+
+describe("boatOarSet", () => {
+  it("is the set every seat shares", () => {
+    const g = { tape_color: "Green", rings: 1 };
+    expect(boatOarSet([g, { ...g }])).toEqual(g);
+    expect(boatOarSet([g, { tape_color: "Green", rings: 2 }])).toBeNull();
+    expect(boatOarSet([])).toBeNull();
+  });
 });
