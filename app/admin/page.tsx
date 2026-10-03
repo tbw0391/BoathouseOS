@@ -405,8 +405,8 @@ export default async function AdminPage() {
 
       <h2 className="text-lg font-semibold mt-8 mb-2">Oar tape</h2>
       <p className="text-sm text-gray-500 mb-4">
-        Oars are named by their tape color and number of rings (&quot;3 Green&quot;). Coxes pick
-        from these on each boat&apos;s oar sheet.
+        Each set of oars is named by its tape color and how many pieces of tape (&quot;1 Green&quot;).
+        Coxes pick a set on each boat&apos;s oar sheet.
       </p>
       <ActionForm action={updateOarSettings} className="flex flex-col gap-3 max-w-sm">
         <label className="flex flex-col gap-1 text-sm">
@@ -420,7 +420,7 @@ export default async function AdminPage() {
           <span className="text-xs text-gray-500">Separate with commas.</span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Most rings on an oar</span>
+          <span className="font-medium">Most pieces of tape on a set</span>
           <input
             name="max_rings"
             type="number"

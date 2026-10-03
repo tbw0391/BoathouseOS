@@ -299,7 +299,7 @@ export async function updateProfileButtons(access: Record<ProfileGroup, string[]
   });
 }
 
-// The club's oar tape colors and the most rings on an oar, for oar sheets.
+// The club's oar tape colors and the most pieces of tape on a set, for oar sheets.
 export async function updateOarSettings(formData: FormData) {
   return tryAction(async () => {
     const supabase = await createClient();
@@ -328,7 +328,7 @@ export async function updateOarSettings(formData: FormData) {
     ].slice(0, 20);
     if (colors.length === 0) throw new UserError("Enter at least one tape color.");
     const maxRings = Math.trunc(Number(formData.get("max_rings")));
-    if (!Number.isFinite(maxRings) || maxRings < 1 || maxRings > 20) throw new UserError("Rings must be 1 to 20.");
+    if (!Number.isFinite(maxRings) || maxRings < 1 || maxRings > 20) throw new UserError("Pieces of tape must be 1 to 20.");
 
     const { error } = await supabase
       .from("club_settings")
