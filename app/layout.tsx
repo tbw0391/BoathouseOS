@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import { Geist, Geist_Mono } from "next/font/google";
 import { BottomNav } from "@/components/BottomNav";
+import { raceDayResultsHref } from "@/lib/raceDayResults";
 import { Header } from "@/components/Header";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { ServiceWorkerUpdater } from "@/components/ServiceWorkerUpdater";
@@ -121,7 +122,7 @@ export default async function RootLayout({
 
   // None of these depend on each other: ask for them all at once rather than
   // waiting on each in turn, since this runs on every page.
-  const [theme, isGlobalAdmin, unreadCount, branding, cookieStore, photoUrl, needsTerms] = await Promise.all([
+  const [theme, isGlobalAdmin, unreadCount, branding, cookieStore, photoUrl, needsTerms, liveResultsHref] = await Promise.all([
     getThemeColors(),
     user ? supabase.rpc("is_global_admin").then((r) => r.data) : false,
     user ? getUnreadChatCount(user.id) : null,
@@ -149,6 +150,8 @@ export default async function RootLayout({
             return !error && !!terms?.approved_at && terms.terms_version !== TERMS_VERSION;
           })
       : false,
+    // A regatta on today (club time): the bottom bar gets a Live results button.
+    user ? raceDayResultsHref(supabase) : null,
   ]);
   const siteBranding = {
     appName: branding.appName,
@@ -194,7 +197,7 @@ export default async function RootLayout({
               </div>
             </div>
           </PullToRefresh>
-          <BottomNav userId={user?.id ?? null} />
+          <BottomNav userId={user?.id ?? null} liveResultsHref={liveResultsHref} />
           {needsTerms && <TermsGate />}
         </BrandingProvider>
       </body>
