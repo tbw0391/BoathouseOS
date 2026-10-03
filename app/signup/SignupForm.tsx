@@ -68,13 +68,13 @@ export function SignupForm({ joinCode, clubName }: { joinCode: string | null; cl
             name="first_name"
             placeholder="First name"
             required
-            className="border rounded px-3 py-2 flex-1"
+            className="border rounded px-3 py-2 flex-1 min-w-0"
           />
           <input
             name="last_name"
             placeholder="Last name"
             required
-            className="border rounded px-3 py-2 flex-1"
+            className="border rounded px-3 py-2 flex-1 min-w-0"
           />
         </div>
 
