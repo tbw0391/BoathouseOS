@@ -319,14 +319,15 @@ export async function updateOarSettings(formData: FormData) {
 
     const colors = [
       ...new Set(
-        String(formData.get("colors") ?? "")
-          .split(",")
+        formData
+          .getAll("colors")
+          .map(String)
           .map((c) => c.trim())
           .filter((c) => c.length > 0 && c.length <= 30)
           .map((c) => c[0].toUpperCase() + c.slice(1))
       ),
     ].slice(0, 20);
-    if (colors.length === 0) throw new UserError("Enter at least one tape color.");
+    if (colors.length === 0) throw new UserError("Pick at least one tape color.");
     const maxRings = Math.trunc(Number(formData.get("max_rings")));
     if (!Number.isFinite(maxRings) || maxRings < 1 || maxRings > 20) throw new UserError("Pieces of tape must be 1 to 20.");
 

@@ -50,6 +50,23 @@ const SWATCHES: Record<string, string> = {
   gold: "#ca8a04",
 };
 
+// The colors an admin can turn on in Admin → Oar tape, in button order.
+export const TAPE_COLOR_CHOICES = [
+  "Blue",
+  "Green",
+  "Red",
+  "Yellow",
+  "White",
+  "Black",
+  "Purple",
+  "Orange",
+  "Pink",
+  "Gray",
+  "Brown",
+  "Silver",
+  "Gold",
+];
+
 export function tapeSwatch(color: string): string {
   return SWATCHES[color.trim().toLowerCase()] ?? "#9ca3af";
 }
