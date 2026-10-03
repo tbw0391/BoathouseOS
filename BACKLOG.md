@@ -1205,6 +1205,17 @@ comply, and the app mustn't break the rules.
 - [x] Each club's app name and home-screen icon (0106, /admin "App name and
       icon"); Westerville's is the W with crossed oars, "Westerville Crew" /
       "W-Crew" (2026-09-30).
+- [ ] Decide (found 2026-10-03): Vercel's boathouseos-prod project goes live
+      from `main`, not `production` (its production deployments are all
+      main commits; pushes to `production` only make previews). So every
+      push to main goes straight to Westerville as well as the demo, and
+      new code can reach Westerville before its migration runs there. No
+      errors came of it on 2026-10-03 (migrations 0129-0133 applied to
+      production that evening, checked against the demo). Either set
+      boathouseos-prod → Settings → Git → Production Branch to
+      `production` (then promote by merging main into production, as
+      written above), or keep main and apply each migration to production
+      before pushing code that needs it.
 - [ ] Westerville signups are approved automatically for now (2026-10-01,
       AUTO_APPROVE_CLUB_SLUGS in lib/signup.ts), so members moving over
       don't wait on an admin. Take "westerville" out of the list to go back
