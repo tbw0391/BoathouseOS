@@ -6,6 +6,8 @@ import { cookies } from "next/headers";
 import { DEMO_CLUB_COOKIE, findDemoClub, visibleToClub } from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
+import { crewTimerResultsFor, syncCrewTimerPlaces } from "@/lib/crewTimerResults";
+import { crewTimerFeedUrl } from "@/lib/crewtimer";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Boat,
@@ -36,6 +38,7 @@ import { TravelTab, type RoomView, type VehicleView } from "../TravelTab";
 import type { LatLng } from "@/lib/course";
 import { markRegattaPrepSeen } from "@/lib/regattaPrep";
 import { DeleteRegattaButton } from "../DeleteRegattaButton";
+import { LinkCrewTimerResults } from "../LinkCrewTimerResults";
 
 // Trip details, rides and rooms, plus who the viewer can sign up (themself
 // and any rower they're a guardian of) and who can be given a room.
@@ -196,6 +199,20 @@ export default async function EventRacesPage({
     const club = findDemoClub((await cookies()).get(DEMO_CLUB_COOKIE)?.value);
     if (club) await syncHotcResults(supabase, await getHotcSchedule(club));
   }
+
+  // Any other regatta linked to CrewTimer (0131): live places and times for
+  // the Results tab, copied onto lineups too before they're read below.
+  const isHotc = typedEvent.title === HOTC.title;
+  const crewTimerRaces = isHotc ? null : await crewTimerResultsFor(typedEvent);
+  if (canManage && crewTimerRaces) await syncCrewTimerPlaces(supabase, eventId, crewTimerRaces);
+  const crewTimerPage = typedEvent.crewtimer_url
+    ? crewTimerFeedUrl(typedEvent.crewtimer_url)?.replace(
+        /^https:\/\/crewtimer-results\.firebaseio\.com\/results\/(r\d+)\.json$/,
+        "https://www.crewtimer.com/regatta/$1"
+      ) ?? null
+    : null;
+  const { data: myClub } =
+    canManage && tab === "results" ? await supabase.from("clubs").select("name").maybeSingle() : { data: null };
 
   const { data: settingsData } = await supabase
     .from("club_settings")
@@ -378,7 +395,13 @@ export default async function EventRacesPage({
   const tabs = [
     { id: "races", label: needBoat > 0 ? `Races (${needBoat} need a boat)` : `Races (${items.length})` },
     { id: "jobs", label: "Jobs" },
-    { id: "results", label: finished.length > 0 ? `Results (${finished.length})` : "Results" },
+    {
+      id: "results",
+      label: (() => {
+        const n = crewTimerRaces ? crewTimerRaces.filter((r) => r.place != null).length : finished.length;
+        return n > 0 ? `Results (${n})` : "Results";
+      })(),
+    },
     { id: "travel", label: "Travel" },
     { id: "trailer", label: "Trailer" },
     { id: "course", label: "Course" },
@@ -474,8 +497,66 @@ export default async function EventRacesPage({
         />
       )}
 
-      {tab === "results" && (
+      {tab === "results" && crewTimerRaces && (
         <div className="flex flex-col gap-2 max-w-lg">
+          {crewTimerRaces.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No entries for {typedEvent.crewtimer_crew} on CrewTimer yet.
+            </p>
+          ) : (
+            [...crewTimerRaces]
+              .sort((a, b) => {
+                if (a.place != null && b.place == null) return -1;
+                if (a.place == null && b.place != null) return 1;
+                return Number(a.eventNum) - Number(b.eventNum) || (a.place ?? 0) - (b.place ?? 0);
+              })
+              .map((r) => (
+                <div
+                  key={`${r.eventNum}-${r.bow ?? r.crew}`}
+                  className="flex items-center gap-3 rounded-lg border-2 border-gray-200 px-3 py-2 text-sm"
+                >
+                  <span className="w-14 shrink-0 text-lg">
+                    {r.place != null ? `${placeEmoji(r.place)} ${ordinalPlace(r.place)}` : "⏳"}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">
+                      Race {r.eventNum}: {r.eventName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {r.crew}
+                      {r.bow && ` · Bow ${r.bow}`}
+                      {r.place != null
+                        ? ` · of ${r.entryCount}${r.time ? ` · ${r.time}` : ""}${r.penalty ? ` · ${r.penalty}` : ""}`
+                        : r.start
+                          ? ` · starts ${r.start}`
+                          : " · not finished yet"}
+                    </p>
+                  </div>
+                </div>
+              ))
+          )}
+          <p className="text-xs text-gray-500">Places and times come in live from CrewTimer as boats finish.</p>
+          {crewTimerPage && (
+            <a href={crewTimerPage} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-600 underline">
+              Full results on CrewTimer →
+            </a>
+          )}
+          {canManage && (
+            <LinkCrewTimerResults
+              eventId={eventId}
+              savedLink={typedEvent.crewtimer_url}
+              savedCrew={typedEvent.crewtimer_crew}
+              defaultCrew={(myClub as { name: string } | null)?.name ?? ""}
+            />
+          )}
+        </div>
+      )}
+
+      {tab === "results" && !crewTimerRaces && (
+        <div className="flex flex-col gap-2 max-w-lg">
+          {typedEvent.crewtimer_url && !isHotc && (
+            <p className="text-sm text-amber-700">Couldn&apos;t reach CrewTimer right now. Pull down to try again.</p>
+          )}
           {finished.length === 0 ? (
             <p className="text-sm text-gray-500">
               No results yet.{" "}
@@ -503,6 +584,14 @@ export default async function EventRacesPage({
             <Link href="/regatta" className="mt-2 text-sm text-gray-600 underline">
               Live results and times →
             </Link>
+          )}
+          {canManage && !isHotc && (
+            <LinkCrewTimerResults
+              eventId={eventId}
+              savedLink={typedEvent.crewtimer_url}
+              savedCrew={typedEvent.crewtimer_crew}
+              defaultCrew={(myClub as { name: string } | null)?.name ?? ""}
+            />
           )}
         </div>
       )}
