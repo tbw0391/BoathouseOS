@@ -901,16 +901,23 @@ async function loadAnnouncementBanners(
 }
 
 // Food tent banner messages (0118) still showing: a week, or until the
-// regatta they're about is over. Filtered by audience by the caller.
+// regatta they're about is over, and only ones posted since this person last
+// opened the Food Tent page (0129), so tapping a banner clears it. Filtered
+// by audience by the caller.
 async function loadFoodMessageBanners(
   supabase: SupabaseServerClient,
+  userId: string,
 ): Promise<FoodMessageBanner[]> {
-  const { data } = await supabase
-    .from("food_tent_messages")
-    .select("*")
-    .gte("created_at", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
-    .order("created_at", { ascending: false });
-  const messages = (data as FoodTentMessage[] | null) ?? [];
+  const [{ data }, { data: seenRow }] = await Promise.all([
+    supabase
+      .from("food_tent_messages")
+      .select("*")
+      .gte("created_at", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
+      .order("created_at", { ascending: false }),
+    supabase.from("food_tent_seen").select("seen_at").eq("user_id", userId).maybeSingle(),
+  ]);
+  const seenAt = (seenRow as { seen_at: string } | null)?.seen_at ?? null;
+  const messages = ((data as FoodTentMessage[] | null) ?? []).filter((m) => !seenAt || m.created_at > seenAt);
   if (messages.length === 0) return [];
   const eventIds = [...new Set(messages.map((m) => m.event_id).filter((id): id is string => !!id))];
   const senderIds = [...new Set(messages.map((m) => m.sender_id).filter((id): id is string => !!id))];
@@ -1401,7 +1408,7 @@ export default async function Home() {
         : Promise.resolve([]),
       loadBirthdaysToday(supabase),
       loadMyRecentPrs(supabase, user.id),
-      loadFoodMessageBanners(supabase),
+      loadFoodMessageBanners(supabase, user.id),
     ]);
     sentLineupNotices = sentLineupNoticeResults;
     banners = foodBanners;
