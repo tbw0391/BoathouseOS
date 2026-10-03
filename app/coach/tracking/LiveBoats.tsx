@@ -27,10 +27,13 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), { ssr: false });
 export function LiveBoats({
   initialSessions,
   mapOpenByDefault = false,
+  mapFirst = false,
   canEnd = false,
 }: {
   initialSessions: ActiveSessionView[];
   mapOpenByDefault?: boolean;
+  // The map, already open, above the list of boats (the On the Water tab).
+  mapFirst?: boolean;
   // Coaches and admins can end any outing (a phone left tracking ashore).
   canEnd?: boolean;
 }) {
@@ -48,7 +51,7 @@ export function LiveBoats({
       setEndError(e instanceof Error ? e.message : "Couldn't end that outing.");
     }
   }
-  const [showMap, setShowMap] = useState(mapOpenByDefault);
+  const [showMap, setShowMap] = useState(mapOpenByDefault || mapFirst);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -140,8 +143,16 @@ export function LiveBoats({
 
   const onMap = sessions.filter((v) => v.lastPing);
 
+  const map = showMap &&
+    (onMap.length === 0 ? (
+      <p className="text-sm text-gray-500">No boat has a GPS fix yet, so there&apos;s nothing to map.</p>
+    ) : (
+      <LeafletMap sessions={onMap} />
+    ));
+
   return (
     <div className="flex flex-col gap-3">
+      {mapFirst && map}
       <ul className="flex flex-col gap-2">
         {sessions.map((view) => {
           const color = boatColor(view.session.color);
@@ -227,20 +238,18 @@ export function LiveBoats({
 
       {endError && <p className="text-sm text-red-600">{endError}</p>}
 
-      <button
-        onClick={() => setShowMap((s) => !s)}
-        className="flex items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] text-white px-4 py-3 font-medium hover:bg-[var(--color-accent)] transition-colors"
-      >
-        <MapIcon className="w-5 h-5" aria-hidden />
-        {showMap ? "Hide map" : "Show map"}
-      </button>
-
-      {showMap &&
-        (onMap.length === 0 ? (
-          <p className="text-sm text-gray-500">No boat has a GPS fix yet, so there&apos;s nothing to map.</p>
-        ) : (
-          <LeafletMap sessions={onMap} />
-        ))}
+      {!mapFirst && (
+        <>
+          <button
+            onClick={() => setShowMap((s) => !s)}
+            className="flex items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] text-white px-4 py-3 font-medium hover:bg-[var(--color-accent)] transition-colors"
+          >
+            <MapIcon className="w-5 h-5" aria-hidden />
+            {showMap ? "Hide map" : "Show map"}
+          </button>
+          {map}
+        </>
+      )}
     </div>
   );
 }
