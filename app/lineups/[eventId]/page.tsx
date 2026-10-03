@@ -27,7 +27,7 @@ import type {
 } from "@/lib/database.types";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { boatOarSet } from "@/lib/oarSheet";
+import { OAR_COLORS_KEY, boatOarSet, parseOarSettings, tapeSwatch } from "@/lib/oarSheet";
 import { resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { parseStarredLines } from "@/lib/scheduleStars";
 import type { RaceBoxItem, RaceBoxState } from "../raceBoxTypes";
@@ -217,7 +217,7 @@ export default async function EventRacesPage({
   const { data: settingsData } = await supabase
     .from("club_settings")
     .select("key, value")
-    .eq("key", "lineup_section_visibility");
+    .in("key", ["lineup_section_visibility", OAR_COLORS_KEY]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
   );
@@ -285,7 +285,11 @@ export default async function EventRacesPage({
         )
     : { data: [] };
   const oarRows = (oarData as { lineup_id: string; tape_color: string; rings: number }[] | null) ?? [];
-  const oarsFor = (lineupId: string) => boatOarSet(oarRows.filter((o) => o.lineup_id === lineupId));
+  const tapeColors = parseOarSettings(settingsByKey.get(OAR_COLORS_KEY)).colors;
+  const oarsFor = (lineupId: string) => {
+    const set = boatOarSet(oarRows.filter((o) => o.lineup_id === lineupId));
+    return set ? { ...set, swatch: tapeSwatch(set.tape_color, tapeColors) } : null;
+  };
 
   function stateForPlace(place: number | null): RaceBoxState {
     if (place === 1) return "gold";

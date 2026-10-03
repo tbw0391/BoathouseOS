@@ -332,12 +332,17 @@ Everyone (juniors, college, masters):
       good to a few meters: for following along, not official times.
       Check if regattas allow phones in boats. Todd can get official course
       GPS as a USRowing ref.
-- [ ] Master list of oars (Todd, 2026-10-03): the club keeps one list of
-      its oar sets (tape color + how many pieces, e.g. "1 Green"), and each
-      set is tagged Men's, Women's and/or Masters. The oar sheet shows that
-      list with a filter where you can pick more than one group (e.g. Men's
-      + Masters), instead of every color and number. Replaces the
-      colors / most-pieces setting in Admin → Oar tape.
+- [x] Master list of oars (2026-10-03, Admin → Oar tape; no migration,
+      club_settings "oar_colors"): admins keep the club's tape colors
+      (standard ones in a tap, or their own name + shade, e.g. "Neon green";
+      tap a swatch to change its shade) and the list of oar sets (color +
+      pieces, e.g. "1 Green"), each tagged with the squads that use it
+      (Men's, Women's, Development, Masters, Alumni) and an optional note.
+      The oar sheet then shows just those sets, filtered to the boat's
+      squad with "Show" chips to pick more than one (Men's + Masters) or
+      All; a set with no squads shows for everyone. With no sets listed it
+      falls back to any color + any count, as before. Custom shades show on
+      Lineups and Race Day too. Older saved colors still read fine.
 
 ## Lineups
 - [x] Finished regattas move to the bottom (2026-09-29): on /lineups and

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/push";
-import { OAR_COLORS_KEY, oarSeats, parseOarSettings } from "@/lib/oarSheet";
+import { OAR_COLORS_KEY, oarAllowed, oarSeats, parseOarSettings } from "@/lib/oarSheet";
 import { UserError, tryAction } from "@/lib/userError";
 
 // Who can change a sheet is enforced by the database (the boat's cox or
@@ -22,10 +22,10 @@ async function signedIn() {
 async function checkOar(supabase: Awaited<ReturnType<typeof createClient>>, color: string, rings: number) {
   const { data } = await supabase.from("club_settings").select("value").eq("key", OAR_COLORS_KEY).maybeSingle();
   const settings = parseOarSettings((data as { value: string | null } | null)?.value);
-  if (!settings.colors.includes(color)) throw new UserError("Pick one of the club's tape colors.");
-  if (!Number.isInteger(rings) || rings < 1 || rings > settings.maxRings) {
-    throw new UserError(`Pieces of tape must be 1 to ${settings.maxRings}.`);
-  }
+  if (oarAllowed(settings, color, rings)) return;
+  if (settings.sets.length > 0) throw new UserError("Pick one of the club's oar sets.");
+  if (!settings.colors.some((c) => c.name === color)) throw new UserError("Pick one of the club's tape colors.");
+  throw new UserError(`Pieces of tape must be 1 to ${settings.maxRings}.`);
 }
 
 async function rowingSeatNumbers(supabase: Awaited<ReturnType<typeof createClient>>, lineupId: string) {

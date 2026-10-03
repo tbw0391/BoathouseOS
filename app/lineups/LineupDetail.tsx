@@ -24,7 +24,7 @@ export function LineupDetail({
 }: {
   lineup: Lineup;
   lineupSeats: LineupSeat[];
-  oars?: { tape_color: string; rings: number } | null;
+  oars?: { tape_color: string; rings: number; swatch?: string } | null;
   eligibleRoster: { id: string; display_name: string }[];
   canManage: boolean;
 }) {
@@ -72,7 +72,7 @@ export function LineupDetail({
             <span className="flex items-center gap-1.5 font-medium">
               <span
                 className="inline-block w-4 h-4 rounded-full border border-gray-400"
-                style={{ backgroundColor: tapeSwatch(oars.tape_color) }}
+                style={{ backgroundColor: oars.swatch ?? tapeSwatch(oars.tape_color) }}
                 aria-hidden
               />
               Oars: {oarLabel(oars)}

@@ -37,7 +37,7 @@ import {
 } from "./actions";
 import { updateStoreLink } from "@/app/store/actions";
 import { ActionForm } from "@/components/ActionForm";
-import { OarColorPicker } from "./OarColorPicker";
+import { OarSetupEditor } from "./OarSetupEditor";
 import { RECRUITING_KEY } from "@/lib/recruiting";
 
 const VISIBILITY_LABEL: Record<string, string> = {
@@ -407,21 +407,10 @@ export default async function AdminPage() {
       <h2 className="text-lg font-semibold mt-8 mb-2">Oar tape</h2>
       <p className="text-sm text-gray-500 mb-4">
         Each set of oars is named by its tape color and how many pieces of tape (&quot;1 Green&quot;).
-        Coxes pick a set on each boat&apos;s oar sheet.
+        List the club&apos;s sets and tag who uses each; coxes pick from that list on each boat&apos;s oar sheet.
       </p>
       <ActionForm action={updateOarSettings} className="flex flex-col gap-3 max-w-lg">
-        <OarColorPicker initial={oarSettings.colors} />
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Most pieces of tape on a set</span>
-          <input
-            name="max_rings"
-            type="number"
-            min={1}
-            max={20}
-            defaultValue={oarSettings.maxRings}
-            className="border rounded-lg px-3 py-2 w-24"
-          />
-        </label>
+        <OarSetupEditor initial={oarSettings} />
         <button
           type="submit"
           className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
