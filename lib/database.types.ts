@@ -91,6 +91,8 @@ export interface ScheduleEvent {
   has_food_tent: boolean;
   // Off for a regatta that doesn't need volunteers (0132).
   has_volunteers: boolean;
+  // Pins along the course, [{ m, lat, lng }] in course order (0133).
+  course_markers: unknown;
   // CrewTimer regatta the races came from and our crew name there (0131),
   // for live results on the Results tab.
   crewtimer_url: string | null;

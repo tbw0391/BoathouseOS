@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { parseCourseMarkers, type CourseMarker } from "@/lib/course";
 import { createClient } from "@/lib/supabase/server";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 import {
@@ -807,12 +808,19 @@ function validPoint(p: CoursePoint): CoursePoint {
   return { lat, lng };
 }
 
-// A regatta's start and finish, from the Course tab. Either can be cleared.
-export async function saveCourse(eventId: string, start: CoursePoint, finish: CoursePoint) {
+// A regatta's start, finish and markers along the way (0133), from the
+// Course tab. Start and finish can each be cleared; markers need both.
+export async function saveCourse(
+  eventId: string,
+  start: CoursePoint,
+  finish: CoursePoint,
+  markers: CourseMarker[] = []
+) {
   const supabase = await createClient();
   await requireManager(supabase);
   const s = validPoint(start);
   const f = validPoint(finish);
+  const cleanMarkers = s && f ? parseCourseMarkers(markers) : [];
 
   const { error } = await supabase
     .from("schedule_events")
@@ -821,6 +829,7 @@ export async function saveCourse(eventId: string, start: CoursePoint, finish: Co
       start_lng: s?.lng ?? null,
       finish_lat: f?.lat ?? null,
       finish_lng: f?.lng ?? null,
+      course_markers: cleanMarkers,
     })
     .eq("id", eventId);
   if (error) throw new Error(error.message);

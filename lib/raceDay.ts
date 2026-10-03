@@ -32,6 +32,16 @@ export function clubTimeLabel(d: Date | string): string {
   return new Date(d).toLocaleTimeString("en-US", { timeZone: CLUB_TIME_ZONE, hour: "numeric", minute: "2-digit" });
 }
 
+// "9:42:15 AM": club time to the second, for course splits.
+export function clubTimeSecondsLabel(d: Date | string): string {
+  return new Date(d).toLocaleTimeString("en-US", {
+    timeZone: CLUB_TIME_ZONE,
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 export function clubDateKey(d: Date | string): string {
   return new Date(d).toLocaleDateString("en-CA", { timeZone: CLUB_TIME_ZONE });
 }

@@ -35,7 +35,7 @@ import { EventRacesView } from "../EventRacesView";
 import { CourseEditor } from "../CourseEditor";
 import { TrailerList } from "../TrailerList";
 import { TravelTab, type RoomView, type VehicleView } from "../TravelTab";
-import type { LatLng } from "@/lib/course";
+import { parseCourseMarkers, type LatLng } from "@/lib/course";
 import { markRegattaPrepSeen } from "@/lib/regattaPrep";
 import { DeleteRegattaButton } from "../DeleteRegattaButton";
 import { LinkCrewTimerResults } from "../LinkCrewTimerResults";
@@ -104,13 +104,14 @@ async function travelFor(supabase: Awaited<ReturnType<typeof createClient>>, eve
 
 type EventRow = Pick<
   ScheduleEvent,
-  "id" | "title" | "location" | "starts_at" | "start_lat" | "start_lng" | "finish_lat" | "finish_lng"
+  "id" | "title" | "location" | "starts_at" | "start_lat" | "start_lng" | "finish_lat" | "finish_lng" | "course_markers"
 >;
 
 function pointsOf(e: EventRow) {
   return {
     start: e.start_lat != null && e.start_lng != null ? { lat: e.start_lat, lng: e.start_lng } : null,
     finish: e.finish_lat != null && e.finish_lng != null ? { lat: e.finish_lat, lng: e.finish_lng } : null,
+    markers: parseCourseMarkers(e.course_markers),
   };
 }
 
@@ -120,12 +121,12 @@ function pointsOf(e: EventRow) {
 async function courseFor(supabase: Awaited<ReturnType<typeof createClient>>, event: EventRow) {
   const own = pointsOf(event);
   let borrowedFrom: string | null = null;
-  let { start, finish } = own;
+  let { start, finish, markers } = own;
 
   if (!start && !finish && event.location) {
     const { data } = await supabase
       .from("schedule_events")
-      .select("id, title, location, starts_at, start_lat, start_lng, finish_lat, finish_lng")
+      .select("id, title, location, starts_at, start_lat, start_lng, finish_lat, finish_lng, course_markers")
       .eq("location", event.location)
       .neq("id", event.id)
       .or("start_lat.not.is.null,finish_lat.not.is.null")
@@ -133,7 +134,7 @@ async function courseFor(supabase: Awaited<ReturnType<typeof createClient>>, eve
       .limit(1);
     const other = (data as EventRow[] | null)?.[0];
     if (other) {
-      ({ start, finish } = pointsOf(other));
+      ({ start, finish, markers } = pointsOf(other));
       borrowedFrom = `${other.title} (${new Date(other.starts_at).getFullYear()})`;
     }
   }
@@ -149,7 +150,7 @@ async function courseFor(supabase: Awaited<ReturnType<typeof createClient>>, eve
     if (f?.latitude != null && f.longitude != null) center = { lat: f.latitude, lng: f.longitude };
   }
 
-  return { start, finish, borrowedFrom, center };
+  return { start, finish, markers, borrowedFrom, center };
 }
 
 export default async function EventRacesPage({
@@ -491,11 +492,12 @@ export default async function EventRacesPage({
 
       {course && (
         <CourseEditor
-          key={`${course.start?.lat},${course.start?.lng},${course.finish?.lat},${course.finish?.lng}`}
+          key={`${course.start?.lat},${course.start?.lng},${course.finish?.lat},${course.finish?.lng},${course.markers.map((m) => `${m.m}@${m.lat},${m.lng}`).join(";")}`}
           eventId={eventId}
           canManage={canManage}
           savedStart={course.start}
           savedFinish={course.finish}
+          savedMarkers={course.markers}
           borrowedFrom={course.borrowedFrom}
           center={course.center}
         />

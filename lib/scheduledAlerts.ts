@@ -3,11 +3,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Bill, Charge, Form, Lineup } from "@/lib/database.types";
 import { billBalance } from "@/lib/billing";
 import { formatMoney } from "@/lib/payments";
+import { elapsedLabel } from "@/lib/course";
 import { activeMemberIds, guardianIdsFor, householdIdsForRower, sendPush } from "@/lib/push";
 import { EXPIRING_DAYS, PAPERWORK } from "@/lib/paperwork";
 import { formPending, sendFormReminder } from "@/lib/formAlerts";
 import { runLightningWatch } from "@/lib/lightning";
-import { LAUNCH_MINUTES_KEY, clubTimeLabel, delayedRaceTime, launchTime, parseLaunchMinutes } from "@/lib/raceDay";
+import { LAUNCH_MINUTES_KEY, clubTimeLabel, clubTimeSecondsLabel, delayedRaceTime, launchTime, parseLaunchMinutes } from "@/lib/raceDay";
 
 // Alerts that depend on the clock rather than on someone doing something.
 // Run every 5 minutes by /api/cron/alerts (see 0080_scheduled_alerts.sql).
@@ -254,6 +255,56 @@ async function raceStartAlerts(admin: Admin) {
   }
 }
 
+// A racing boat passed a course marker (0133; the location_pings trigger
+// saves the split and calls this right away). Off unless the club turns on
+// "Course marker splits".
+async function courseSplitAlerts(admin: Admin) {
+  const { data } = await admin
+    .from("lineup_course_splits")
+    .select("lineup_id, meters, passed_at, lineups(boat_id, boat_name, race_started_at)")
+    .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());
+  const splits =
+    (data as unknown as
+      | {
+          lineup_id: string;
+          meters: number;
+          passed_at: string;
+          lineups: { boat_id: string | null; boat_name: string; race_started_at: string | null } | null;
+        }[]
+      | null) ?? [];
+  const fresh = await claim(admin, "course_split", splits.map((s) => `${s.lineup_id}:${s.meters}`));
+
+  for (const s of splits.filter((x) => fresh.has(`${x.lineup_id}:${x.meters}`))) {
+    const boat = s.lineups;
+    if (!boat) continue;
+    const [{ data: seats }, { data: followers }] = await Promise.all([
+      admin.from("lineup_seats").select("rower_id").eq("lineup_id", s.lineup_id),
+      boat.boat_id
+        ? admin.from("on_water_follows").select("profile_id").eq("boat_id", boat.boat_id)
+        : Promise.resolve({ data: [] }),
+    ]);
+    const crew = ((seats as { rower_id: string | null }[] | null) ?? [])
+      .map((x) => x.rower_id)
+      .filter((id): id is string => !!id);
+    const elapsed = boat.race_started_at
+      ? ` in ${elapsedLabel(new Date(s.passed_at).getTime() - new Date(boat.race_started_at).getTime())}`
+      : "";
+    await sendPush(
+      [
+        ...(await guardianIdsFor(crew)),
+        ...((followers as { profile_id: string }[] | null) ?? []).map((f) => f.profile_id),
+      ].filter((id) => !crew.includes(id)),
+      {
+        kind: "course_split",
+        title: `${boat.boat_name} passed ${s.meters} m`,
+        body: `At ${clubTimeSecondsLabel(s.passed_at)}${elapsed}. Tap for splits.`,
+        url: "/race-day",
+        tag: `race-${s.lineup_id}`,
+      }
+    );
+  }
+}
+
 // Forms and elections closing within a day: one reminder to everyone who
 // hasn't answered or voted (0119). Skips ones posted less than 12 hours ago,
 // so a form that's only open for a day doesn't get a reminder straight away.
@@ -350,6 +401,7 @@ export async function runScheduledAlerts() {
     launchSoonAlerts(admin),
     paperworkAlerts(admin),
     raceStartAlerts(admin),
+    courseSplitAlerts(admin),
     formClosingAlerts(admin),
     endStaleOutings(admin),
     boatOverdueAlerts(admin),

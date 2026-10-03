@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { captainSeat, oarSheetComplete } from "@/lib/oarSheet";
 import { loadBoatOars, type BoatOarsShown } from "@/lib/boatOars";
 import { OarDots } from "@/components/OarDots";
+import { elapsedLabel } from "@/lib/course";
 import { regattaPrepSeen } from "@/lib/regattaPrep";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { SignupCallLink } from "@/components/SignupCallLink";
@@ -95,7 +96,7 @@ import {
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
-import { clubDateKey, clubTimeLabel, delayedRaceTime, pickRaceDayEvent, raceIsOver } from "@/lib/raceDay";
+import { clubDateKey, clubTimeLabel, clubTimeSecondsLabel, delayedRaceTime, pickRaceDayEvent, raceIsOver } from "@/lib/raceDay";
 import { PRACTICE_CALL_LABELS, callConditionsLine, lightningMinutesLeft } from "@/lib/waterConditions";
 import { formatMoney } from "@/lib/payments";
 import { canCoachCheckIn, getTodaysCheckInLabel } from "@/lib/checkIns";
@@ -195,6 +196,10 @@ type RacingBanner = {
   raceName: string | null;
   finished: boolean;
   place: number | null;
+  // Latest course marker passed (0133), e.g. 1000 m at 9:42:15, and the
+  // time from the start.
+  lastSplit: { meters: number; at: string; elapsedMs: number } | null;
+  elapsedMs: number | null;
 };
 
 type PendingRaceBanner = {
@@ -698,18 +703,41 @@ async function loadRacingBanners(supabase: SupabaseServerClient): Promise<Racing
     .gte("race_started_at", startOfToday())
     .order("race_started_at", { ascending: false });
   const hourAgo = Date.now() - 60 * 60 * 1000;
-  return (
+  const races = (
     (data as Pick<Lineup, "id" | "boat_name" | "race_name" | "place" | "race_started_at" | "race_finished_at">[] | null) ??
     []
-  )
-    .filter((l) => !l.race_finished_at || new Date(l.race_finished_at).getTime() > hourAgo)
-    .map((l) => ({
+  ).filter((l) => !l.race_finished_at || new Date(l.race_finished_at).getTime() > hourAgo);
+  if (races.length === 0) return [];
+
+  // Each boat's furthest course marker passed so far (0133).
+  const { data: splitData } = await supabase
+    .from("lineup_course_splits")
+    .select("lineup_id, meters, passed_at")
+    .in(
+      "lineup_id",
+      races.map((r) => r.id),
+    )
+    .order("meters", { ascending: false });
+  const lastSplit = new Map<string, { meters: number; passed_at: string }>();
+  for (const sp of (splitData as { lineup_id: string; meters: number; passed_at: string }[] | null) ?? []) {
+    if (!lastSplit.has(sp.lineup_id)) lastSplit.set(sp.lineup_id, sp);
+  }
+
+  return races.map((l) => {
+    const t0 = new Date(l.race_started_at as string).getTime();
+    const last = lastSplit.get(l.id);
+    return {
       lineupId: l.id,
       boatName: l.boat_name,
       raceName: l.race_name,
       finished: !!l.race_finished_at,
       place: l.place,
-    }));
+      lastSplit: last
+        ? { meters: last.meters, at: last.passed_at, elapsedMs: new Date(last.passed_at).getTime() - t0 }
+        : null,
+      elapsedMs: l.race_finished_at ? new Date(l.race_finished_at).getTime() - t0 : null,
+    };
+  });
 }
 
 // A regatta boat's cox (or stroke, with no cox) is asked to fill in its oar
@@ -1949,6 +1977,7 @@ export default async function Home() {
               >
                 🏁 <strong>{b.boatName}</strong> finished
                 {b.raceName && <> {b.raceName}</>}
+                {b.elapsedMs != null && <> in {elapsedLabel(b.elapsedMs)}</>}
                 {b.place != null && (
                   <>
                     {" "}— {placeEmoji(b.place)} {ordinalPlace(b.place)}
@@ -1961,8 +1990,19 @@ export default async function Home() {
                 href="/on-water"
                 className="w-full flex items-center gap-2 bg-green-600 text-white rounded-lg px-4 py-3 font-semibold"
               >
-                🚣 {b.boatName} is racing now{b.raceName && <span className="font-normal"> · {b.raceName}</span>}
-                <span className="ml-auto text-sm font-normal underline">Watch live</span>
+                <span className="flex flex-col min-w-0">
+                  <span>
+                    🚣 {b.boatName} is racing now
+                    {b.raceName && <span className="font-normal"> · {b.raceName}</span>}
+                  </span>
+                  {b.lastSplit && (
+                    <span className="text-sm font-normal">
+                      Passed {b.lastSplit.meters} m at {clubTimeSecondsLabel(b.lastSplit.at)} (
+                      {elapsedLabel(b.lastSplit.elapsedMs)})
+                    </span>
+                  )}
+                </span>
+                <span className="ml-auto text-sm font-normal underline shrink-0">Watch live</span>
               </Link>
             ),
           )}

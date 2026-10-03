@@ -1,6 +1,6 @@
 // Club-wide on/off switches for each kind of alert, set by admins on /admin
 // and stored in club_settings as "alert_settings" (JSON). Anything missing
-// counts as on.
+// counts as on, except kinds marked defaultOff (missing = off).
 export const ALERT_TYPES = [
   { kind: "chat_message", label: "Chat messages", detail: "Phone alert to the other people in a chat." },
   { kind: "schedule_new", label: "New schedule events", detail: "Phone alert to everyone." },
@@ -26,6 +26,13 @@ export const ALERT_TYPES = [
     kind: "race_started",
     label: "Boat racing now",
     detail: "Phone alert to the crew's parents, and anyone following the boat, when a tracked regatta boat crosses the start.",
+  },
+  {
+    kind: "course_split",
+    label: "Course marker splits",
+    detail:
+      "Phone alert to the crew's parents, and anyone following the boat, each time a tracked regatta boat passes a course marker (\"Chase passed 1000 m, 3:41.2\"). Off until you turn it on.",
+    defaultOff: true,
   },
   {
     kind: "lightning_hold",
@@ -128,6 +135,9 @@ export function parseAlertSettings(raw: string | null | undefined): Record<Alert
     saved = {};
   }
   return Object.fromEntries(
-    ALERT_TYPES.map((t) => [t.kind, saved[t.kind] !== false])
+    ALERT_TYPES.map((t) => [
+      t.kind,
+      "defaultOff" in t && t.defaultOff ? saved[t.kind] === true : saved[t.kind] !== false,
+    ])
   ) as Record<AlertKind, boolean>;
 }
