@@ -1082,6 +1082,7 @@ export default async function Home() {
   let isFoodTentManager = false;
   let isApparelChair = false;
   let isGlobalAdmin = false;
+  let isWestervilleMember = false;
   let pendingApprovalCount = 0;
   let checkInLabel = null as string | null;
   let showCoachCheckIn = false;
@@ -1110,6 +1111,7 @@ export default async function Home() {
       regattaResult,
       globalAdminResult,
       pendingApprovalResult,
+      westervilleResult,
     ] = await Promise.all([
       getUnreadChatCount(user.id),
       getUnreadScheduleCount(user.id),
@@ -1142,11 +1144,19 @@ export default async function Home() {
         .select("id", { count: "exact", head: true })
         .is("approved_at", null)
         .neq("id", user.id),
+      // RLS only shows members their own club, so this finds a row only
+      // for Westerville members.
+      supabase
+        .from("clubs")
+        .select("id")
+        .eq("slug", "westerville")
+        .maybeSingle(),
     ]);
 
     pendingApprovalCount = pendingApprovalResult.count ?? 0;
 
     isGlobalAdmin = globalAdminResult.data === true;
+    isWestervilleMember = !!westervilleResult.data;
 
     unreadCount = unreadCountResult;
     unreadScheduleCount = unreadScheduleCountResult;
@@ -1648,13 +1658,15 @@ export default async function Home() {
         </Link>
       )}
 
-      <Link
-        href="/interest"
-        className="w-full block text-center bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 font-medium hover:bg-[var(--color-accent)] transition-colors"
-      >
-        🙋 Yes, I&apos;m interested in this software. Please let me know when
-        it&apos;s available!
-      </Link>
+      {!isGlobalAdmin && !isWestervilleMember && (
+        <Link
+          href="/interest"
+          className="w-full block text-center bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          🙋 Yes, I&apos;m interested in this software. Please let me know when
+          it&apos;s available!
+        </Link>
+      )}
 
       {pendingApprovalCount > 0 && (
         <Link
