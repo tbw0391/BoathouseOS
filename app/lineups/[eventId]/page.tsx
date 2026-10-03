@@ -25,6 +25,7 @@ import type {
 } from "@/lib/database.types";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
+import { boatOarSet } from "@/lib/oarSheet";
 import { resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { parseStarredLines } from "@/lib/scheduleStars";
 import type { RaceBoxItem, RaceBoxState } from "../raceBoxTypes";
@@ -257,6 +258,18 @@ export default async function EventRacesPage({
     : { data: [] as LineupSeat[] };
   const seats = (seatsData as LineupSeat[] | null) ?? [];
 
+  const { data: oarData } = lineups.length
+    ? await supabase
+        .from("lineup_oars")
+        .select("lineup_id, tape_color, rings")
+        .in(
+          "lineup_id",
+          lineups.map((l) => l.id)
+        )
+    : { data: [] };
+  const oarRows = (oarData as { lineup_id: string; tape_color: string; rings: number }[] | null) ?? [];
+  const oarsFor = (lineupId: string) => boatOarSet(oarRows.filter((o) => o.lineup_id === lineupId));
+
   function stateForPlace(place: number | null): RaceBoxState {
     if (place === 1) return "gold";
     if (place === 2) return "silver";
@@ -304,6 +317,7 @@ export default async function EventRacesPage({
       raceId: race.lineup_id ? null : race.id,
       lineup,
       lineupSeats,
+      oars: lineup ? oarsFor(lineup.id) : null,
       eligibleRoster: lineup ? rosterForCategory(lineup.category) : [],
     });
   }
@@ -336,6 +350,7 @@ export default async function EventRacesPage({
       raceId: null,
       lineup,
       lineupSeats,
+      oars: oarsFor(lineup.id),
       eligibleRoster: rosterForCategory(category),
     });
   }
