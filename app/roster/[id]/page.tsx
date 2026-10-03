@@ -14,6 +14,7 @@ import {
   setTentLeader,
   setTreasurer,
   setApparelChair,
+  setTrailerDriver,
   setRemoved,
   permanentlyDeleteProfile,
   resetMemberPassword,
@@ -377,6 +378,8 @@ export default async function BioPage({
             {profile.is_tent_leader && " · Tent Leader"}
             {profile.is_treasurer && " · Treasurer"}
             {profile.is_apparel_chair && " · Apparel Chair"}
+            {profile.is_boat_trailer_driver && " · Boat Trailer Driver"}
+            {profile.is_food_trailer_driver && " · Food Trailer Driver"}
           </p>
         </div>
         <div className="w-full sm:w-52 sm:ml-auto flex flex-col gap-2">
@@ -418,6 +421,22 @@ export default async function BioPage({
               onLabel="Make apparel chair"
               offLabel="Remove as apparel chair"
               onToggle={setApparelChair.bind(null, profile.id)}
+            />
+          )}
+          {isCallerAdmin && (
+            <RoleToggle
+              initialValue={profile.is_boat_trailer_driver}
+              onLabel="Make boat trailer driver"
+              offLabel="Remove as boat trailer driver"
+              onToggle={setTrailerDriver.bind(null, profile.id, "boat")}
+            />
+          )}
+          {isCallerAdmin && (
+            <RoleToggle
+              initialValue={profile.is_food_trailer_driver}
+              onLabel="Make food trailer driver"
+              offLabel="Remove as food trailer driver"
+              onToggle={setTrailerDriver.bind(null, profile.id, "food")}
             />
           )}
           {canRemove && (

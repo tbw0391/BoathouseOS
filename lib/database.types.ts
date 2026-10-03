@@ -40,6 +40,9 @@ export interface Profile {
   is_treasurer: boolean;
   // Runs the apparel store (0097).
   is_apparel_chair: boolean;
+  // Drive the boat / food trailer to regattas and can track it (0132).
+  is_boat_trailer_driver: boolean;
+  is_food_trailer_driver: boolean;
   // Shown next to their name, e.g. "President" (0109); admins set it.
   club_title: string | null;
   us_rowing_number: string | null;
@@ -483,6 +486,26 @@ export interface OnWaterSession {
   started_at: string;
   ended_at: string | null;
   created_at: string;
+}
+
+export type TrailerKindTracked = 'boat' | 'food';
+
+// A trailer on its way to a regatta (0132).
+export interface TrailerTrip {
+  id: string;
+  club_id: string;
+  event_id: string;
+  trailer: TrailerKindTracked;
+  driver_id: string | null;
+  started_at: string;
+  ended_at: string | null;
+  lat: number | null;
+  lng: number | null;
+  accuracy_m: number | null;
+  speed_mps: number | null;
+  heading_deg: number | null;
+  located_at: string | null;
+  arriving_alert_at: string | null;
 }
 
 export interface LocationPing {

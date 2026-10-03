@@ -65,6 +65,7 @@ import type {
   Race,
   ScheduleEvent,
   TaskType,
+  TrailerKindTracked,
   VolunteerNeed,
 } from "@/lib/database.types";
 import { parseStoreItems } from "@/lib/storeItems";
@@ -97,6 +98,7 @@ import { clubDateKey, clubTimeLabel, delayedRaceTime, pickRaceDayEvent, raceIsOv
 import { PRACTICE_CALL_LABELS, callConditionsLine, lightningMinutesLeft } from "@/lib/waterConditions";
 import { formatMoney } from "@/lib/payments";
 import { canCoachCheckIn, getTodaysCheckInLabel } from "@/lib/checkIns";
+import { TRAILER_NAMES, isDayBefore } from "@/lib/trailerTracking";
 import { CheckInButton } from "@/components/CheckInButton";
 import { PracticeCheckIn } from "@/components/PracticeCheckIn";
 import {
@@ -1088,6 +1090,7 @@ export default async function Home() {
   let showCoachCheckIn = false;
   let myAttendance = null as PracticeAttendance | null;
   let onWaterBanner = null as { label: string; color: string | null } | null;
+  let trailerBanners: string[] = [];
   let paymentsBanner = null as {
     owedCents: number;
     bills: number;
@@ -1117,7 +1120,7 @@ export default async function Home() {
       getUnreadScheduleCount(user.id),
       supabase
         .from("profiles")
-        .select("role, spouse_id, is_tent_leader, is_apparel_chair, email_alerts")
+        .select("role, spouse_id, is_tent_leader, is_apparel_chair, email_alerts, is_boat_trailer_driver, is_food_trailer_driver")
         .eq("id", user.id)
         .single(),
       supabase
@@ -1163,7 +1166,13 @@ export default async function Home() {
 
     const caller = callerResult.data as Pick<
       Profile,
-      "role" | "spouse_id" | "is_tent_leader" | "is_apparel_chair" | "email_alerts"
+      | "role"
+      | "spouse_id"
+      | "is_tent_leader"
+      | "is_apparel_chair"
+      | "email_alerts"
+      | "is_boat_trailer_driver"
+      | "is_food_trailer_driver"
     > | null;
     const callerRole = caller?.role;
     emailAlertsOn = caller?.email_alerts ?? true;
@@ -1199,6 +1208,45 @@ export default async function Home() {
       })(),
       (async () => {
         if (isRowerOrCoxswain) myAttendance = await getMyAttendanceToday(user.id);
+      })(),
+      (async () => {
+        // Trailers on the road to a regatta (0132), and for a driver the day
+        // before, a nudge to start tracking theirs.
+        const { data: tripsData } = await supabase
+          .from("trailer_trips")
+          .select("event_id, trailer, driver_id, schedule_events!inner(title, starts_at)")
+          .is("ended_at", null)
+          .gt("schedule_events.starts_at", now.toISOString());
+        const onRoad =
+          (tripsData as unknown as
+            | {
+                event_id: string;
+                trailer: TrailerKindTracked;
+                driver_id: string | null;
+                schedule_events: { title: string; starts_at: string };
+              }[]
+            | null) ?? [];
+        trailerBanners = onRoad.map((t) =>
+          t.driver_id === user.id
+            ? `🚚 You're tracking the ${TRAILER_NAMES[t.trailer].toLowerCase()} — tap to open`
+            : `🚚 The ${TRAILER_NAMES[t.trailer].toLowerCase()} is on the road to ${t.schedule_events.title} — tap to follow`
+        );
+        const mine: TrailerKindTracked[] = [
+          ...(caller?.is_boat_trailer_driver ? (["boat"] as const) : []),
+          ...(caller?.is_food_trailer_driver ? (["food"] as const) : []),
+        ];
+        if (!onRoad.some((t) => t.driver_id === user.id)) {
+          for (const regatta of (regattaResult.data as ScheduleEvent[] | null) ?? []) {
+            if (!isDayBefore(regatta.starts_at)) continue;
+            for (const trailer of mine) {
+              if (trailer === "food" && !regatta.has_food_tent) continue;
+              if (onRoad.some((t) => t.event_id === regatta.id && t.trailer === trailer)) continue;
+              trailerBanners.push(
+                `🚚 Driving the ${TRAILER_NAMES[trailer].toLowerCase()} to ${regatta.title} tomorrow? Tap to start tracking`
+              );
+            }
+          }
+        }
       })(),
       (async () => {
         // Boats out right now. RLS scopes this: coaches and admins see every
@@ -1567,6 +1615,17 @@ export default async function Home() {
           <span aria-hidden>→</span>
         </Link>
       )}
+
+      {trailerBanners.map((label) => (
+        <Link
+          key={label}
+          href="/trailers"
+          className="w-full flex items-center gap-3 rounded-lg border-2 border-[var(--color-primary)] px-4 py-3 font-medium hover:bg-[var(--color-secondary)] hover:text-white transition-colors"
+        >
+          <span className="flex-1">{label}</span>
+          <span aria-hidden>→</span>
+        </Link>
+      ))}
 
       {paymentsBanner && (
         <Link

@@ -102,6 +102,11 @@ export const ALERT_TYPES = [
     label: "Boat overdue",
     detail: "Phone alert to the crew and the club's coaches when a boat signed out in the Boathouse logbook isn't back on time.",
   },
+  {
+    kind: "trailer_arriving",
+    label: "Trailer arriving",
+    detail: "Phone alert to everyone when the boat or food trailer is about 30 minutes from the regatta, so people can help unload.",
+  },
 ] as const;
 
 export type AlertKind = (typeof ALERT_TYPES)[number]["kind"];

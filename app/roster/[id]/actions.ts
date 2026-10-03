@@ -444,6 +444,36 @@ export async function setApparelChair(profileId: string, isApparelChair: boolean
   });
 }
 
+// Boat or food trailer driver (0132): can track that trailer to regattas.
+export async function setTrailerDriver(profileId: string, trailer: "boat" | "food", isDriver: boolean) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new UserError("Not signed in.");
+
+    const { data: callerProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    if ((callerProfile as { role: string } | null)?.role !== "admin") {
+      throw new UserError("Only admins can set the trailer drivers.");
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(trailer === "boat" ? { is_boat_trailer_driver: isDriver } : { is_food_trailer_driver: isDriver })
+      .eq("id", profileId);
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/roster/${profileId}`);
+    revalidatePath("/roster");
+  });
+}
+
 // Your own order for the shortcut buttons on your profile. Null resets to
 // the club's default order.
 export async function saveProfileButtonOrder(order: string[] | null) {
