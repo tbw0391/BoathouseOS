@@ -35,7 +35,7 @@ export function EmergencyInfoCard({ profileId, info }: { profileId: string; info
           </button>
         )}
       </div>
-      <p className="text-xs text-gray-500 mb-2">Only this member, their parents, coaches and admins can see this.</p>
+      <p className="text-xs text-gray-500 mb-2">Only this member, their parents, coaches and admins can see this. Parents&apos; cell phones fill in here when they&apos;re linked.</p>
 
       {editing ? (
         <form
