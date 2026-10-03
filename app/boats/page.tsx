@@ -93,6 +93,23 @@ export default async function BoatsPage() {
     templateSeats = ((seatsResult.data as LineupTemplateSeat[] | null) ?? []).sort(seatOrder);
     roster = (rosterResult.data as Pick<Profile, "id" | "display_name">[] | null) ?? [];
   }
+  // Open boat maintenance requests, for the "Needs maintenance" badge (staff
+  // can read every request; members only their own, so it's staff-only).
+  const maintenanceByBoatId: Record<string, { open: number; latest: string }> = {};
+  if (canManage) {
+    const { data: openRows } = await supabase
+      .from("maintenance_requests")
+      .select("boat_id, description, created_at")
+      .eq("type", "boat")
+      .eq("status", "open")
+      .order("created_at", { ascending: false });
+    for (const r of (openRows as { boat_id: string | null; description: string }[] | null) ?? []) {
+      if (!r.boat_id) continue;
+      const cur = maintenanceByBoatId[r.boat_id];
+      maintenanceByBoatId[r.boat_id] = cur ? { ...cur, open: cur.open + 1 } : { open: 1, latest: r.description };
+    }
+  }
+
   const crewSeatsByBoatId: Record<string, LineupTemplateSeat[]> = {};
   for (const t of templates) {
     if (t.boat_id) crewSeatsByBoatId[t.boat_id] = templateSeats.filter((s) => s.template_id === t.id);
@@ -152,6 +169,7 @@ export default async function BoatsPage() {
           canManage={canManage}
           crewSeatsByBoatId={crewSeatsByBoatId}
           crewRosterByBoatId={crewRosterByBoatId}
+          maintenanceByBoatId={maintenanceByBoatId}
         />
       )}
 

@@ -6,6 +6,8 @@ import { cookies } from "next/headers";
 import { DEMO_CLUB_COOKIE, findDemoClub, visibleToClub } from "@/lib/demoClubs";
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
+import { crewTimerResultsFor, syncCrewTimerPlaces } from "@/lib/crewTimerResults";
+import { crewTimerFeedUrl } from "@/lib/crewtimer";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Boat,
@@ -25,7 +27,7 @@ import type {
 } from "@/lib/database.types";
 import { LINEUP_CATEGORIES, LINEUP_CATEGORY_TEAM } from "@/lib/lineupCategories";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
-import { boatOarSet } from "@/lib/oarSheet";
+import { OAR_COLORS_KEY, boatOarSet, parseOarSettings, tapeSwatch } from "@/lib/oarSheet";
 import { resolveLineupSectionVisibility } from "@/lib/lineupSections";
 import { parseStarredLines } from "@/lib/scheduleStars";
 import type { RaceBoxItem, RaceBoxState } from "../raceBoxTypes";
@@ -33,9 +35,10 @@ import { EventRacesView } from "../EventRacesView";
 import { CourseEditor } from "../CourseEditor";
 import { TrailerList } from "../TrailerList";
 import { TravelTab, type RoomView, type VehicleView } from "../TravelTab";
-import type { LatLng } from "@/lib/course";
+import { parseCourseMarkers, type LatLng } from "@/lib/course";
 import { markRegattaPrepSeen } from "@/lib/regattaPrep";
 import { DeleteRegattaButton } from "../DeleteRegattaButton";
+import { LinkCrewTimerResults } from "../LinkCrewTimerResults";
 
 // Trip details, rides and rooms, plus who the viewer can sign up (themself
 // and any rower they're a guardian of) and who can be given a room.
@@ -101,13 +104,14 @@ async function travelFor(supabase: Awaited<ReturnType<typeof createClient>>, eve
 
 type EventRow = Pick<
   ScheduleEvent,
-  "id" | "title" | "location" | "starts_at" | "start_lat" | "start_lng" | "finish_lat" | "finish_lng"
+  "id" | "title" | "location" | "starts_at" | "start_lat" | "start_lng" | "finish_lat" | "finish_lng" | "course_markers"
 >;
 
 function pointsOf(e: EventRow) {
   return {
     start: e.start_lat != null && e.start_lng != null ? { lat: e.start_lat, lng: e.start_lng } : null,
     finish: e.finish_lat != null && e.finish_lng != null ? { lat: e.finish_lat, lng: e.finish_lng } : null,
+    markers: parseCourseMarkers(e.course_markers),
   };
 }
 
@@ -117,12 +121,12 @@ function pointsOf(e: EventRow) {
 async function courseFor(supabase: Awaited<ReturnType<typeof createClient>>, event: EventRow) {
   const own = pointsOf(event);
   let borrowedFrom: string | null = null;
-  let { start, finish } = own;
+  let { start, finish, markers } = own;
 
   if (!start && !finish && event.location) {
     const { data } = await supabase
       .from("schedule_events")
-      .select("id, title, location, starts_at, start_lat, start_lng, finish_lat, finish_lng")
+      .select("id, title, location, starts_at, start_lat, start_lng, finish_lat, finish_lng, course_markers")
       .eq("location", event.location)
       .neq("id", event.id)
       .or("start_lat.not.is.null,finish_lat.not.is.null")
@@ -130,7 +134,7 @@ async function courseFor(supabase: Awaited<ReturnType<typeof createClient>>, eve
       .limit(1);
     const other = (data as EventRow[] | null)?.[0];
     if (other) {
-      ({ start, finish } = pointsOf(other));
+      ({ start, finish, markers } = pointsOf(other));
       borrowedFrom = `${other.title} (${new Date(other.starts_at).getFullYear()})`;
     }
   }
@@ -146,7 +150,7 @@ async function courseFor(supabase: Awaited<ReturnType<typeof createClient>>, eve
     if (f?.latitude != null && f.longitude != null) center = { lat: f.latitude, lng: f.longitude };
   }
 
-  return { start, finish, borrowedFrom, center };
+  return { start, finish, markers, borrowedFrom, center };
 }
 
 export default async function EventRacesPage({
@@ -197,10 +201,24 @@ export default async function EventRacesPage({
     if (club) await syncHotcResults(supabase, await getHotcSchedule(club));
   }
 
+  // Any other regatta linked to CrewTimer (0131): live places and times for
+  // the Results tab, copied onto lineups too before they're read below.
+  const isHotc = typedEvent.title === HOTC.title;
+  const crewTimerRaces = isHotc ? null : await crewTimerResultsFor(typedEvent);
+  if (canManage && crewTimerRaces) await syncCrewTimerPlaces(supabase, eventId, crewTimerRaces);
+  const crewTimerPage = typedEvent.crewtimer_url
+    ? crewTimerFeedUrl(typedEvent.crewtimer_url)?.replace(
+        /^https:\/\/crewtimer-results\.firebaseio\.com\/results\/(r\d+)\.json$/,
+        "https://www.crewtimer.com/regatta/$1"
+      ) ?? null
+    : null;
+  const { data: myClub } =
+    canManage && tab === "results" ? await supabase.from("clubs").select("name").maybeSingle() : { data: null };
+
   const { data: settingsData } = await supabase
     .from("club_settings")
     .select("key, value")
-    .eq("key", "lineup_section_visibility");
+    .in("key", ["lineup_section_visibility", OAR_COLORS_KEY]);
   const settingsByKey = new Map(
     ((settingsData as { key: string; value: string | null }[] | null) ?? []).map((s) => [s.key, s.value])
   );
@@ -268,7 +286,11 @@ export default async function EventRacesPage({
         )
     : { data: [] };
   const oarRows = (oarData as { lineup_id: string; tape_color: string; rings: number }[] | null) ?? [];
-  const oarsFor = (lineupId: string) => boatOarSet(oarRows.filter((o) => o.lineup_id === lineupId));
+  const tapeColors = parseOarSettings(settingsByKey.get(OAR_COLORS_KEY)).colors;
+  const oarsFor = (lineupId: string) => {
+    const set = boatOarSet(oarRows.filter((o) => o.lineup_id === lineupId));
+    return set ? { ...set, swatch: tapeSwatch(set.tape_color, tapeColors) } : null;
+  };
 
   function stateForPlace(place: number | null): RaceBoxState {
     if (place === 1) return "gold";
@@ -378,7 +400,13 @@ export default async function EventRacesPage({
   const tabs = [
     { id: "races", label: needBoat > 0 ? `Races (${needBoat} need a boat)` : `Races (${items.length})` },
     { id: "jobs", label: "Jobs" },
-    { id: "results", label: finished.length > 0 ? `Results (${finished.length})` : "Results" },
+    {
+      id: "results",
+      label: (() => {
+        const n = crewTimerRaces ? crewTimerRaces.filter((r) => r.place != null).length : finished.length;
+        return n > 0 ? `Results (${n})` : "Results";
+      })(),
+    },
     { id: "travel", label: "Travel" },
     { id: "trailer", label: "Trailer" },
     { id: "course", label: "Course" },
@@ -464,18 +492,77 @@ export default async function EventRacesPage({
 
       {course && (
         <CourseEditor
-          key={`${course.start?.lat},${course.start?.lng},${course.finish?.lat},${course.finish?.lng}`}
+          key={`${course.start?.lat},${course.start?.lng},${course.finish?.lat},${course.finish?.lng},${course.markers.map((m) => `${m.m}@${m.lat},${m.lng}`).join(";")}`}
           eventId={eventId}
           canManage={canManage}
           savedStart={course.start}
           savedFinish={course.finish}
+          savedMarkers={course.markers}
           borrowedFrom={course.borrowedFrom}
           center={course.center}
         />
       )}
 
-      {tab === "results" && (
+      {tab === "results" && crewTimerRaces && (
         <div className="flex flex-col gap-2 max-w-lg">
+          {crewTimerRaces.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No entries for {typedEvent.crewtimer_crew} on CrewTimer yet.
+            </p>
+          ) : (
+            [...crewTimerRaces]
+              .sort((a, b) => {
+                if (a.place != null && b.place == null) return -1;
+                if (a.place == null && b.place != null) return 1;
+                return Number(a.eventNum) - Number(b.eventNum) || (a.place ?? 0) - (b.place ?? 0);
+              })
+              .map((r) => (
+                <div
+                  key={`${r.eventNum}-${r.bow ?? r.crew}`}
+                  className="flex items-center gap-3 rounded-lg border-2 border-gray-200 px-3 py-2 text-sm"
+                >
+                  <span className="w-14 shrink-0 text-lg">
+                    {r.place != null ? `${placeEmoji(r.place)} ${ordinalPlace(r.place)}` : "⏳"}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">
+                      Race {r.eventNum}: {r.eventName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {r.crew}
+                      {r.bow && ` · Bow ${r.bow}`}
+                      {r.place != null
+                        ? ` · of ${r.entryCount}${r.time ? ` · ${r.time}` : ""}${r.penalty ? ` · ${r.penalty}` : ""}`
+                        : r.start
+                          ? ` · starts ${r.start}`
+                          : " · not finished yet"}
+                    </p>
+                  </div>
+                </div>
+              ))
+          )}
+          <p className="text-xs text-gray-500">Places and times come in live from CrewTimer as boats finish.</p>
+          {crewTimerPage && (
+            <a href={crewTimerPage} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-600 underline">
+              Full results on CrewTimer →
+            </a>
+          )}
+          {canManage && (
+            <LinkCrewTimerResults
+              eventId={eventId}
+              savedLink={typedEvent.crewtimer_url}
+              savedCrew={typedEvent.crewtimer_crew}
+              defaultCrew={(myClub as { name: string } | null)?.name ?? ""}
+            />
+          )}
+        </div>
+      )}
+
+      {tab === "results" && !crewTimerRaces && (
+        <div className="flex flex-col gap-2 max-w-lg">
+          {typedEvent.crewtimer_url && !isHotc && (
+            <p className="text-sm text-amber-700">Couldn&apos;t reach CrewTimer right now. Pull down to try again.</p>
+          )}
           {finished.length === 0 ? (
             <p className="text-sm text-gray-500">
               No results yet.{" "}
@@ -503,6 +590,14 @@ export default async function EventRacesPage({
             <Link href="/regatta" className="mt-2 text-sm text-gray-600 underline">
               Live results and times →
             </Link>
+          )}
+          {canManage && !isHotc && (
+            <LinkCrewTimerResults
+              eventId={eventId}
+              savedLink={typedEvent.crewtimer_url}
+              savedCrew={typedEvent.crewtimer_crew}
+              defaultCrew={(myClub as { name: string } | null)?.name ?? ""}
+            />
           )}
         </div>
       )}

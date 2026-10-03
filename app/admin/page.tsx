@@ -37,7 +37,7 @@ import {
 } from "./actions";
 import { updateStoreLink } from "@/app/store/actions";
 import { ActionForm } from "@/components/ActionForm";
-import { OarColorPicker } from "./OarColorPicker";
+import { OarSetupEditor, type FleetBoat } from "./OarSetupEditor";
 import { RECRUITING_KEY } from "@/lib/recruiting";
 
 const VISIBILITY_LABEL: Record<string, string> = {
@@ -85,6 +85,8 @@ export default async function AdminPage() {
   const lineupSectionVisibility = resolveLineupSectionVisibility(settingsByKey);
   const alertsEnabled = parseAlertSettings(settingsByKey.get(ALERT_SETTINGS_KEY));
   const oarSettings = parseOarSettings(settingsByKey.get(OAR_COLORS_KEY));
+  const { data: fleetData } = await supabase.from("boats").select("id, name, boat_class").order("name");
+  const fleetBoats = (fleetData as FleetBoat[] | null) ?? [];
   const storeUrl = settingsByKey.get("team_store_url") ?? null;
   const paperworkSettings = parsePaperworkSettings(settingsByKey.get(PAPERWORK_SETTINGS_KEY));
   const checkInGroups = parseCheckInGroups(settingsByKey.get(CHECK_IN_SETTINGS_KEY));
@@ -407,21 +409,10 @@ export default async function AdminPage() {
       <h2 className="text-lg font-semibold mt-8 mb-2">Oar tape</h2>
       <p className="text-sm text-gray-500 mb-4">
         Each set of oars is named by its tape color and how many pieces of tape (&quot;1 Green&quot;).
-        Coxes pick a set on each boat&apos;s oar sheet.
+        List the club&apos;s sets and tag who uses each; coxes pick from that list on each boat&apos;s oar sheet.
       </p>
       <ActionForm action={updateOarSettings} className="flex flex-col gap-3 max-w-lg">
-        <OarColorPicker initial={oarSettings.colors} />
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">Most pieces of tape on a set</span>
-          <input
-            name="max_rings"
-            type="number"
-            min={1}
-            max={20}
-            defaultValue={oarSettings.maxRings}
-            className="border rounded-lg px-3 py-2 w-24"
-          />
-        </label>
+        <OarSetupEditor initial={oarSettings} boats={fleetBoats} />
         <button
           type="submit"
           className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"

@@ -323,21 +323,45 @@ Everyone (juniors, college, masters):
       already knows when the cox starts the On the Water tracker
       (on_water_sessions), so that's the likely trigger. Make it a switch in
       alert settings.
-- [ ] Course markers (Todd, 2026-10-03): pins along the course (e.g.
-      500/1000/1500 m) besides start and finish. While On the Water runs
-      (cox phone pings every 7 s, ~35 m apart at race pace), work out
-      when the boat crossed each marker. Show "passed 1000 m at 9:42:15" and
-      live splits on Race Day, and optionally alert parents. Works only if
-      a phone in the boat is tracking (no cox: a rower's phone). GPS is
-      good to a few meters: for following along, not official times.
-      Check if regattas allow phones in boats. Todd can get official course
-      GPS as a USRowing ref.
-- [ ] Master list of oars (Todd, 2026-10-03): the club keeps one list of
-      its oar sets (tape color + how many pieces, e.g. "1 Green"), and each
-      set is tagged Men's, Women's and/or Masters. The oar sheet shows that
-      list with a filter where you can pick more than one group (e.g. Men's
-      + Masters), instead of every color and number. Replaces the
-      colors / most-pieces setting in Admin → Oar tape.
+- [x] Course markers (2026-10-03, 0133): Course tab → "Markers along the
+      course": "Lay markers" (race length + gap, e.g. 2000 / 500) puts them
+      on the straight line, or add one at any distance; then move each with
+      Tap on map / I'm standing here. Stored on the regatta
+      (schedule_events.course_markers) and borrowed with the course by
+      later regattas at the same place. While the cox's phone tracks on On
+      the Water, the location_pings trigger saves when the boat passed each
+      marker (lineup_course_splits), worked out between the two pings either
+      side, measured along the course's direction at that marker so bends
+      are fine. Start and finish times are now worked out between pings too
+      (they were up to ~8 s early/late). Race Day shows a splits table (time
+      passed, time from the start, split, pace per 500 m), refreshing every
+      15 s while racing, and "Splits" on finished races; the home racing
+      banner shows "Passed 1000 m at 9:42:15 (3:41.2)" and the finish time.
+      Optional "Course marker splits" alert to parents and followers (off
+      until an admin turns it on). Tested on the demo with a simulated race
+      (each mark within a fraction of a second, also with a missed ping).
+      GPS from a phone in the boat: for following along, not official
+      times. Still to check: whether regattas allow phones in boats.
+- [x] Master list of oars (2026-10-03, Admin → Oar tape; no migration,
+      club_settings "oar_colors"): admins keep the club's tape colors
+      (standard ones in a tap, or their own name + shade, e.g. "Neon green";
+      tap a swatch to change its shade) and the list of oar sets (color +
+      pieces, e.g. "1 Green"), each tagged with the squads that use it
+      (Men's, Women's, Development, Masters, Alumni) and an optional note.
+      The oar sheet then shows just those sets, filtered to the boat's
+      squad with "Show" chips to pick more than one (Men's + Masters) or
+      All; a set with no squads shows for everyone. With no sets listed it
+      falls back to any color + any count, as before. Custom shades show on
+      Lineups and Race Day too. Older saved colors still read fine.
+      Once a boat has a set, its tape dots (one per piece, in the tape's
+      color) plus "Oars: 1 Green" show on the home "you're in the boat"
+      banner (rowers and parents, and the coach's copy), the boat card on
+      Lineups, Race Day and the oar sheet (lib/boatOars.ts, OarDots).
+      A set can also go with several fleet boats (Admin → Oar tape, "+ Add
+      boat" on each set): on that boat's oar sheet those sets come first,
+      marked "This boat", and show whatever squad filter is on. The same
+      set on two boats at a regatta is normal (oars are passed along), so
+      the sheet now just notes "Also used by …" in gray, not a warning.
 
 ## Lineups
 - [x] Finished regattas move to the bottom (2026-09-29): on /lineups and
@@ -521,6 +545,12 @@ Everyone (juniors, college, masters):
       the slot for everyone, and the confirm dialog points people at the
       "Cancel" link next to their own name if they just want to drop their
       own signup — matching the food tent item's confirm copy.
+- [x] "No volunteers at this regatta" (2026-10-03, from suggestions, 0132):
+      a switch on each regatta in Volunteer Needs (schedule_events.
+      has_volunteers) for tent leaders, coaches and admins, like "No food
+      tent". Off: its slots are hidden, no new slots or sign-ups, and no
+      "and a volunteer slot" in the signups-open banner or "Sign up for a
+      volunteer slot" button for it.
 
 ## Workouts
 - [x] Fixed (2026-09-28): couldn't type an erg time on a phone — the time
@@ -1378,6 +1408,13 @@ comply, and the app mustn't break the rules.
       resolved/reopen or delete
 - [x] Site Maintenance: same flow for boathouse/facility issues, no boat
       picker needed
+- [x] "Needs maintenance" switch on a boat (2026-10-03, from suggestions):
+      coaches/admins tap it on the boat's card on Boats and say what needs
+      doing; that opens a Boat Maintenance request, and the card turns red
+      with a "Needs maintenance" badge (links to Boat Maintenance). "Mark
+      fixed" resolves its open requests. Badge is coach/admin only, since
+      members can only read their own requests. Later: block booking or
+      sign-out of a boat that needs maintenance?
 
 ## Terms and Conditions
 - [x] Self-signup reopened (2026-10-01, Todd): "Create an account" on the

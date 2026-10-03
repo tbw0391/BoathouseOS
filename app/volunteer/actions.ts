@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { myClubId } from "@/lib/clubs";
 import { UserError, tryAction } from "@/lib/userError";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -25,6 +27,34 @@ async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>
   return { user, supabase };
 }
 
+// Volunteers can't be added or claimed for a regatta set to no volunteers.
+async function requireVolunteersOn(supabase: Awaited<ReturnType<typeof createClient>>, eventId: string) {
+  const { data } = await supabase.from("schedule_events").select("has_volunteers").eq("id", eventId).maybeSingle();
+  if ((data as { has_volunteers: boolean } | null)?.has_volunteers === false) {
+    throw new UserError("This regatta is set to no volunteers.");
+  }
+}
+
+// "No volunteers at this regatta" (0132): hides its slots, sign-ups, banners
+// and reminders. Tent leaders can't edit the schedule, so this one column is
+// changed with the service role after the manager check.
+export async function setHasVolunteers(eventId: string, hasVolunteers: boolean) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
+    const clubId = await myClubId();
+    const { error } = await createAdminClient()
+      .from("schedule_events")
+      .update({ has_volunteers: hasVolunteers })
+      .eq("id", eventId)
+      .eq("club_id", clubId)
+      .eq("event_type", "regatta");
+    if (error) throw new Error(error.message);
+    revalidatePath("/volunteer");
+    revalidatePath("/");
+  });
+}
+
 export async function createVolunteerNeed(formData: FormData) {
   return tryAction(async () => {
     const supabase = await createClient();
@@ -39,6 +69,7 @@ export async function createVolunteerNeed(formData: FormData) {
     if (!eventId || !title) {
       throw new UserError("Title is required.");
     }
+    await requireVolunteersOn(supabase, eventId);
 
     const { error } = await supabase.from("volunteer_needs").insert({
       event_id: eventId,
@@ -67,6 +98,7 @@ export async function importVolunteerNeeds(eventId: string, rows: VolunteerNeedI
     const { user } = await requireManager(supabase);
 
     if (!eventId) throw new UserError("Missing event.");
+    await requireVolunteersOn(supabase, eventId);
 
     const toInsert: {
       event_id: string;
@@ -156,6 +188,9 @@ export async function signUpForNeed(needId: string) {
     if (!user) throw new UserError("Not signed in.");
 
     if (!needId) throw new UserError("Missing volunteer slot.");
+    const { data: need } = await supabase.from("volunteer_needs").select("event_id").eq("id", needId).maybeSingle();
+    const needEventId = (need as { event_id: string | null } | null)?.event_id;
+    if (needEventId) await requireVolunteersOn(supabase, needEventId);
 
     const { error } = await supabase
       .from("volunteer_signups")

@@ -4,7 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getSelectedClubSlug, visibleToClub } from "@/lib/demoClubs";
 import { BOAT_CLASSES } from "@/lib/boatClasses";
 import { ordinalPlace, placeEmoji } from "@/lib/raceResults";
-import { boatOarSet, oarLabel, tapeSwatch } from "@/lib/oarSheet";
+import { OAR_COLORS_KEY, boatOarSet, parseOarSettings, tapeSwatch } from "@/lib/oarSheet";
+import { OarDots } from "@/components/OarDots";
+import { CourseSplits } from "@/components/CourseSplits";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import {
   LAUNCH_MINUTES_KEY,
   clubDateKey,
@@ -94,7 +97,7 @@ export default async function RaceDayPage() {
   });
 
   const rowerIds = [...new Set(seats.map((s) => s.rower_id).filter((id): id is string => !!id))];
-  const [{ data: nameRows }, { data: sessionRows }, { data: oarRows }] = await Promise.all([
+  const [{ data: nameRows }, { data: sessionRows }, { data: oarRows }, { data: splitRowsData }] = await Promise.all([
     rowerIds.length
       ? supabase.from("profiles").select("id, display_name").in("id", rowerIds)
       : Promise.resolve({ data: [] }),
@@ -117,9 +120,28 @@ export default async function RaceDayPage() {
             lineups.map((l) => l.id)
           )
       : Promise.resolve({ data: [] }),
+    lineups.some((l) => l.race_started_at)
+      ? supabase
+          .from("lineup_course_splits")
+          .select("lineup_id, meters, passed_at")
+          .in(
+            "lineup_id",
+            lineups.filter((l) => l.race_started_at).map((l) => l.id)
+          )
+      : Promise.resolve({ data: [] }),
   ]);
+  const allSplits = (splitRowsData as { lineup_id: string; meters: number; passed_at: string }[] | null) ?? [];
+  const splitsFor = (id: string) => allSplits.filter((s) => s.lineup_id === id);
+  const racingNow = lineups.some((l) => l.race_started_at && !l.race_finished_at);
   const oarRowsList = (oarRows as { lineup_id: string; tape_color: string; rings: number }[] | null) ?? [];
-  const oarsByLineup = new Map(lineups.map((l) => [l.id, boatOarSet(oarRowsList.filter((o) => o.lineup_id === l.id))]));
+  const { data: oarSettingRow } = await supabase.from("club_settings").select("value").eq("key", OAR_COLORS_KEY).maybeSingle();
+  const tapeColors = parseOarSettings((oarSettingRow as { value: string | null } | null)?.value).colors;
+  const oarsByLineup = new Map(
+    lineups.map((l) => {
+      const set = boatOarSet(oarRowsList.filter((o) => o.lineup_id === l.id));
+      return [l.id, set ? { ...set, swatch: tapeSwatch(set.tape_color, tapeColors) } : null];
+    })
+  );
   const nameById = new Map(((nameRows as { id: string; display_name: string }[] | null) ?? []).map((p) => [p.id, p.display_name]));
   const onWater = new Set(((sessionRows as { lineup_id: string | null }[] | null) ?? []).map((s) => s.lineup_id));
 
@@ -205,6 +227,7 @@ export default async function RaceDayPage() {
         </p>
       )}
 
+      {racingNow && <AutoRefresh seconds={15} />}
       <div className="flex flex-col gap-3">
         {upcoming.map((l) => (
           <RaceCard
@@ -217,6 +240,7 @@ export default async function RaceDayPage() {
             delayMinutes={delayMinutes}
             onWater={onWater.has(l.id)}
             oars={oarsByLineup.get(l.id) ?? null}
+            splits={splitsFor(l.id)}
             canEdit={isManager}
           />
         ))}
@@ -226,16 +250,31 @@ export default async function RaceDayPage() {
         <>
           <h3 className="font-semibold mt-6 mb-2 text-gray-600">Done</h3>
           <div className="flex flex-col gap-2">
-            {done.map((l) => (
-              <div key={l.id} className="flex items-center gap-3 rounded-lg border-2 border-gray-200 px-3 py-2 text-sm">
-                <span className="w-14 shrink-0">
-                  {l.place != null ? `${placeEmoji(l.place)} ${ordinalPlace(l.place)}` : "—"}
-                </span>
-                <span className="min-w-0 truncate">
-                  {l.race_name ?? l.boat_name} · {l.boat_name}
-                </span>
-              </div>
-            ))}
+            {done.map((l) => {
+              const row = (
+                <>
+                  <span className="w-14 shrink-0">
+                    {l.place != null ? `${placeEmoji(l.place)} ${ordinalPlace(l.place)}` : "—"}
+                  </span>
+                  <span className="min-w-0 truncate">
+                    {l.race_name ?? l.boat_name} · {l.boat_name}
+                  </span>
+                </>
+              );
+              return l.race_started_at ? (
+                <details key={l.id} className="rounded-lg border-2 border-gray-200 px-3 py-2 text-sm">
+                  <summary className="flex items-center gap-3 cursor-pointer list-none">
+                    {row}
+                    <span className="ml-auto shrink-0 text-xs text-[var(--color-primary)]">Splits</span>
+                  </summary>
+                  <CourseSplits startedAt={l.race_started_at} finishedAt={l.race_finished_at} splits={splitsFor(l.id)} />
+                </details>
+              ) : (
+                <div key={l.id} className="flex items-center gap-3 rounded-lg border-2 border-gray-200 px-3 py-2 text-sm">
+                  {row}
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -264,6 +303,7 @@ function RaceCard({
   delayMinutes,
   onWater,
   oars,
+  splits,
   canEdit,
 }: {
   lineup: Lineup;
@@ -273,7 +313,8 @@ function RaceCard({
   launchMinutes: number;
   delayMinutes: number;
   onWater: boolean;
-  oars: { tape_color: string; rings: number } | null;
+  oars: { tape_color: string; rings: number; swatch?: string } | null;
+  splits: { meters: number; passed_at: string }[];
   canEdit: boolean;
 }) {
   const rowerSeats = BOAT_CLASSES[lineup.boat_class]?.rowerSeats ?? seats.filter((s) => s.seat_role === "rower").length;
@@ -312,14 +353,7 @@ function RaceCard({
           <span className="text-xs font-medium rounded-full bg-blue-100 text-blue-800 px-2 py-0.5">On the water now</span>
         )}
         {oars ? (
-          <span className="flex items-center gap-1.5 text-xs font-medium rounded-full bg-gray-100 px-2 py-0.5">
-            <span
-              className="inline-block w-3 h-3 rounded-full border border-gray-400"
-              style={{ backgroundColor: tapeSwatch(oars.tape_color) }}
-              aria-hidden
-            />
-            Oars: {oarLabel(oars)}
-          </span>
+          <OarDots oars={oars} showLabel className="text-xs font-medium rounded-full bg-gray-100 px-2 py-0.5" />
         ) : (
           <Link
             href={`/oar-sheet/${lineup.id}`}
@@ -337,6 +371,10 @@ function RaceCard({
           )
         )}
       </div>
+
+      {lineup.race_started_at && (
+        <CourseSplits startedAt={lineup.race_started_at} finishedAt={lineup.race_finished_at} splits={splits} />
+      )}
 
       {ordered.length > 0 && (
         <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">

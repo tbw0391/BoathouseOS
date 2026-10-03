@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { clubTimeLabel } from "@/lib/raceDay";
-import { OAR_COLORS_KEY, boatOarSet, captainSeat, oarLabel, parseOarSettings } from "@/lib/oarSheet";
+import { OAR_COLORS_KEY, OAR_GROUP_LABELS, boatOarSet, captainSeat, oarLabel, parseOarSettings } from "@/lib/oarSheet";
+import { LINEUP_CATEGORY_TEAM, categoryForRace } from "@/lib/lineupCategories";
 import { OarSheetForm, type BoatOars, type TaskRow } from "./OarSheetForm";
 
 type Seat = { id: string; seat_number: number; seat_role: string; rower_id: string | null };
@@ -18,13 +19,15 @@ export default async function OarSheetPage({ params }: { params: Promise<{ lineu
 
   const { data: lineupData } = await supabase
     .from("lineups")
-    .select("id, boat_name, boat_class, race_name, race_time, event_id")
+    .select("id, boat_id, boat_name, boat_class, category, race_name, race_time, event_id")
     .eq("id", lineupId)
     .maybeSingle();
   const lineup = lineupData as {
     id: string;
     boat_name: string;
     boat_class: string;
+    category: string | null;
+    boat_id: string | null;
     race_name: string | null;
     race_time: string | null;
     event_id: string | null;
@@ -57,6 +60,11 @@ export default async function OarSheetPage({ params }: { params: Promise<{ lineu
     role: p.role,
   }));
   const nameById = new Map(roster.map((p) => [p.id, p.name]));
+
+  // The squad this boat races for, to start the oar list filtered to it.
+  const category = categoryForRace(lineup.race_name, lineup.category);
+  const team = category ? (LINEUP_CATEGORY_TEAM as Record<string, string>)[category] : undefined;
+  const boatGroup = team && team in OAR_GROUP_LABELS ? team : null;
 
   const captain = captainSeat(seats);
   const canEdit = captain?.rower_id === user.id || role === "coach" || role === "admin";
@@ -127,6 +135,9 @@ export default async function OarSheetPage({ params }: { params: Promise<{ lineu
           lineupId={lineupId}
           colors={settings.colors}
           maxRings={settings.maxRings}
+          sets={settings.sets}
+          boatGroup={boatGroup}
+          boatId={lineup.boat_id}
           oars={oars}
           tasks={taskRowsOut}
           roster={roster}

@@ -19,7 +19,7 @@ import { PAPERWORK, PAPERWORK_ROLES, PAPERWORK_SETTINGS_KEY } from "@/lib/paperw
 import { CHECK_IN_GROUPS, CHECK_IN_SETTINGS_KEY } from "@/lib/checkIns";
 import { DEFAULT_THEME_COLORS, isHexColor, type ThemeColorKey } from "@/lib/theme";
 import { ALERT_SETTINGS_KEY, ALERT_TYPES } from "@/lib/alertSettings";
-import { OAR_COLORS_KEY } from "@/lib/oarSheet";
+import { OAR_COLORS_KEY, normalizeOarSettings } from "@/lib/oarSheet";
 import {
   PROFILE_BUTTONS,
   PROFILE_BUTTONS_KEY,
@@ -299,7 +299,8 @@ export async function updateProfileButtons(access: Record<ProfileGroup, string[]
   });
 }
 
-// The club's oar tape colors and the most pieces of tape on a set, for oar sheets.
+// The club's oar tape colors, most pieces of tape, and master list of oar
+// sets (with the squads that use each), for oar sheets.
 export async function updateOarSettings(formData: FormData) {
   return tryAction(async () => {
     const supabase = await createClient();
@@ -317,27 +318,24 @@ export async function updateOarSettings(formData: FormData) {
       throw new UserError("Only admins can change oar colors.");
     }
 
-    const colors = [
-      ...new Set(
-        formData
-          .getAll("colors")
-          .map(String)
-          .map((c) => c.trim())
-          .filter((c) => c.length > 0 && c.length <= 30)
-          .map((c) => c[0].toUpperCase() + c.slice(1))
-      ),
-    ].slice(0, 20);
-    if (colors.length === 0) throw new UserError("Pick at least one tape color.");
-    const maxRings = Math.trunc(Number(formData.get("max_rings")));
-    if (!Number.isFinite(maxRings) || maxRings < 1 || maxRings > 20) throw new UserError("Pieces of tape must be 1 to 20.");
-
+    let submitted: unknown;
+    try {
+      submitted = JSON.parse(String(formData.get("oar_settings") ?? ""));
+    } catch {
+      throw new UserError("Couldn't read the oar settings. Reload the page and try again.");
+    }
+    const raw = (submitted ?? {}) as { colors?: unknown[] };
+    if (!Array.isArray(raw.colors) || raw.colors.length === 0) throw new UserError("Add at least one tape color.");
+    const settings = normalizeOarSettings(submitted);
     const { error } = await supabase
       .from("club_settings")
-      .upsert({ key: OAR_COLORS_KEY, value: JSON.stringify({ colors, maxRings }) }, { onConflict: "club_id,key" });
+      .upsert({ key: OAR_COLORS_KEY, value: JSON.stringify(settings) }, { onConflict: "club_id,key" });
     if (error) throw new Error(error.message);
 
     revalidatePath("/admin");
     revalidatePath("/oar-sheet", "layout");
+    revalidatePath("/lineups", "layout");
+    revalidatePath("/race-day");
   });
 }
 

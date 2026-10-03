@@ -83,6 +83,20 @@ export async function signUp(formData: FormData) {
     });
 
     if (createError || !created.user) {
+      // These are things the person can fix, so say so instead of letting
+      // Next.js hide them behind its generic server error.
+      const code = (createError as { code?: string } | null)?.code;
+      if (code === "email_exists" || /already been registered/i.test(createError?.message ?? "")) {
+        throw new UserError(
+          "There's already an account with this email. Sign in instead, or use \"Forgot password\" on the sign-in page to reset it."
+        );
+      }
+      if (code === "email_address_invalid" || code === "validation_failed") {
+        throw new UserError("That email address doesn't look right. Please check it and try again.");
+      }
+      if (code === "weak_password") {
+        throw new UserError(createError?.message ?? "Please choose a stronger password.");
+      }
       throw new Error(createError?.message ?? "Couldn't create an account with that email.");
     }
 

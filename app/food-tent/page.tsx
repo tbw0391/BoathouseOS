@@ -37,7 +37,14 @@ export default async function FoodTentPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) await markRegattaPrepSeen(supabase, user.id, "food_tent");
+  if (user) {
+    await markRegattaPrepSeen(supabase, user.id, "food_tent");
+    // Clears the home page's food tent message banners (0129).
+    const { error: seenError } = await supabase
+      .from("food_tent_seen")
+      .upsert({ user_id: user.id, seen_at: new Date().toISOString() }, { onConflict: "user_id" });
+    if (seenError) console.error("Couldn't record food tent visit:", seenError.message);
+  }
 
   const { data: callerProfile } = await supabase
     .from("profiles")

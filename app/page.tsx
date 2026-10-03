@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { captainSeat, oarSheetComplete } from "@/lib/oarSheet";
+import { loadBoatOars, type BoatOarsShown } from "@/lib/boatOars";
+import { OarDots } from "@/components/OarDots";
+import { elapsedLabel } from "@/lib/course";
 import { regattaPrepSeen } from "@/lib/regattaPrep";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { SignupCallLink } from "@/components/SignupCallLink";
@@ -93,7 +96,7 @@ import {
 import { HOTC, getHotcSchedule } from "@/lib/hotc";
 import { syncHotcResults } from "@/lib/hotcResults";
 import { placeEmoji, ordinalPlace } from "@/lib/raceResults";
-import { clubDateKey, clubTimeLabel, delayedRaceTime, pickRaceDayEvent, raceIsOver } from "@/lib/raceDay";
+import { clubDateKey, clubTimeLabel, clubTimeSecondsLabel, delayedRaceTime, pickRaceDayEvent, raceIsOver } from "@/lib/raceDay";
 import { PRACTICE_CALL_LABELS, callConditionsLine, lightningMinutesLeft } from "@/lib/waterConditions";
 import { formatMoney } from "@/lib/payments";
 import { canCoachCheckIn, getTodaysCheckInLabel } from "@/lib/checkIns";
@@ -158,6 +161,8 @@ type FoodTentBanner = {
 type LineupBanner = {
   rowerName: string | null;
   boatName: string;
+  // The boat's oar set, once its oar sheet has one ("1 Green").
+  oars: BoatOarsShown | null;
   raceName: string | null;
   raceTimeLabel: string | null;
   eventTitle: string;
@@ -191,6 +196,10 @@ type RacingBanner = {
   raceName: string | null;
   finished: boolean;
   place: number | null;
+  // Latest course marker passed (0133), e.g. 1000 m at 9:42:15, and the
+  // time from the start.
+  lastSplit: { meters: number; at: string; elapsedMs: number } | null;
+  elapsedMs: number | null;
 };
 
 type PendingRaceBanner = {
@@ -421,6 +430,8 @@ async function loadLineupBanners(
     rowerNameById.set(p.id, p.display_name);
   }
 
+  const oarsByLineup = await loadBoatOars(supabase, [...lineupById.keys()]);
+
   return seats
     .map((seat) => {
       if (!seat.rower_id) return null;
@@ -440,6 +451,7 @@ async function loadLineupBanners(
             ? (rowerNameById.get(seat.rower_id) ?? "Someone")
             : null,
         boatName: lineup.boat_name,
+        oars: oarsByLineup.get(lineup.id) ?? null,
         raceName: lineup.race_name,
         raceTimeLabel: lineup.race_time
           ? clubTimeLabel(delayedRaceTime(lineup.race_time, delayMinutes)) +
@@ -502,6 +514,10 @@ async function loadSentLineupNotices(
       (p) => [p.id, p.display_name],
     ),
   );
+  const oarsByLineup = await loadBoatOars(
+    supabase,
+    lineupsData.map((l) => l.id),
+  );
 
   return lineupsData
     .map((lineup) => {
@@ -513,6 +529,7 @@ async function loadSentLineupNotices(
       return {
         lineupId: lineup.id,
         boatName: lineup.boat_name,
+        oars: oarsByLineup.get(lineup.id) ?? null,
         raceName: lineup.race_name,
         raceTimeLabel: lineup.race_time
           ? new Date(lineup.race_time).toLocaleTimeString([], {
@@ -672,7 +689,8 @@ async function loadSignupCallBanners(
       eventId: event.id,
       eventTitle: event.title,
       eventDate: new Date(event.starts_at).toLocaleDateString(),
-      hasVolunteerNeeds: eventIdsWithNeeds.has(event.id),
+      hasVolunteerNeeds:
+        event.has_volunteers !== false && eventIdsWithNeeds.has(event.id),
     }));
 }
 
@@ -685,18 +703,41 @@ async function loadRacingBanners(supabase: SupabaseServerClient): Promise<Racing
     .gte("race_started_at", startOfToday())
     .order("race_started_at", { ascending: false });
   const hourAgo = Date.now() - 60 * 60 * 1000;
-  return (
+  const races = (
     (data as Pick<Lineup, "id" | "boat_name" | "race_name" | "place" | "race_started_at" | "race_finished_at">[] | null) ??
     []
-  )
-    .filter((l) => !l.race_finished_at || new Date(l.race_finished_at).getTime() > hourAgo)
-    .map((l) => ({
+  ).filter((l) => !l.race_finished_at || new Date(l.race_finished_at).getTime() > hourAgo);
+  if (races.length === 0) return [];
+
+  // Each boat's furthest course marker passed so far (0133).
+  const { data: splitData } = await supabase
+    .from("lineup_course_splits")
+    .select("lineup_id, meters, passed_at")
+    .in(
+      "lineup_id",
+      races.map((r) => r.id),
+    )
+    .order("meters", { ascending: false });
+  const lastSplit = new Map<string, { meters: number; passed_at: string }>();
+  for (const sp of (splitData as { lineup_id: string; meters: number; passed_at: string }[] | null) ?? []) {
+    if (!lastSplit.has(sp.lineup_id)) lastSplit.set(sp.lineup_id, sp);
+  }
+
+  return races.map((l) => {
+    const t0 = new Date(l.race_started_at as string).getTime();
+    const last = lastSplit.get(l.id);
+    return {
       lineupId: l.id,
       boatName: l.boat_name,
       raceName: l.race_name,
       finished: !!l.race_finished_at,
       place: l.place,
-    }));
+      lastSplit: last
+        ? { meters: last.meters, at: last.passed_at, elapsedMs: new Date(last.passed_at).getTime() - t0 }
+        : null,
+      elapsedMs: l.race_finished_at ? new Date(l.race_finished_at).getTime() - t0 : null,
+    };
+  });
 }
 
 // A regatta boat's cox (or stroke, with no cox) is asked to fill in its oar
@@ -901,16 +942,23 @@ async function loadAnnouncementBanners(
 }
 
 // Food tent banner messages (0118) still showing: a week, or until the
-// regatta they're about is over. Filtered by audience by the caller.
+// regatta they're about is over, and only ones posted since this person last
+// opened the Food Tent page (0129), so tapping a banner clears it. Filtered
+// by audience by the caller.
 async function loadFoodMessageBanners(
   supabase: SupabaseServerClient,
+  userId: string,
 ): Promise<FoodMessageBanner[]> {
-  const { data } = await supabase
-    .from("food_tent_messages")
-    .select("*")
-    .gte("created_at", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
-    .order("created_at", { ascending: false });
-  const messages = (data as FoodTentMessage[] | null) ?? [];
+  const [{ data }, { data: seenRow }] = await Promise.all([
+    supabase
+      .from("food_tent_messages")
+      .select("*")
+      .gte("created_at", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
+      .order("created_at", { ascending: false }),
+    supabase.from("food_tent_seen").select("seen_at").eq("user_id", userId).maybeSingle(),
+  ]);
+  const seenAt = (seenRow as { seen_at: string } | null)?.seen_at ?? null;
+  const messages = ((data as FoodTentMessage[] | null) ?? []).filter((m) => !seenAt || m.created_at > seenAt);
   if (messages.length === 0) return [];
   const eventIds = [...new Set(messages.map((m) => m.event_id).filter((id): id is string => !!id))];
   const senderIds = [...new Set(messages.map((m) => m.sender_id).filter((id): id is string => !!id))];
@@ -1075,6 +1123,7 @@ export default async function Home() {
   let isFoodTentManager = false;
   let isApparelChair = false;
   let isGlobalAdmin = false;
+  let isWestervilleMember = false;
   let pendingApprovalCount = 0;
   let checkInLabel = null as string | null;
   let showCoachCheckIn = false;
@@ -1103,6 +1152,7 @@ export default async function Home() {
       regattaResult,
       globalAdminResult,
       pendingApprovalResult,
+      westervilleResult,
     ] = await Promise.all([
       getUnreadChatCount(user.id),
       getUnreadScheduleCount(user.id),
@@ -1135,11 +1185,19 @@ export default async function Home() {
         .select("id", { count: "exact", head: true })
         .is("approved_at", null)
         .neq("id", user.id),
+      // RLS only shows members their own club, so this finds a row only
+      // for Westerville members.
+      supabase
+        .from("clubs")
+        .select("id")
+        .eq("slug", "westerville")
+        .maybeSingle(),
     ]);
 
     pendingApprovalCount = pendingApprovalResult.count ?? 0;
 
     isGlobalAdmin = globalAdminResult.data === true;
+    isWestervilleMember = !!westervilleResult.data;
 
     unreadCount = unreadCountResult;
     unreadScheduleCount = unreadScheduleCountResult;
@@ -1322,7 +1380,7 @@ export default async function Home() {
               : { count: 0 };
           getReady = {
             foodTent: upcomingRegatta.has_food_tent && !seen.has("food_tent"),
-            volunteer: !seen.has("volunteer"),
+            volunteer: upcomingRegatta.has_volunteers !== false && !seen.has("volunteer"),
             lineups: (crewedLineups ?? []).length > 0 && !seen.has("lineups"),
             coachMessages: (coachUnread ?? 0) > 0,
           };
@@ -1401,7 +1459,7 @@ export default async function Home() {
         : Promise.resolve([]),
       loadBirthdaysToday(supabase),
       loadMyRecentPrs(supabase, user.id),
-      loadFoodMessageBanners(supabase),
+      loadFoodMessageBanners(supabase, user.id),
     ]);
     sentLineupNotices = sentLineupNoticeResults;
     banners = foodBanners;
@@ -1641,13 +1699,15 @@ export default async function Home() {
         </Link>
       )}
 
-      <Link
-        href="/interest"
-        className="w-full block text-center bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 font-medium hover:bg-[var(--color-accent)] transition-colors"
-      >
-        🙋 Yes, I&apos;m interested in this software. Please let me know when
-        it&apos;s available!
-      </Link>
+      {!isGlobalAdmin && !isWestervilleMember && (
+        <Link
+          href="/interest"
+          className="w-full block text-center bg-[var(--color-secondary)] text-white border-2 border-[var(--color-primary)] rounded-lg px-4 py-3 font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          🙋 Yes, I&apos;m interested in this software. Please let me know when
+          it&apos;s available!
+        </Link>
+      )}
 
       {pendingApprovalCount > 0 && (
         <Link
@@ -1917,6 +1977,7 @@ export default async function Home() {
               >
                 🏁 <strong>{b.boatName}</strong> finished
                 {b.raceName && <> {b.raceName}</>}
+                {b.elapsedMs != null && <> in {elapsedLabel(b.elapsedMs)}</>}
                 {b.place != null && (
                   <>
                     {" "}— {placeEmoji(b.place)} {ordinalPlace(b.place)}
@@ -1929,8 +1990,19 @@ export default async function Home() {
                 href="/on-water"
                 className="w-full flex items-center gap-2 bg-green-600 text-white rounded-lg px-4 py-3 font-semibold"
               >
-                🚣 {b.boatName} is racing now{b.raceName && <span className="font-normal"> · {b.raceName}</span>}
-                <span className="ml-auto text-sm font-normal underline">Watch live</span>
+                <span className="flex flex-col min-w-0">
+                  <span>
+                    🚣 {b.boatName} is racing now
+                    {b.raceName && <span className="font-normal"> · {b.raceName}</span>}
+                  </span>
+                  {b.lastSplit && (
+                    <span className="text-sm font-normal">
+                      Passed {b.lastSplit.meters} m at {clubTimeSecondsLabel(b.lastSplit.at)} (
+                      {elapsedLabel(b.lastSplit.elapsedMs)})
+                    </span>
+                  )}
+                </span>
+                <span className="ml-auto text-sm font-normal underline shrink-0">Watch live</span>
               </Link>
             ),
           )}
@@ -1999,6 +2071,13 @@ export default async function Home() {
                 </>
               )}
               )
+              {b.oars && (
+                <OarDots
+                  oars={b.oars}
+                  showLabel
+                  className="mt-1.5 flex w-fit rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium"
+                />
+              )}
             </div>
           ))}
         </div>
@@ -2029,6 +2108,13 @@ export default async function Home() {
                   </>
                 )}
                 )
+                {n.oars && (
+                  <OarDots
+                    oars={n.oars}
+                    showLabel
+                    className="mt-1.5 flex w-fit rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium"
+                  />
+                )}
               </div>
               <p className="text-gray-600">
                 Sent to {n.recipientNames.length}: {n.recipientNames.join(", ")}

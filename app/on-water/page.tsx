@@ -26,7 +26,7 @@ export default async function OnWaterPage() {
     return (
       <div className="min-h-screen p-8">
         <h1 className="text-2xl font-bold mb-6">On the Water</h1>
-        <LiveBoats initialSessions={activeBoats} canEnd />
+        <LiveBoats initialSessions={activeBoats} mapFirst canEnd />
       </div>
     );
   }
@@ -42,7 +42,7 @@ export default async function OnWaterPage() {
     return (
       <div className="min-h-screen p-8">
         <h1 className="text-2xl font-bold mb-6">On the Water</h1>
-        <LiveBoats initialSessions={activeBoats} />
+        <LiveBoats initialSessions={activeBoats} mapFirst />
         <FollowBoats
           boats={(boatsData as Pick<Boat, "id" | "name">[] | null) ?? []}
           followedIds={((followsData as { boat_id: string }[] | null) ?? []).map((f) => f.boat_id)}
@@ -120,7 +120,7 @@ export default async function OnWaterPage() {
       <h1 className="text-2xl font-bold mb-6">On the Water</h1>
       {liveBoats && !activeSession && (
         <>
-          <LiveBoats initialSessions={liveBoats} canEnd />
+          <LiveBoats initialSessions={liveBoats} mapFirst canEnd />
           <h2 className="text-lg font-semibold mt-8 mb-4">Track my boat</h2>
         </>
       )}

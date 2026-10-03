@@ -1,5 +1,6 @@
 "use client";
 
+import { OarDots } from "@/components/OarDots";
 import type { RaceBoxItem, RaceBoxState } from "./raceBoxTypes";
 
 const STATE_CLASSES: Record<RaceBoxState, string> = {
@@ -38,6 +39,7 @@ export function RaceBox({
         <div className="font-medium truncate">{item.label}</div>
         <div className="text-xs text-gray-500 truncate">{item.categoryLabel || ""}</div>
       </div>
+      {item.oars && <OarDots oars={item.oars} />}
       {icon && <span className="text-lg leading-none shrink-0">{icon}</span>}
     </button>
   );

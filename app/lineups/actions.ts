@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { parseCourseMarkers, type CourseMarker } from "@/lib/course";
 import { createClient } from "@/lib/supabase/server";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 import {
@@ -466,10 +467,61 @@ export async function addCrewTimerRaces(eventId: string, link: string, crewName:
       clubSlug: await getSelectedClubSlug(),
     });
 
+    // Remember where these came from, so the Results tab can show live
+    // places and times (0131).
+    await saveEventCrewTimer(supabase, eventId, link, crewName);
+
     revalidatePath("/lineups", "layout");
     revalidatePath("/");
     revalidatePath("/coach/tasks");
     return { imported: raceIds.length, skipped: races.length - raceIds.length };
+  });
+}
+
+async function saveEventCrewTimer(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+  link: string,
+  crewName: string
+) {
+  const { error } = await supabase
+    .from("schedule_events")
+    .update({ crewtimer_url: link.trim(), crewtimer_crew: crewName.trim() })
+    .eq("id", eventId);
+  // A database without 0131 yet still imports; it just has no live results.
+  if (error) console.error("Couldn't save the regatta's CrewTimer link", error.message);
+}
+
+// Results tab: link a regatta to its CrewTimer results by hand, for races
+// added before imports remembered their link (or typed in another way).
+export async function linkCrewTimerResults(eventId: string, link: string, crewName: string) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
+    if (!eventId) throw new UserError("Missing event.");
+    if (!crewName.trim()) throw new UserError("Type your club's name as it appears on CrewTimer.");
+
+    const { feed } = await loadCrewTimer(link);
+    if (clubRaces(feed, [crewName]).length === 0) {
+      const names = crewNamesIn(feed);
+      const close = names.filter((n) =>
+        n.toLowerCase().includes(crewName.trim().toLowerCase().split(/\s+/)[0] ?? "")
+      );
+      throw new UserError(
+        close.length > 0
+          ? `No entries for "${crewName}" there. Did you mean: ${close.slice(0, 5).join(", ")}?`
+          : `No entries for "${crewName}" in that regatta. Check how your club's name is spelled on CrewTimer.`
+      );
+    }
+
+    const { error } = await supabase
+      .from("schedule_events")
+      .update({ crewtimer_url: link.trim(), crewtimer_crew: crewName.trim() })
+      .eq("id", eventId);
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/lineups/${eventId}`);
+    revalidatePath("/");
   });
 }
 
@@ -756,12 +808,19 @@ function validPoint(p: CoursePoint): CoursePoint {
   return { lat, lng };
 }
 
-// A regatta's start and finish, from the Course tab. Either can be cleared.
-export async function saveCourse(eventId: string, start: CoursePoint, finish: CoursePoint) {
+// A regatta's start, finish and markers along the way (0133), from the
+// Course tab. Start and finish can each be cleared; markers need both.
+export async function saveCourse(
+  eventId: string,
+  start: CoursePoint,
+  finish: CoursePoint,
+  markers: CourseMarker[] = []
+) {
   const supabase = await createClient();
   await requireManager(supabase);
   const s = validPoint(start);
   const f = validPoint(finish);
+  const cleanMarkers = s && f ? parseCourseMarkers(markers) : [];
 
   const { error } = await supabase
     .from("schedule_events")
@@ -770,6 +829,7 @@ export async function saveCourse(eventId: string, start: CoursePoint, finish: Co
       start_lng: s?.lng ?? null,
       finish_lat: f?.lat ?? null,
       finish_lng: f?.lng ?? null,
+      course_markers: cleanMarkers,
     })
     .eq("id", eventId);
   if (error) throw new Error(error.message);

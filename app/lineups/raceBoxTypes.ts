@@ -17,6 +17,6 @@ export interface RaceBoxItem {
   lineup: Lineup | null;
   lineupSeats: LineupSeat[];
   // The boat's oar set from its oar sheet ("1 Green"), if picked.
-  oars: { tape_color: string; rings: number } | null;
+  oars: { tape_color: string; rings: number; swatch?: string } | null;
   eligibleRoster: { id: string; display_name: string }[];
 }
