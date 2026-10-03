@@ -12,7 +12,7 @@ export interface OarSettings {
 }
 
 export const DEFAULT_OAR_SETTINGS: OarSettings = {
-  colors: ["Blue", "Green", "Red", "Yellow", "White", "Black"],
+  colors: ["Blue", "Green", "Red", "Yellow", "White", "Black", "Purple"],
   maxRings: 8,
 };
 
