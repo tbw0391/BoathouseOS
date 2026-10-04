@@ -1,5 +1,6 @@
 "use server";
 
+import { fullBirthdate } from "@/lib/birthday";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -70,7 +71,7 @@ export async function registerMember(programId: string, profileId: string, raw: 
 
     const status = await saveRegistration(admin, club, program, {
       participant_name: participant.display_name,
-      participant_birthdate: participant.birthday,
+      participant_birthdate: fullBirthdate(participant.birthday),
       guardian_name: profileId === user.id ? null : me.display_name,
       email,
       phone: me.phone,

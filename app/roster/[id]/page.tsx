@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BIRTHDAY_SETTINGS_KEY, birthdayLabel, monthDayOnly, parseBirthdaySettings } from "@/lib/birthday";
 import { formatProgramDates } from "@/lib/programs";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -143,6 +144,15 @@ export default async function BioPage({
     .eq("key", PAPERWORK_SETTINGS_KEY)
     .maybeSingle();
   const paperworkSettings = parsePaperworkSettings((paperworkSetting as { value: string | null } | null)?.value);
+  const { data: birthdaySetting } = await supabase
+    .from("club_settings")
+    .select("value")
+    .eq("key", BIRTHDAY_SETTINGS_KEY)
+    .maybeSingle();
+  const birthdayMonthDay = monthDayOnly(
+    profile.role,
+    parseBirthdaySettings((birthdaySetting as { value: string | null } | null)?.value)
+  );
   const paperworkNeeded = requiredFor(profile.role, paperworkSettings, teams);
   // Parents (guardians) see their child's paperwork only if the club allows it.
   const showPaperwork =
@@ -339,6 +349,7 @@ export default async function BioPage({
           familyOptions={familyOptions}
           familyValue={familyValue}
           canEditRole={isCallerAdmin}
+          birthdayMonthDayOnly={birthdayMonthDay}
         />
       </div>
     );
@@ -521,7 +532,7 @@ export default async function BioPage({
         <dd>{profile.address ?? "—"}</dd>
 
         <dt className="text-gray-500">Birthday</dt>
-        <dd>{profile.birthday ?? "—"}</dd>
+        <dd>{birthdayLabel(profile.birthday, birthdayMonthDay) ?? "—"}</dd>
 
         {hasRowingDetails(profile.role, teams) && (
           <>

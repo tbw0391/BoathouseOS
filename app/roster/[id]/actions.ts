@@ -1,5 +1,6 @@
 "use server";
 
+import { monthDayBirthday } from "@/lib/birthday";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -39,7 +40,19 @@ export async function updateBio(profileId: string, formData: FormData) {
     const phone = String(formData.get("phone") ?? "").trim() || null;
     const funFact = String(formData.get("fun_fact") ?? "").trim() || null;
     const walkUpSong = String(formData.get("walk_up_song") ?? "").trim() || null;
-    const birthday = String(formData.get("birthday") ?? "").trim() || null;
+    let birthday: string | null;
+    if (formData.get("birthday_mode") === "month_day") {
+      try {
+        birthday = monthDayBirthday(
+          String(formData.get("birthday_month") ?? ""),
+          String(formData.get("birthday_day") ?? "")
+        );
+      } catch {
+        throw new UserError("That birthday day isn't in that month.");
+      }
+    } else {
+      birthday = String(formData.get("birthday") ?? "").trim() || null;
+    }
     const teams = formData.getAll("team") as Team[];
     const photoUrl = String(formData.get("photo_url") ?? "").trim() || null;
 

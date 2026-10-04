@@ -9,6 +9,7 @@ import type { Profile } from "@/lib/database.types";
 import { updateBio } from "./actions";
 import { TEAM_LABELS, TEAM_OPTIONS, hasRowingDetails } from "@/lib/teams";
 import type { Team } from "@/lib/database.types";
+import { MONTH_NAMES, NO_YEAR } from "@/lib/birthday";
 
 const ROLE_OPTIONS: { value: Profile["role"]; label: string }[] = [
   { value: "rower", label: "Rower" },
@@ -25,6 +26,7 @@ export function BioForm({
   familyOptions = [],
   familyValue = [],
   canEditRole = false,
+  birthdayMonthDayOnly = false,
 }: {
   profile: Profile;
   teams: Team[];
@@ -32,6 +34,8 @@ export function BioForm({
   familyOptions?: Pick<Profile, "id" | "display_name">[];
   familyValue?: string[];
   canEditRole?: boolean;
+  // The club has parents give just the month and day (lib/birthday.ts).
+  birthdayMonthDayOnly?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -159,12 +163,44 @@ export function BioForm({
       )}
 
       <label className="text-sm font-medium">Birthday</label>
-      <input
-        type="date"
-        name="birthday"
-        defaultValue={profile.birthday ?? ""}
-        className="border rounded px-3 py-2 text-sm"
-      />
+      {birthdayMonthDayOnly ? (
+        <div className="flex gap-2">
+          <input type="hidden" name="birthday_mode" value="month_day" />
+          <select
+            name="birthday_month"
+            defaultValue={profile.birthday ? String(Number(profile.birthday.slice(5, 7))) : ""}
+            className="border rounded px-3 py-2 text-sm"
+            aria-label="Birthday month"
+          >
+            <option value="">Month</option>
+            {MONTH_NAMES.map((m, i) => (
+              <option key={m} value={i + 1}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <select
+            name="birthday_day"
+            defaultValue={profile.birthday ? String(Number(profile.birthday.slice(8, 10))) : ""}
+            className="border rounded px-3 py-2 text-sm"
+            aria-label="Birthday day"
+          >
+            <option value="">Day</option>
+            {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <input
+          type="date"
+          name="birthday"
+          defaultValue={profile.birthday && !profile.birthday.startsWith(`${NO_YEAR}-`) ? profile.birthday : ""}
+          className="border rounded px-3 py-2 text-sm"
+        />
+      )}
 
       {showRowing && (
         <>

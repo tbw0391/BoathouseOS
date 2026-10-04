@@ -578,6 +578,15 @@ Everyone (juniors, college, masters):
         test by connecting your own logbook on Workouts (no one has
         connected yet as of 2026-09-29).
 
+## Birthdays
+- [x] Parents give month and day only (2026-10-03, Todd; on for
+      Westerville): Admin → Birthdays switch (club_settings
+      "birthday_settings"). On: a parent's profile asks for month + day
+      (stored with the placeholder year 1904, lib/birthday.ts) and no
+      parent's birth year shows, including one saved earlier. Birthday
+      banners still work; program sign-ups get no birthdate for them.
+      Rowers and coxes always give the full date (under-18 rules).
+
 ## Rookie Parent
 - [x] Rookie Parent guides (2026-10-02): built-in "Parts of a Racing Shell"
       (photo of an eight with numbered markers, close-ups of the sliding seat

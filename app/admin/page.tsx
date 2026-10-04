@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BIRTHDAY_SETTINGS_KEY, parseBirthdaySettings } from "@/lib/birthday";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -28,6 +29,7 @@ import {
   updateRecruiting,
   updateNavAccess,
   updateOarSettings,
+  updateBirthdaySettings,
   updateProfileButtons,
   updateLineupSectionVisibility,
   updateThemeColors,
@@ -75,6 +77,7 @@ export default async function AdminPage() {
       OAR_COLORS_KEY,
       "team_store_url",
       PAPERWORK_SETTINGS_KEY,
+      BIRTHDAY_SETTINGS_KEY,
       CHECK_IN_SETTINGS_KEY,
       RECRUITING_KEY,
     ]);
@@ -89,6 +92,7 @@ export default async function AdminPage() {
   const fleetBoats = (fleetData as FleetBoat[] | null) ?? [];
   const storeUrl = settingsByKey.get("team_store_url") ?? null;
   const paperworkSettings = parsePaperworkSettings(settingsByKey.get(PAPERWORK_SETTINGS_KEY));
+  const birthdaySettings = parseBirthdaySettings(settingsByKey.get(BIRTHDAY_SETTINGS_KEY));
   const checkInGroups = parseCheckInGroups(settingsByKey.get(CHECK_IN_SETTINGS_KEY));
   const { data: clubRow } = await supabase
     .from("clubs")
@@ -396,6 +400,32 @@ export default async function AdminPage() {
           <span>
             <span className="font-medium">Parents see their child&apos;s paperwork</span>
             <span className="block text-xs text-gray-500">What&apos;s done, running out or missing, on their child&apos;s profile.</span>
+          </span>
+        </label>
+        <button
+          type="submit"
+          className="mt-2 bg-[var(--color-primary)] text-white rounded-lg px-4 py-3 text-sm font-medium hover:bg-[var(--color-accent)] transition-colors"
+        >
+          Save
+        </button>
+      </ActionForm>
+
+      <h2 className="text-lg font-semibold mt-8 mb-2">Birthdays</h2>
+      <ActionForm action={updateBirthdaySettings} className="flex flex-col gap-3 max-w-lg">
+        <label className="border rounded-lg px-4 py-3 text-sm flex items-start gap-2">
+          <input
+            type="checkbox"
+            name="parents_no_year"
+            defaultChecked={birthdaySettings.parentsNoYear}
+            className="w-4 h-4 mt-0.5"
+          />
+          <span>
+            <span className="font-medium">Parents give month and day only</span>
+            <span className="block text-xs text-gray-500">
+              Parents&apos; profiles ask for the month and day, and no parent&apos;s birth year shows anywhere. Birthday
+              banners still work. Rowers and coxes always give the full date (it&apos;s how the app knows who&apos;s
+              under 18).
+            </span>
           </span>
         </label>
         <button
