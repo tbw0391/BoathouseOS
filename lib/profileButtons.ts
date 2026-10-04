@@ -62,7 +62,7 @@ export function profileButtonsFor(group: ProfileGroup): NavSectionDef[] {
 const DEFAULTS: Record<ProfileGroup, string[]> = {
   rower: ["/workouts", "/schedule", "/lineups", "/walk-up-songs", "/messages"],
   coxswain: ["/workouts", "/schedule", "/lineups", "/walk-up-songs", "/messages"],
-  parent: ["/workouts", "/schedule", "/payments", "/volunteer", "/food-tent", "/messages"],
+  parent: ["/schedule", "/payments", "/volunteer", "/food-tent", "/messages"],
   coach: ["/schedule", "/lineups", "/coach/attendance", "/coach/seat-racing", "/coach/paperwork", "/messages"],
   admin: ["/schedule", "/lineups", "/coach/attendance", "/payments/manage", "/admin", "/messages"],
   board: ["/announcements", "/polls", "/forms", "/suggestions"],

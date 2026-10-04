@@ -586,6 +586,8 @@ Everyone (juniors, college, masters):
       parent's birth year shows, including one saved earlier. Birthday
       banners still work; program sign-ups get no birthdate for them.
       Rowers and coxes always give the full date (under-18 rules).
+- [x] No "Workouts" button on parents' own profiles by default (2026-10-03,
+      Todd). Admins can still add it in Admin → Profile buttons.
 
 ## Rookie Parent
 - [x] Rookie Parent guides (2026-10-02): built-in "Parts of a Racing Shell"
