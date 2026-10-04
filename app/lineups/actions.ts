@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { parseCourseMarkers, type CourseMarker } from "@/lib/course";
+import { MAX_COURSE_MARKERS, parseCourseMarkers, type CourseMarker, type LatLng } from "@/lib/course";
+import { courseLine, distanceM, markersOnLine } from "@/lib/riverPath";
 import { createClient } from "@/lib/supabase/server";
 import { BOAT_CLASSES, BOAT_CLASS_OPTIONS } from "@/lib/boatClasses";
 import {
@@ -33,6 +34,9 @@ import {
   seatsForBoatClass,
 } from "@/lib/raceWorkflow";
 import { UserError, tryAction } from "@/lib/userError";
+
+// OpenStreetMap asks for a descriptive User-Agent (same contact as lib/weather.ts).
+const RIVER_USER_AGENT = "BoathouseOS/1.0 (course markers; contact: tbw0391@gmail.com)";
 
 async function requireManager(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -835,6 +839,62 @@ export async function saveCourse(
   if (error) throw new Error(error.message);
 
   revalidatePath(`/lineups/${eventId}`);
+}
+
+// Course markers along the river (2026-10-03): the river's centerline near
+// the start and finish from OpenStreetMap (Overpass API, fetched here because
+// the browser's security policy only lets the app talk to its own servers),
+// then markers at each distance along the water (lib/riverPath.ts). Straight
+// line when there's no river there. Coaches and admins only.
+export async function markersAlongWater(start: CoursePoint, finish: CoursePoint, distances: number[]) {
+  return tryAction(async () => {
+    const supabase = await createClient();
+    await requireManager(supabase);
+    const s = validPoint(start);
+    const f = validPoint(finish);
+    if (!s || !f) throw new UserError("Set the start and finish first.");
+    const wanted = distances.filter((d) => Number.isFinite(d) && d > 0 && d < 20000).slice(0, MAX_COURSE_MARKERS);
+    if (wanted.length === 0) throw new UserError("Enter the distances, e.g. 500 1000 2000 3000 4000.");
+    if (distanceM(s, f) > 15000) throw new UserError("The start and finish are more than 15 km apart.");
+
+    // A box around both pins, ~1.5 km bigger each way, for river bends.
+    const padLat = 0.0135;
+    const padLng = 0.0135 / Math.cos((s.lat * Math.PI) / 180);
+    const box = [
+      Math.min(s.lat, f.lat) - padLat,
+      Math.min(s.lng, f.lng) - padLng,
+      Math.max(s.lat, f.lat) + padLat,
+      Math.max(s.lng, f.lng) + padLng,
+    ].map((n) => n.toFixed(5));
+    const query = `[out:json][timeout:20];way["waterway"~"^(river|canal|stream|fairway)$"](${box.join(",")});out geom;`;
+
+    let lines: LatLng[][] = [];
+    let lookupFailed = false;
+    try {
+      const res = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": RIVER_USER_AGENT },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: AbortSignal.timeout(25000),
+      });
+      if (!res.ok) throw new Error(`Overpass ${res.status}`);
+      const json = (await res.json()) as { elements?: { geometry?: { lat: number; lon: number }[] }[] };
+      lines = (json.elements ?? [])
+        .map((e) => (e.geometry ?? []).map((g) => ({ lat: g.lat, lng: g.lon })))
+        .filter((l) => l.length >= 2);
+    } catch (err) {
+      console.error("River lookup failed", err);
+      lookupFailed = true;
+    }
+
+    const line = courseLine(s, f, lines);
+    return {
+      markers: markersOnLine(line, wanted),
+      followsRiver: line.followsRiver,
+      lengthM: Math.round(line.lengthM),
+      lookupFailed,
+    };
+  });
 }
 
 // Deletes a regatta and everything hung off it (races, boats, results,

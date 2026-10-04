@@ -342,6 +342,17 @@ Everyone (juniors, college, masters):
       (each mark within a fraction of a second, also with a missed ping).
       GPS from a phone in the boat: for following along, not official
       times. Still to check: whether regattas allow phones in boats.
+- [x] Course markers along the water (2026-10-03, Todd): Course tab →
+      "Markers at 500 1000 2000 3000 4000 m" → "Place along the water"
+      (coaches and admins). The server gets the river's centerline near the
+      pins from OpenStreetMap (Overpass API; the browser can't, CSP) and
+      lays the markers that far along it (lib/riverPath.ts: joins the river
+      ways, snaps each pin within 250 m, shortest way along the water).
+      Straight line when there's no river there, the river is straight, or
+      the map can't be reached; distances past the finish are left out.
+      Coaches can still move any marker before saving. Not yet tried live:
+      check on Head of the Ohio (Herr's Island back channel could pull the
+      line the short way round).
 - [x] Master list of oars (2026-10-03, Admin → Oar tape; no migration,
       club_settings "oar_colors"): admins keep the club's tape colors
       (standard ones in a tap, or their own name + shade, e.g. "Neon green";

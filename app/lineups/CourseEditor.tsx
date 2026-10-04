@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 import { useState, useTransition } from "react";
-import { saveCourse } from "./actions";
+import { markersAlongWater, saveCourse } from "./actions";
+import { distanceM, parseDistances } from "@/lib/riverPath";
+import { unwrap } from "@/lib/userError";
 import {
   courseDistanceLabel,
-  markersAlongLine,
   parseCoordinates,
   type CourseMarker,
   type LatLng,
@@ -43,8 +44,10 @@ export function CourseEditor({
   const [start, setStart] = useState(savedStart);
   const [finish, setFinish] = useState(savedFinish);
   const [markers, setMarkers] = useState<CourseMarker[]>(savedMarkers);
-  const [raceLength, setRaceLength] = useState("2000");
-  const [every, setEvery] = useState("500");
+  const [distancesText, setDistancesText] = useState(
+    savedMarkers.length ? savedMarkers.map((m) => m.m).join(" ") : "500 1000 2000 3000 4000"
+  );
+  const [findingWater, startFindingWater] = useTransition();
   const [newMarker, setNewMarker] = useState("");
   const [placing, setPlacing] = useState<Which | null>(null);
   const [typing, setTyping] = useState<Which | null>(null);
@@ -71,16 +74,15 @@ export function CourseEditor({
     setMessage(null);
   }
 
-  // A new marker goes on the straight line at its share of the race length
-  // (or halfway if that's unknown), ready to tap into place.
+  // A new marker goes on the straight line that many metres from the start
+  // (halfway if that's past the finish), ready to tap into place.
   function addMarker() {
     const m = Math.round(Number(newMarker));
-    const length = Number(raceLength);
     if (!start || !finish) return setMessage("Set the start and finish first.");
     if (!Number.isFinite(m) || m <= 0) return setMessage("Enter how many metres from the start, e.g. 1000.");
-    if (Number.isFinite(length) && length > 0 && m >= length) return setMessage(`That's past the ${length} m finish.`);
     if (markers.some((x) => x.m === m)) return setMessage(`There's already a ${m} m marker.`);
-    const f = Number.isFinite(length) && length > 0 ? m / length : 0.5;
+    const length = distanceM(start, finish);
+    const f = length > m ? m / length : 0.5;
     const p = { lat: start.lat + (finish.lat - start.lat) * f, lng: start.lng + (finish.lng - start.lng) * f };
     setMarkers((cur) => [...cur, { m, ...p }].sort((a, b) => a.m - b.m));
     setNewMarker("");
@@ -88,14 +90,33 @@ export function CourseEditor({
     setMessage(`Added ${m} m on the straight line. Now tap the map where it really is.`);
   }
 
-  function fillMarkers() {
+  // Markers at each distance along the water between the pins (the river's
+  // line from OpenStreetMap), or the straight line where there's no river.
+  function placeAlongWater() {
     if (!start || !finish) return setMessage("Set the start and finish first.");
-    const length = Math.round(Number(raceLength));
-    const step = Math.round(Number(every));
-    if (!(length > 0) || !(step > 0) || step >= length) return setMessage("Enter the race length and a smaller gap, e.g. 2000 and 500.");
+    const distances = parseDistances(distancesText);
+    if (distances.length === 0) return setMessage("Enter the distances, e.g. 500 1000 2000 3000 4000.");
     if (markers.length && !confirm("Replace the markers you have with new ones?")) return;
-    setMarkers(markersAlongLine(start, finish, length, step));
-    setMessage("Markers laid on the straight line. On a bendy course, tap each one and then the map to move it.");
+    setMessage("Finding the river between your pins…");
+    startFindingWater(async () => {
+      try {
+        const r = unwrap(await markersAlongWater(start, finish, distances));
+        setMarkers(r.markers);
+        const skipped = distances.filter((d) => !r.markers.some((m) => m.m === d));
+        const len = r.lengthM >= 1000 ? `${(r.lengthM / 1000).toFixed(2)} km` : `${r.lengthM} m`;
+        setMessage(
+          (r.followsRiver
+            ? `Placed along the river (${len} start to finish).`
+            : r.lookupFailed
+              ? `Couldn't reach the river map, so these are on the straight line (${len}).`
+              : `No bend in the river here, so these are on the straight line (${len}).`) +
+            (skipped.length ? ` Left out ${skipped.join(", ")} m: past the finish.` : "") +
+            " Check them on the map, move any that are off, then Save course."
+        );
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Couldn't place the markers.");
+      }
+    });
   }
 
   function placeAtMyLocation(which: Which) {
@@ -230,29 +251,26 @@ export function CourseEditor({
         <div className="flex flex-col gap-2 rounded-lg border-2 border-gray-200 p-3">
           <span className="text-sm font-medium">Markers along the course</span>
           <span className="text-xs text-gray-500">
-            Pins like 500 / 1000 / 1500 m. While a boat&apos;s phone is tracking on On the Water, Race Day shows when it
-            passed each one.
+            Pins like 500 / 1000 / 2000 m. &quot;Place along the water&quot; follows the river between your start and
+            finish (straight where the river is). While a boat&apos;s phone is tracking on On the Water, Race Day shows
+            when it passed each one.
           </span>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span>Race</span>
+            <span>Markers at</span>
             <input
-              value={raceLength}
-              onChange={(e) => setRaceLength(e.target.value)}
-              inputMode="numeric"
-              className="w-20 border rounded px-2 py-1"
-              aria-label="Race length in metres"
-            />
-            <span>m, a marker every</span>
-            <input
-              value={every}
-              onChange={(e) => setEvery(e.target.value)}
-              inputMode="numeric"
-              className="w-16 border rounded px-2 py-1"
-              aria-label="Metres between markers"
+              value={distancesText}
+              onChange={(e) => setDistancesText(e.target.value)}
+              className="flex-1 min-w-40 border rounded px-2 py-1"
+              aria-label="Marker distances in metres"
             />
             <span>m</span>
-            <button type="button" onClick={fillMarkers} className={button(false)}>
-              Lay markers
+            <button
+              type="button"
+              onClick={placeAlongWater}
+              disabled={findingWater}
+              className={button(false) + " disabled:opacity-50"}
+            >
+              {findingWater ? "Finding the river…" : "Place along the water"}
             </button>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
